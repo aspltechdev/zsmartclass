@@ -184,10 +184,9 @@ async verifyResetOTP(data) {
 
     const { email, otp } = data;
 
-    const otpRecord = await prisma.oTP.findFirst({
+    const otpRecord = await prisma.passwordReset.findFirst({
         where: {
-            email,
-            purpose: "PASSWORD_RESET"
+            email
         }
     });
 
@@ -197,7 +196,7 @@ async verifyResetOTP(data) {
 
     if (otpRecord.expiresAt < new Date()) {
 
-        await prisma.oTP.delete({
+        await prisma.passwordReset.delete({
             where: {
                 id: otpRecord.id
             }
@@ -221,25 +220,69 @@ async resetPassword(data) {
 
     const { email, password } = data;
 
+    const user = await prisma.user.findUnique({
+        where: { email }
+    });
+
+    if (!user) {
+        throw new Error("User not found.");
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await prisma.user.update({
-        where: { email },
+        where: {
+            email
+        },
         data: {
             password: hashedPassword
         }
     });
 
-    await prisma.oTP.deleteMany({
+    await prisma.passwordReset.deleteMany({
         where: {
-            email,
-            purpose: "PASSWORD_RESET"
+            email
         }
     });
 
     return {
         success: true,
         message: "Password updated successfully."
+    };
+
+}
+
+async resendResetOTP(data) {
+
+    const { email } = data;
+
+    const user = await prisma.user.findUnique({
+        where: { email }
+    });
+
+    if (!user) {
+        throw new Error("User not found.");
+    }
+
+    await prisma.passwordReset.deleteMany({
+        where: { email }
+    });
+
+    const otp = generateOTP();
+
+    await prisma.passwordReset.create({
+        data: {
+            email,
+            otp,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+        }
+    });
+
+    await emailService.sendResetOTP(email, otp);
+
+    return {
+        success: true,
+        message: "OTP resent successfully."
     };
 
 }

@@ -13,16 +13,37 @@ enum UserRole {
   STUDENT
 }
 
-model User {
-  id              Int      @id @default(autoincrement())
-  name            String
-  email           String   @unique
-  password        String
-  role            UserRole @default(STUDENT)
-  emailVerified   Boolean  @default(true)
+enum OTPPurpose {
+  REGISTER
+  PASSWORD_RESET
+}
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+
+  name            String
+  email           String    @unique
+  password        String
+
+  role            UserRole  @default(STUDENT)
+
+  emailVerified   Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  coursesCreated  Course[]  @relation("CourseCreator")
+
+  enrollments     Enrollment[]
+  lessonProgress LessonProgress[]
+
+  reviews         Review[]
 }
 
 model PendingUser {
@@ -30,6 +51,7 @@ model PendingUser {
   name       String
   email      String   @unique
   password   String
+
   otp        String
   expiresAt  DateTime
 
@@ -38,27 +60,225 @@ model PendingUser {
 
 model PasswordReset {
   id         Int      @id @default(autoincrement())
-  email      String
+
+  email      String   @unique
+
   otp        String
+
   expiresAt  DateTime
 
   createdAt  DateTime @default(now())
-
-  @@unique([email])
-}
-
-enum OTPPurpose {
-  REGISTER
-  PASSWORD_RESET
 }
 
 model OTP {
   id         Int          @id @default(autoincrement())
+
   email      String
+
   otp        String
+
   purpose    OTPPurpose
+
   expiresAt  DateTime
-  createdAt  DateTime     @default(now())
+
+  createdAt  DateTime @default(now())
 
   @@index([email, purpose])
+}
+
+model Category {
+
+  id          Int      @id @default(autoincrement())
+
+  name        String   @unique
+
+  slug        String   @unique
+
+  description String?
+
+  image       String?
+
+  createdAt   DateTime @default(now())
+
+  updatedAt   DateTime @updatedAt
+
+  courses     Course[]
+
+}
+
+model Course {
+
+  id              Int      @id @default(autoincrement())
+
+  title           String
+
+  slug            String   @unique
+
+  subtitle        String?
+
+  description     String?  @db.Text
+
+  thumbnail       String?
+
+  trailer         String?
+
+  language        String
+
+  level           String
+
+  duration        Int
+
+  price           Float
+
+  discountPrice   Float?
+
+  requirements    String?  @db.Text
+
+  outcomes        String?  @db.Text
+
+  audience        String?  @db.Text
+
+  status          CourseStatus @default(DRAFT)
+
+  isFeatured      Boolean @default(false)
+
+  isPublished     Boolean @default(false)
+
+  categoryId      Int
+
+  category        Category @relation(fields: [categoryId], references: [id])
+
+  createdById     Int
+
+  createdBy       User @relation("CourseCreator", fields: [createdById], references: [id])
+
+  modules         CourseModule[]
+
+  enrollments     Enrollment[]
+
+  reviews         Review[]
+
+  createdAt       DateTime @default(now())
+
+  updatedAt       DateTime @updatedAt
+
+}
+
+model CourseModule {
+
+  id          Int @id @default(autoincrement())
+
+  title       String
+
+  description String?
+
+  position    Int
+
+  courseId    Int
+
+  course      Course @relation(fields: [courseId], references: [id])
+
+  lessons     Lesson[]
+
+  createdAt   DateTime @default(now())
+
+  updatedAt   DateTime @updatedAt
+
+}
+
+model Lesson {
+
+  id            Int       @id @default(autoincrement())
+
+  title         String
+
+  description   String?   @db.Text
+
+  videoType     String
+
+  videoUrl      String?
+
+  attachment    String?
+
+  duration      Int
+
+  position      Int
+
+  isPreview     Boolean   @default(false)
+
+  moduleId      Int
+
+  module        CourseModule @relation(fields: [moduleId], references: [id])
+
+  createdAt     DateTime  @default(now())
+
+  progress LessonProgress[]
+
+  updatedAt     DateTime  @updatedAt
+}
+
+model Enrollment {
+
+  id          Int @id @default(autoincrement())
+
+  userId      Int
+
+  courseId    Int
+
+  progress    Float @default(0)
+
+  completed   Boolean @default(false)
+
+  enrolledAt  DateTime @default(now())
+
+  user         User @relation(fields: [userId], references: [id])
+
+  course       Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+
+}
+
+model Review {
+
+  id          Int @id @default(autoincrement())
+
+  rating      Int
+
+  comment     String? @db.Text
+
+  createdAt   DateTime @default(now())
+
+  userId       Int
+
+  courseId     Int
+
+  user         User @relation(fields: [userId], references: [id])
+
+  course       Course @relation(fields: [courseId], references: [id])
+
+}
+
+
+
+model LessonProgress {
+
+  id           Int @id @default(autoincrement())
+
+  studentId    Int
+
+  lessonId     Int
+
+  completed    Boolean @default(false)
+
+  watchedAt    DateTime?
+
+  createdAt    DateTime @default(now())
+
+  student User @relation(fields:[studentId],references:[id])
+
+  lesson Lesson @relation(fields:[lessonId],references:[id])
+
+  @@unique([studentId, lessonId])
+
 }

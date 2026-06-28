@@ -151,3 +151,22 @@ exports.resetPassword = async (req, res) => {
     }
 
 };
+
+exports.resendResetOTP = async (req, res) => {
+
+    try {
+
+        const result = await authService.resendResetOTP(req.body);
+
+        res.json(result);
+
+    } catch (err) {
+
+        res.status(400).json({
+            success: false,
+            message: err.message
+        });
+
+    }
+
+};

@@ -7,7 +7,8 @@ const {
   login,
   forgotPassword,
   verifyResetOTP,
-  resetPassword
+  resetPassword,
+  resendResetOTP
 } = require("../controllers/auth.controller");
 
 router.post("/register", register);
@@ -22,6 +23,6 @@ router.post("/verify-reset-otp", verifyResetOTP);
 
 router.post("/reset-password", resetPassword);
 
-
+router.post("/reset-resend-otp", resendResetOTP);
 
 module.exports = router;
