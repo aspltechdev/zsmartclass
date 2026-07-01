@@ -43,7 +43,13 @@ model User {
   enrollments     Enrollment[]
   lessonProgress LessonProgress[]
 
+  payments Payment[]
+
+  notifications Notification[]
+
   reviews         Review[]
+certificates Certificate[]
+
 }
 
 model PendingUser {
@@ -156,11 +162,15 @@ model Course {
 
   enrollments     Enrollment[]
 
+  payments Payment[]
+
   reviews         Review[]
 
   createdAt       DateTime @default(now())
 
   updatedAt       DateTime @updatedAt
+
+  certificates Certificate[]
 
 }
 
@@ -237,6 +247,10 @@ model Enrollment {
 
   @@unique([userId, courseId])
 
+    certificateId   Int?
+
+  certificateNo   String?
+
 }
 
 model Review {
@@ -280,5 +294,101 @@ model LessonProgress {
   lesson Lesson @relation(fields:[lessonId],references:[id])
 
   @@unique([studentId, lessonId])
+
+}
+
+
+
+model Payment {
+
+  id          Int      @id @default(autoincrement())
+
+  orderId     String   @unique
+
+  paymentId   String?  @unique
+
+  signature   String?
+
+  studentId   Int
+
+  courseId    Int
+
+  amount      Float
+
+  currency    String   @default("INR")
+
+  status      String   @default("PENDING")
+
+  method      String?
+
+  createdAt   DateTime @default(now())
+
+  updatedAt   DateTime @updatedAt
+
+  student      User     @relation(fields: [studentId], references: [id])
+
+  course       Course   @relation(fields: [courseId], references: [id])
+}
+
+
+model Notification {
+
+  id          Int      @id @default(autoincrement())
+
+  title       String
+
+  message     String
+
+  type        String
+
+  isRead      Boolean  @default(false)
+
+  studentId   Int
+
+  createdAt   DateTime @default(now())
+
+  student User @relation(fields:[studentId],references:[id])
+
+}
+
+
+
+model Certificate {
+
+  id              Int      @id @default(autoincrement())
+
+  certificateNo   String   @unique
+
+  studentId       Int
+
+  courseId        Int
+
+  studentName     String
+
+  courseTitle     String
+
+  instructorName  String
+
+  status          String   @default("ACTIVE")
+
+  qrCodeUrl       String?
+
+  pdfUrl          String?
+
+  issueDate       DateTime @default(now())
+
+  revokedAt       DateTime?
+
+  revokeReason    String?
+
+  createdAt       DateTime @default(now())
+
+  updatedAt       DateTime @updatedAt
+
+  student User @relation(fields:[studentId],references:[id])
+
+  course Course @relation(fields:[courseId],references:[id])
+
+  @@unique([studentId,courseId])
 
 }

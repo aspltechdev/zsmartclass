@@ -73,4 +73,22 @@ const playerRoutes = require("./routes/player.routes");
 app.use("/api/player", playerRoutes);
 
 
+const paymentRoutes = require("./routes/payment.routes");
+
+app.use("/api/payment", paymentRoutes);
+
+const webhookRoutes = require("./routes/webhook.routes");
+
+app.use("/api/webhook", webhookRoutes);
+
+
+const notificationRoutes = require("./routes/notification.routes");
+
+app.use("/api/notifications", notificationRoutes);
+
+
+const certificateRoutes = require("./routes/certificate.routes");
+
+app.use("/api/certificates", certificateRoutes);
+
 module.exports = app;
