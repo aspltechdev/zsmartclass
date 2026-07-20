@@ -1,25 +1,11 @@
-// import { Navigate } from "react-router-dom";
-
-// function ProtectedRoute({ children }) {
-//   const token = localStorage.getItem("token");
-
-//   return token
-//     ? children
-//     : <Navigate to="/login" />;
-// }
-
-// export default ProtectedRoute;
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-
-function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+﻿import { Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+function ProtectedRoute({ children, roles = [] }) {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to='/login' replace />;
+  if (roles.length > 0 && user && !roles.includes(user.role)) {
+    return <Navigate to='/dashboard' replace />;
   }
-
   return children;
 }
-
 export default ProtectedRoute;

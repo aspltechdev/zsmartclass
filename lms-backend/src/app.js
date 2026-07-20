@@ -91,4 +91,8 @@ const certificateRoutes = require("./routes/certificate.routes");
 
 app.use("/api/certificates", certificateRoutes);
 
+const userRoutes = require("./routes/user.routes");
+
+app.use("/api/users", userRoutes);
+
 module.exports = app;
