@@ -2,8 +2,20 @@ const express = require("express");
 const router = express.Router();
 
 const notificationController = require("../controllers/notification.controller");
-
 const authMiddleware = require("../middleware/auth.middleware");
+
+// ==========================================
+// ADMIN ROUTE - Get all notifications
+// ==========================================
+router.get(
+    "/admin",
+    authMiddleware,
+    notificationController.getAllNotifications
+);
+
+// ==========================================
+// USER ROUTES - Get user's own notifications
+// ==========================================
 
 // Create Notification
 router.post(
@@ -12,7 +24,7 @@ router.post(
     notificationController.create
 );
 
-// Get My Notifications
+// Get My Notifications (for current user only)
 router.get(
     "/",
     authMiddleware,

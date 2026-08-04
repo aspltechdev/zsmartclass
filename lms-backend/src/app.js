@@ -75,7 +75,7 @@ app.use("/api/player", playerRoutes);
 
 const paymentRoutes = require("./routes/payment.routes");
 
-app.use("/api/payment", paymentRoutes);
+app.use("/api/payments", paymentRoutes);
 
 const webhookRoutes = require("./routes/webhook.routes");
 
@@ -94,5 +94,13 @@ app.use("/api/certificates", certificateRoutes);
 const userRoutes = require("./routes/user.routes");
 
 app.use("/api/users", userRoutes);
+
+const reportRoutes = require("./routes/report.routes");
+
+app.use("/api/reports", reportRoutes);
+
+const settingsRoutes = require("./routes/settings.routes");
+
+app.use("/api/settings", settingsRoutes);
 
 module.exports = app;

@@ -95,20 +95,27 @@ import VerifyResetOTP from "./pages/auth/VerifyResetOTP";
 import ProtectedRoute from "./ProtectedRoute";
 
 // Student Pages
-import StudentDashboard from "./pages/student/Dashboard";
-import MyCourses from "./pages/student/MyCourses";
-import CoursePlayer from "./pages/student/CoursePlayer";
-import Certificates from "./pages/student/Certificates";
-import Notifications from "./pages/student/Notifications";
-import Payments from "./pages/student/Payments";
-import Profile from "./pages/student/Profile";
+import StudentDashboard from "./pages/student/StudentDashboard";
+import StudentCourses from "./pages/student/StudentCourses";
+import StudentCourseDetail from "./pages/student/StudentCourseDetail";
+import StudentMyCourses from "./pages/student/Studentmycourses";
+import StudentCertificates from "./pages/student/StudentCertificates";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminCourses from "./pages/admin/Courses";
-import AdminUsers from "./pages/admin/Users";
-import AdminPayments from "./pages/admin/Payments";
-import AdminCertificates from "./pages/admin/Certificates";
+import AdminCourses from "./pages/admin/AdminCourses";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminPayments from "./pages/admin/AdminPayments";
+import AdminCertificates from "./pages/admin/AdminCertificates";
+import AdminModules from "./pages/admin/AdminModules";
+import AdminEnrollments from "./pages/admin/AdminEnrollments";
+import AdminLessons from "./pages/admin/AdminLessons";
+import AdminNotifications from "./pages/admin/AdminNotifications";
+//import AdminReviews from "./pages/admin/AdminReviews";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminCoupons from "./pages/admin/AdminCoupons";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminProfile from "./pages/admin/AdminProfile";
 
 // Mentor Pages
 import MentorDashboard from "./pages/mentor/Dashboard";
@@ -148,12 +155,10 @@ function AppRoutes() {
         >
           <Route index element={<Navigate to="dashboard" />} />
           <Route path="dashboard" element={<StudentDashboard />} />
-          <Route path="my-courses" element={<MyCourses />} />
-          <Route path="course/:courseId" element={<CoursePlayer />} />
-          <Route path="certificates" element={<Certificates />} />
-          <Route path="notifications" element={<Notifications />} />
-          <Route path="payments" element={<Payments />} />
-          <Route path="profile" element={<Profile />} />
+          <Route path="courses" element={<StudentCourses />} />
+          <Route path="courses/:courseId" element={<StudentCourseDetail />} />
+          <Route path="my-courses" element={<StudentMyCourses />} />
+          <Route path="certificates" element={<StudentCertificates />} />
         </Route>
 
  
@@ -171,7 +176,16 @@ function AppRoutes() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="payments" element={<AdminPayments />} />
           <Route path="categories" element ={<AdminCategories/>}/>
-          <Route path="certificates" element={<AdminCertificates />} />
+          <Route path="/admin/certificates" element={<AdminCertificates />} />
+          <Route path="/admin/modules" element={<AdminModules />} />
+          <Route path="/admin/enrollments" element={<AdminEnrollments />} />
+          <Route path="/admin/lessons" element={<AdminLessons />} />
+          <Route path="/admin/notifications" element={<AdminNotifications />} />
+          {/*<Route path="/admin/reviews" element={<AdminReviews />} />*/}
+          <Route path="/admin/reports" element={<AdminReports />} />
+          <Route path="/admin/coupons" element={<AdminCoupons />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route path="/admin/profile" element={<AdminProfile />} />
         </Route>
 
         {/* ========================================== */}

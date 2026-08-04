@@ -152,25 +152,38 @@ exports.getById = async (req, res) => {
 
 // };
 
-
+// controllers/course.controller.js
 exports.update = async (req, res) => {
-
     try {
+        console.log("📥 Incoming update request for ID:", req.params.id);
+        console.log("📥 Body:", JSON.stringify(req.body, null, 2));
 
-        const data = {
-            ...req.body
-        };
+        // Clean the data before sending to service
+        const cleanData = { ...req.body };
+
+        // Remove any undefined values
+        Object.keys(cleanData).forEach(key => {
+            if (cleanData[key] === undefined) {
+                delete cleanData[key];
+            }
+        });
+
+        // Handle discountPrice - if it's "0", send as null
+        if (cleanData.discountPrice !== undefined) {
+            if (cleanData.discountPrice === "" || 
+                cleanData.discountPrice === "0" || 
+                cleanData.discountPrice === 0) {
+                cleanData.discountPrice = null;
+            }
+        }
 
         if (req.file) {
-
-            data.thumbnail =
-                "/uploads/thumbnails/" + req.file.filename;
-
+            cleanData.thumbnail = "/uploads/thumbnails/" + req.file.filename;
         }
 
         const result = await courseService.update(
             req.params.id,
-            data
+            cleanData
         );
 
         res.json({
@@ -179,15 +192,17 @@ exports.update = async (req, res) => {
         });
 
     } catch (err) {
-
+        console.error("❌ Update error details:");
+        console.error("Error:", err);
+        console.error("Stack:", err.stack);
+        
         res.status(400).json({
             success: false,
             message: err.message
         });
-
     }
-
 };
+
 
 exports.delete = async (req, res) => {
 

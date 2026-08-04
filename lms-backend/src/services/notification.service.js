@@ -104,6 +104,24 @@ class NotificationService {
 
     }
 
+    async getAllNotifications() {
+        return await prisma.notification.findMany({
+            include: {
+                student: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true,
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+    }
+
     async delete(id) {
 
         await prisma.notification.delete({

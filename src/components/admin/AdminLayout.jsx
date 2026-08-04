@@ -1,29 +1,40 @@
-﻿import { Outlet } from "react-router-dom";
-
-import AdminHeader from "./AdminHeader";
+﻿// src/components/admin/AdminLayout.jsx
+import { useState } from "react";
+import { Outlet } from "react-router-dom";
+import AdminHeader from "./AdminHeader";  // Fix: Use "./" not "../components/admin/"
+import AdminSidebar from "./AdminSidebar"; // Fix: Use "./" not "../components/admin/"
 import "./AdminLayout.css";
-import AdminSidebar from "./AdminSidebar";
 
 function AdminLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const toggleMobileSidebar = () => {
+    setMobileSidebarOpen(!mobileSidebarOpen);
+  };
+
   return (
     <div className="admin-layout">
-
-      {/* Sidebar */}
-      <AdminSidebar />
-
-      {/* Right Section */}
-      <div className="admin-main">
-
-        {/* Header */}
-        <AdminHeader />
-
-        {/* Page Content */}
-        <main className="admin-content">
+      <AdminSidebar 
+        isOpen={sidebarOpen} 
+        isMobileOpen={mobileSidebarOpen}
+        toggleMobile={toggleMobileSidebar}
+      />
+      <div className={`admin-main ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+        <AdminHeader 
+          toggleSidebar={toggleSidebar} 
+          toggleMobileSidebar={toggleMobileSidebar}
+          sidebarOpen={sidebarOpen}
+          onToggleMobile={toggleMobileSidebar}
+        />
+        <div className="admin-content">
           <Outlet />
-        </main>
-
+        </div>
       </div>
-
     </div>
   );
 }

@@ -1,3 +1,4 @@
+// src/routes/certificate.routes.js
 const express = require("express");
 const router = express.Router();
 
@@ -7,7 +8,60 @@ const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
 // ==========================================
-// Generate Certificate
+// ADMIN ROUTES
+// ==========================================
+
+router.get(
+    "/admin/all",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    certificateController.getAllCertificatesAdmin
+);
+
+router.get(
+    "/admin/pending",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    certificateController.getPendingCertificatesAdmin
+);
+
+router.put(
+    "/admin/:id/approve",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    certificateController.approveCertificate
+);
+
+router.put(
+    "/admin/:id/reject",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    certificateController.rejectCertificate
+);
+
+router.delete(
+    "/admin/:id",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    certificateController.deleteCertificateAdmin
+);
+
+router.get(
+    "/admin/templates/:courseId",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    certificateController.getTemplate
+);
+
+router.put(
+    "/admin/templates/:courseId",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    certificateController.upsertTemplate
+);
+
+// ==========================================
+// Generate Certificate (student)
 // ==========================================
 router.post(
     "/generate/:courseId",
@@ -17,10 +71,10 @@ router.post(
 );
 
 // ==========================================
-// Get My Certificate
+// Get My Certificate (student)
 // ==========================================
 router.get(
-    "/:courseId",
+    "/my-certificates",
     authMiddleware,
     roleMiddleware("STUDENT"),
     certificateController.getCertificate
