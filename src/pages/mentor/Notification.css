@@ -1,0 +1,124 @@
+.mentor-notification {
+    width: 100%;
+    padding: 10px;
+}
+
+/* ================= HEADER ================= */
+
+.notification-header {
+    margin-bottom: 30px;
+}
+
+.notification-header h1 {
+    font-size: 34px;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.notification-header p {
+    color: #6b7280;
+    font-size: 15px;
+}
+
+/* ================= CARD ================= */
+
+.notification-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 35px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    max-width: 700px;
+}
+
+/* ================= LABEL ================= */
+
+.notification-card label {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+    margin-top: 18px;
+    margin-bottom: 8px;
+}
+
+/* ================= INPUTS ================= */
+
+.notification-card input,
+.notification-card select,
+.notification-card textarea {
+    width: 100%;
+    padding: 13px 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+    transition: 0.3s;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.notification-card textarea {
+    resize: vertical;
+    min-height: 140px;
+}
+
+.notification-card input:focus,
+.notification-card select:focus,
+.notification-card textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+/* ================= SEND BUTTON ================= */
+
+.send-btn {
+    width: 100%;
+    margin-top: 30px;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.send-btn:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+}
+
+.send-btn:active {
+    transform: scale(0.98);
+}
+
+/* ================= SUCCESS MESSAGE ================= */
+
+.success-message {
+    margin-top: 20px;
+    padding: 14px;
+    background: #dcfce7;
+    color: #166534;
+    border-radius: 10px;
+    border: 1px solid #86efac;
+    font-weight: 600;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 768px) {
+
+    .notification-card {
+        padding: 22px;
+    }
+
+    .notification-header h1 {
+        font-size: 28px;
+    }
+
+    .send-btn {
+        font-size: 15px;
+    }
+}
