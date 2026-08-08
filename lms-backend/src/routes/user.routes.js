@@ -5,10 +5,11 @@ const router = express.Router();
 const userController = require("../controllers/user.controller");
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
+const upload = require("../middleware/upload.middleware");
 
 // All routes require authentication and ADMIN role
 router.use(authMiddleware);
-router.use(roleMiddleware("ADMIN"));
+router.use(roleMiddleware("ADMIN", "MENTOR"));
 
 // ==========================================
 // User CRUD Operations
@@ -24,6 +25,22 @@ router.post(
 router.get(
   "/",
   userController.getAllUsers
+);
+
+// Get Current User Profile (Self)
+router.get(
+  "/me",
+  userController.getCurrentUser
+);
+
+// Update Profile (Self)
+// upload.single("profileImage") parses the multipart/form-data body
+// (text fields + optional "profileImage" file) into req.body / req.file
+// before the controller/service ever touch it.
+router.put(
+  "/update-profile",
+  upload.single("profileImage"),
+  userController.updateUser
 );
 
 // Get single user by ID

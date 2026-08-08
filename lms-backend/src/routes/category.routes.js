@@ -12,18 +12,18 @@ router.get("/", categoryController.getAll);
 
 router.get("/:id", categoryController.getById);
 
-// Protected Routes (Admin Only)
+// Protected Routes (Admin & Mentor Only)
 router.post(
     "/",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN","MENTOR"),
     categoryController.create
 );
 
 router.put(
     "/:id",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN","MENTOR"),
     categoryController.update
 );
 

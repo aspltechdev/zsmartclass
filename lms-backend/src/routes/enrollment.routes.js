@@ -199,7 +199,7 @@ router.delete(
 router.get(
     "/admin/all",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN","MENTOR"),
     async (req, res) => {
         try {
             console.log("📊 Admin fetching all enrollments...");
@@ -255,7 +255,7 @@ router.get(
 router.get(
     "/admin/:id",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN","MENTOR"),
     async (req, res) => {
         try {
             const enrollment = await prisma.enrollment.findUnique({

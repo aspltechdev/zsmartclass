@@ -615,7 +615,6 @@
 
 // module.exports = new UserService();
 
-
 // src/services/user.service.js
 const prisma = require("../config/prisma");
 const bcrypt = require("bcryptjs");
@@ -850,11 +849,12 @@ class UserService {
     return user;
   }
 
-  /**
+    /**
    * Update user
    */
   async updateUser(userId, updateData) {
-    const { name, email, role } = updateData;
+    // Destructure the exact fields sent from frontend
+    const { name, email, role, expertise, bio, socialLink, profileImage } = updateData;
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -890,11 +890,16 @@ class UserService {
       }
     }
 
-    // Build update data
+    // 🛡️ CRITICAL FIX: Map Frontend names to exact Database column names
     const data = {};
     if (name) data.name = name.trim();
     if (email) data.email = email.toLowerCase().trim();
     if (role) data.role = role;
+    if (expertise !== undefined) data.expertise = expertise;
+    if (bio !== undefined) data.bio = bio;
+    // MAPPING: socialLink (frontend) -> social_links (database)
+    if (socialLink !== undefined) data.social_links = socialLink; 
+    if (profileImage !== undefined) data.profileImage = profileImage;
 
     // Update user
     const updatedUser = await prisma.user.update({
@@ -907,7 +912,11 @@ class UserService {
         role: true,
         emailVerified: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        expertise: true,
+        bio: true,
+        social_links: true, // Make sure we return this
+        profileImage: true,
       }
     });
 

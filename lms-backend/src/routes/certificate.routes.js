@@ -14,21 +14,21 @@ const roleMiddleware = require("../middleware/role.middleware");
 router.get(
     "/admin/all",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN","MENTOR"),
     certificateController.getAllCertificatesAdmin
 );
 
 router.get(
     "/admin/pending",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN","MENTOR"),
     certificateController.getPendingCertificatesAdmin
 );
 
 router.put(
     "/admin/:id/approve",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN","MENTOR"),
     certificateController.approveCertificate
 );
 

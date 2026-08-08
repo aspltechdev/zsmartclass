@@ -7,40 +7,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  ADMIN
-  MENTOR
-  STUDENT
-}
-
-enum OTPPurpose {
-  REGISTER
-  PASSWORD_RESET
-}
-
-enum CourseStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
 model User {
-  id            Int      @id @default(autoincrement())
-  name          String
-  email         String   @unique
-  password      String
-  role          UserRole @default(STUDENT)
-  emailVerified Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
+  id             Int              @id @default(autoincrement())
+  name           String
+  email          String           @unique
+  password       String
+  createdAt      DateTime         @default(now())
+  emailVerified  Boolean          @default(false)
+  updatedAt      DateTime         @updatedAt
+  role           UserRole         @default(STUDENT)
+  expertise      String?
+  bio            String?
+  social_links   String?
+  profileImage   String?
+  certificates   Certificate[]
   coursesCreated Course[]         @relation("CourseCreator")
   enrollments    Enrollment[]
   lessonProgress LessonProgress[]
-  payments       Payment[]
   notifications  Notification[]
+  payments       Payment[]
   reviews        Review[]
-  certificates   Certificate[]
 }
 
 model PendingUser {
@@ -84,103 +70,98 @@ model Category {
 }
 
 model Course {
-  id            Int          @id @default(autoincrement())
-  title         String
-  slug          String       @unique
-  subtitle      String?
-  description   String?      @db.Text
-  thumbnail     String?
-  trailer       String?
-  language      String
-  level         String
-  duration      Int
-  price         Float
-  discountPrice Float?
-  requirements  String?      @db.Text
-  outcomes      String?      @db.Text
-  audience      String?      @db.Text
-  status        CourseStatus @default(DRAFT)
-  isFeatured    Boolean      @default(false)
-  isPublished   Boolean      @default(false)
-  categoryId    Int
-  createdById   Int
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
+  id                  Int                  @id @default(autoincrement())
+  title               String
+  slug                String               @unique
+  subtitle            String?
+  description         String?
+  thumbnail           String?
+  trailer             String?
+  price               Float
+  discountPrice       Float?
+  duration            Int
+  level               String
+  language            String
+  categoryId          Int
+  createdById         Int
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  audience            String?
+  isFeatured          Boolean              @default(false)
+  isPublished         Boolean              @default(false)
+  outcomes            String?
+  requirements        String?
+  status              CourseStatus         @default(DRAFT)
+  certificates        Certificate[]
+  certificateTemplate CertificateTemplate?
   category            Category             @relation(fields: [categoryId], references: [id])
   createdBy           User                 @relation("CourseCreator", fields: [createdById], references: [id])
   modules             CourseModule[]
   enrollments         Enrollment[]
   payments            Payment[]
   reviews             Review[]
-  certificates        Certificate[]
-  certificateTemplate CertificateTemplate?
 }
 
 model CourseModule {
   id          Int      @id @default(autoincrement())
   title       String
-  description String?
   position    Int
   courseId    Int
   createdAt   DateTime @default(now())
+  description String?
   updatedAt   DateTime @updatedAt
-
-  course  Course   @relation(fields: [courseId], references: [id])
-  lessons Lesson[]
+  course      Course   @relation(fields: [courseId], references: [id])
+  lessons     Lesson[]
 }
 
 model Lesson {
-  id          Int      @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   title       String
-  description String?  @db.Text
-  videoType   String
+  description String?
   videoUrl    String?
-  attachment  String?
   duration    Int
   position    Int
-  isPreview   Boolean  @default(false)
   moduleId    Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  module   CourseModule     @relation(fields: [moduleId], references: [id])
-  progress LessonProgress[]
+  attachment  String?
+  createdAt   DateTime         @default(now())
+  isPreview   Boolean          @default(false)
+  updatedAt   DateTime         @updatedAt
+  videoType   String
+  module      CourseModule     @relation(fields: [moduleId], references: [id])
+  progress    LessonProgress[]
 }
 
 model Enrollment {
-  id            Int      @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   userId        Int
   courseId      Int
-  progress      Float    @default(0)
-  completed     Boolean  @default(false)
-  enrolledAt    DateTime @default(now())
-  certificateId Int?     @unique
+  progress      Float        @default(0)
+  completed     Boolean      @default(false)
+  enrolledAt    DateTime     @default(now())
+  certificateId Int?         @unique
   certificateNo String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user        User         @relation(fields: [userId], references: [id])
-  course      Course       @relation(fields: [courseId], references: [id])
-  certificate Certificate? @relation(fields: [certificateId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  certificate   Certificate? @relation(fields: [certificateId], references: [id])
+  course        Course       @relation(fields: [courseId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
 
   @@unique([userId, courseId])
 }
 
 model Review {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   rating    Int
-  comment   String?  @db.Text
+  comment   String?
+  createdAt DateTime  @default(now())
   userId    Int
   courseId  Int
-  isRead    Boolean  @default(false)
-  reply     String?  @db.Text
+  isRead    Boolean   @default(false)
   repliedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id])
-  course Course @relation(fields: [courseId], references: [id])
+  reply     String?
+  updatedAt DateTime  @default(now())
+  course    Course    @relation(fields: [courseId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
 }
 
 model LessonProgress {
@@ -190,9 +171,8 @@ model LessonProgress {
   completed Boolean   @default(false)
   watchedAt DateTime?
   createdAt DateTime  @default(now())
-
-  student User   @relation(fields: [studentId], references: [id])
-  lesson  Lesson @relation(fields: [lessonId], references: [id])
+  lesson    Lesson    @relation(fields: [lessonId], references: [id])
+  student   User      @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, lessonId])
 }
@@ -210,9 +190,8 @@ model Payment {
   method    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  student User   @relation(fields: [studentId], references: [id])
-  course  Course @relation(fields: [courseId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id])
 }
 
 model Notification {
@@ -223,31 +202,28 @@ model Notification {
   isRead    Boolean  @default(false)
   studentId Int
   createdAt DateTime @default(now())
-
-  student User @relation(fields: [studentId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id])
 }
 
 model Certificate {
-  id             Int       @id @default(autoincrement())
-  certificateNo  String    @unique
+  id             Int         @id @default(autoincrement())
+  certificateNo  String      @unique
   studentId      Int
   courseId       Int
-  studentName    String
+  pdfUrl         String?
   courseTitle    String
+  createdAt      DateTime    @default(now())
   instructorName String
   issueDate      DateTime
-  status         String    @default("PENDING")
   qrCodeUrl      String?
-  pdfUrl         String?
-  revokedAt      DateTime?
   revokeReason   String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  student    User        @relation(fields: [studentId], references: [id])
-  course     Course      @relation(fields: [courseId], references: [id])
-  // Remove the enrollment relation from here - it's defined on Enrollment side
-  Enrollment Enrollment?
+  revokedAt      DateTime?
+  status         String      @default("PENDING")
+  studentName    String
+  updatedAt      DateTime    @updatedAt
+  course         Course      @relation(fields: [courseId], references: [id])
+  student        User        @relation(fields: [studentId], references: [id])
+  Enrollment     Enrollment?
 }
 
 model CertificateTemplate {
@@ -262,12 +238,28 @@ model CertificateTemplate {
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
-  course Course @relation(fields: [courseId], references: [id])
+  course          Course   @relation(fields: [courseId], references: [id])
 }
 
 model Settings {
   id        Int      @id @default(1)
   data      Json
   updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  MENTOR
+  STUDENT
+}
+
+enum OTPPurpose {
+  REGISTER
+  PASSWORD_RESET
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }

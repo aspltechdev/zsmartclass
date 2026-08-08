@@ -12,6 +12,7 @@ const createFolder = (folder) => {
 createFolder("uploads/thumbnails");
 createFolder("uploads/resources");
 createFolder("uploads/documents");
+createFolder("uploads/profile-images");
 
 const storage = multer.diskStorage({
 
@@ -22,6 +23,9 @@ const storage = multer.diskStorage({
         }
         else if (file.fieldname === "resource") {
             cb(null, "uploads/resources");
+        }
+        else if (file.fieldname === "profileImage") {
+            cb(null, "uploads/profile-images");
         }
         else {
             cb(null, "uploads/documents");
@@ -45,16 +49,19 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
 
-    const imageTypes = /jpg|jpeg|png|webp/;
-
     const documentTypes =
         /pdf|doc|docx|ppt|pptx|xls|xlsx|zip|rar/;
 
     const ext = path.extname(file.originalname).toLowerCase();
 
+    // Images: trust the browser-reported MIME type rather than the
+    // filename extension. Extension checks break on files with no
+    // extension, an uppercase extension, or generic names like "blob"/
+    // "image" (common with pasted or drag-dropped images) even though
+    // the file is a perfectly valid image.
     if (
-        file.fieldname === "thumbnail" &&
-        imageTypes.test(ext)
+        (file.fieldname === "thumbnail" || file.fieldname === "profileImage") &&
+        file.mimetype.startsWith("image/")
     ) {
         return cb(null, true);
     }

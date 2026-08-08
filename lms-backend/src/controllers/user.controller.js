@@ -65,7 +65,32 @@ exports.getUserById = async (req, res) => {
 // ==========================================
 exports.updateUser = async (req, res) => {
   try {
-    const user = await userService.updateUser(req.params.id, req.body);
+    let userId;
+
+    // If the request is coming from /update-profile (no ID in URL), use the logged-in user's ID
+    if (req.path === '/update-profile' || !req.params.id) {
+      userId = req.user.id;
+    } else {
+      userId = parseInt(req.params.id);
+    }
+
+    // multer parses multipart/form-data fields into req.body, but if a
+    // request somehow reaches here with no body at all (e.g. wrong
+    // Content-Type, no middleware ran), fall back to {} instead of
+    // crashing the destructure in the service layer.
+    const updateData = { ...(req.body || {}) };
+
+    // If a new photo was uploaded, attach its public URL so it gets saved
+    // on the user record alongside the text fields. We build a full
+    // absolute URL (not just the path) because the frontend runs on a
+    // different origin/port than this API — a relative path like
+    // "/uploads/..." would resolve against the frontend's own origin and
+    // 404 instead of pointing back at this server.
+    if (req.file) {
+      updateData.profileImage = `${req.protocol}://${req.get("host")}/uploads/profile-images/${req.file.filename}`;
+    }
+
+    const user = await userService.updateUser(userId, updateData);
 
     res.status(200).json({
       success: true,
@@ -93,6 +118,29 @@ exports.deleteUser = async (req, res) => {
     });
   } catch (err) {
     res.status(err.statusCode || 400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+// ==========================================
+// Get Current User (Self)
+// ==========================================
+exports.getCurrentUser = async (req, res) => {
+  try {
+    // req.user is already populated by your authMiddleware!
+    const user = req.user;
+
+    // Remove password before sending to frontend
+    const { password, ...safeUser } = user;
+
+    res.status(200).json({
+      success: true,
+      data: safeUser
+    });
+  } catch (err) {
+    res.status(500).json({
       success: false,
       message: err.message
     });
