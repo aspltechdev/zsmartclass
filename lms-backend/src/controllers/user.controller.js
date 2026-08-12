@@ -2,7 +2,7 @@
 const userService = require("../services/user.service");
 
 // ==========================================
-// Create User
+// Create User (Uses invitation flow)
 // ==========================================
 exports.createUser = async (req, res) => {
   try {
@@ -10,13 +10,109 @@ exports.createUser = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "User created successfully",
+      message: user.isActive ? "User created successfully" : "Invitation sent successfully! User will receive an email to set up their account.",
       data: user
     });
   } catch (err) {
     res.status(err.statusCode || 400).json({
       success: false,
       message: err.message
+    });
+  }
+};
+
+// ==========================================
+// Check Invitation Token (PUBLIC)
+// ==========================================
+exports.checkInvitation = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const user = await userService.checkInvitation(token);
+
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({
+      success: false,
+      message: err.message || "Invalid or expired invitation token"
+    });
+  }
+};
+
+// ==========================================
+// Verify Invitation & Set Password (PUBLIC)
+// ==========================================
+exports.verifyInvitation = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Token and password are required"
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters"
+      });
+    }
+
+    const user = await userService.verifyInvitation(token, password);
+
+    const jwt = require("jsonwebtoken");
+    const authToken = jwt.sign(
+      { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Account activated successfully!",
+      data: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        },
+        token: authToken
+      }
+    });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({
+      success: false,
+      message: err.message || "Failed to verify invitation"
+    });
+  }
+};
+
+// ==========================================
+// Resend Invitation (ADMIN only)
+// ==========================================
+exports.resendInvitation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await userService.resendInvitation(parseInt(id));
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result.user
+    });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({
+      success: false,
+      message: err.message || "Failed to resend invitation"
     });
   }
 };
@@ -67,25 +163,14 @@ exports.updateUser = async (req, res) => {
   try {
     let userId;
 
-    // If the request is coming from /update-profile (no ID in URL), use the logged-in user's ID
     if (req.path === '/update-profile' || !req.params.id) {
       userId = req.user.id;
     } else {
       userId = parseInt(req.params.id);
     }
 
-    // multer parses multipart/form-data fields into req.body, but if a
-    // request somehow reaches here with no body at all (e.g. wrong
-    // Content-Type, no middleware ran), fall back to {} instead of
-    // crashing the destructure in the service layer.
     const updateData = { ...(req.body || {}) };
 
-    // If a new photo was uploaded, attach its public URL so it gets saved
-    // on the user record alongside the text fields. We build a full
-    // absolute URL (not just the path) because the frontend runs on a
-    // different origin/port than this API — a relative path like
-    // "/uploads/..." would resolve against the frontend's own origin and
-    // 404 instead of pointing back at this server.
     if (req.file) {
       updateData.profileImage = `${req.protocol}://${req.get("host")}/uploads/profile-images/${req.file.filename}`;
     }
@@ -114,7 +199,8 @@ exports.deleteUser = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: result.message
+      message: result.message,
+      data: result.deletedUser
     });
   } catch (err) {
     res.status(err.statusCode || 400).json({
@@ -129,10 +215,7 @@ exports.deleteUser = async (req, res) => {
 // ==========================================
 exports.getCurrentUser = async (req, res) => {
   try {
-    // req.user is already populated by your authMiddleware!
     const user = req.user;
-
-    // Remove password before sending to frontend
     const { password, ...safeUser } = user;
 
     res.status(200).json({
@@ -141,6 +224,42 @@ exports.getCurrentUser = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+// ==========================================
+// Change Password (Self)
+// ==========================================
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password and new password are required"
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 6 characters"
+      });
+    }
+
+    const result = await userService.changePassword(userId, currentPassword, newPassword);
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({
       success: false,
       message: err.message
     });

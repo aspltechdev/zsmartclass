@@ -536,21 +536,43 @@
   gap: 4px;
 }
 
-.view-detail-item input{
-  border: 1px solid #0f0f1a;
-  border-radius: 3px;
-  height: 35px;
-  width: auto;
-  padding: 5px;
+.view-detail-item input {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  height: 38px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #1a1a2e;
+  transition: all 0.2s ease;
+  background: #ffffff;
 }
 
-.view-detail-item textarea{
-  border: 1px solid #0f0f1a;
-  border-radius: 3px;
+.view-detail-item input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.view-detail-item textarea {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   height: 75px;
-  width: 250px;
-  overflow-y: scroll;
-  padding: 5px;
+  width: 100%;
+  overflow-y: auto;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #1a1a2e;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s ease;
+  background: #ffffff;
+}
+
+.view-detail-item textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .view-detail-item.full-width {
@@ -662,7 +684,113 @@
 }
 
 /* ========================================== */
-/* Category Image Preview */
+/* FILE UPLOAD - Category Image */
+/* ========================================== */
+.file-upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.file-upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.file-upload-label:hover {
+  background: #f1f5f9;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.file-upload-label svg {
+  flex-shrink: 0;
+}
+
+.field-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 6px 0 0 0;
+}
+
+/* ========================================== */
+/* IMAGE PREVIEW */
+/* ========================================== */
+.image-preview-container {
+  position: relative;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.image-preview {
+  max-width: 200px;
+  max-height: 120px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.remove-image-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* ========================================== */
+/* VIEW IMAGE - In View Modal */
+/* ========================================== */
+.view-image-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 4px 0;
+}
+
+.view-image {
+  max-width: 250px;
+  max-height: 150px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.no-image-text {
+  color: #94a3b8;
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* ========================================== */
+/* Category Image Preview (Table) */
 /* ========================================== */
 .category-image-preview {
   margin-top: 4px;
@@ -729,7 +857,7 @@
 /* ========================================== */
 .btn-cancel {
   flex: 1;
-  padding: 10px 20px;
+  padding: 12px 24px;
   background: #f1f5f9;
   color: #64748b;
   border: 1px solid #e2e8f0;
@@ -746,7 +874,7 @@
 
 .btn-save {
   flex: 2;
-  padding: 10px 20px;
+  padding: 12px 24px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #ffffff;
   border: none;
@@ -772,8 +900,8 @@
 }
 
 .btn-danger {
-  flex: 1;
-  padding: 10px 20px;
+  flex: 2;
+  padding: 12px 24px;
   background: #ef4444;
   color: #ffffff;
   border: none;
@@ -1115,6 +1243,19 @@
     color: #e2e8f0;
   }
 
+  .view-detail-item input,
+  .view-detail-item textarea {
+    background: #16213e;
+    border-color: #2d2d44;
+    color: #e2e8f0;
+  }
+
+  .view-detail-item input:focus,
+  .view-detail-item textarea:focus {
+    border-color: #667eea;
+    background: #1a1a2e;
+  }
+
   .view-body::-webkit-scrollbar-track {
     background: #16213e;
   }
@@ -1171,6 +1312,47 @@
   .edit-form .view-detail-item input.error:focus,
   .edit-form .view-detail-item textarea.error:focus {
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  }
+
+  /* Image Upload Dark */
+  .file-upload-label {
+    background: #16213e;
+    border-color: #2d2d44;
+    color: #94a3b8;
+  }
+
+  .file-upload-label:hover {
+    background: #1a1a2e;
+    border-color: #667eea;
+    color: #818cf8;
+  }
+
+  .image-preview {
+    border-color: #2d2d44;
+  }
+
+  .remove-image-btn {
+    background: #16213e;
+    border-color: #2d2d44;
+    color: #94a3b8;
+  }
+
+  .remove-image-btn:hover {
+    background: #450a0a;
+    color: #f87171;
+    border-color: #7f1d1d;
+  }
+
+  .view-image {
+    border-color: #2d2d44;
+  }
+
+  .no-image-text {
+    color: #64748b;
+  }
+
+  .field-hint {
+    color: #64748b;
   }
 
   .category-image-preview img {
@@ -1285,6 +1467,22 @@
   .view-modal .btn-edit,
   .view-modal .btn-danger {
     width: 100%;
+  }
+
+  /* Image Upload Mobile */
+  .file-upload-label {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .image-preview {
+    max-width: 150px;
+    max-height: 100px;
+  }
+
+  .view-image {
+    max-width: 200px;
+    max-height: 120px;
   }
 
   .category-image-preview img {

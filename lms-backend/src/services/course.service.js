@@ -4,6 +4,9 @@ const slugify = require("slugify");
 
 class CourseService {
 
+    // ==========================================
+    // CREATE COURSE
+    // ==========================================
     async create(data) {
         const {
             title,
@@ -60,7 +63,6 @@ class CourseService {
             throw new Error("Course already exists.");
         }
 
-        // Build clean data object
         const courseData = {
             title,
             slug,
@@ -86,7 +88,6 @@ class CourseService {
             }
         };
 
-        // Only add discountPrice if it's a valid number > 0
         if (discountPrice !== undefined && discountPrice !== null && discountPrice !== "") {
             const discountValue = Number(discountPrice);
             if (!isNaN(discountValue) && discountValue > 0) {
@@ -112,6 +113,9 @@ class CourseService {
         return course;
     }
 
+    // ==========================================
+    // GET ALL COURSES - WITH LESSONS
+    // ==========================================
     async getAll() {
         return await prisma.course.findMany({
             include: {
@@ -125,8 +129,11 @@ class CourseService {
                 },
                 modules: {
                     include: {
-                        lessons: true
-                    }
+                        lessons: {
+                            orderBy: { position: "asc" }
+                        }
+                    },
+                    orderBy: { position: "asc" }
                 },
                 _count: {
                     select: {
@@ -141,6 +148,9 @@ class CourseService {
         });
     }
 
+    // ==========================================
+    // GET COURSE BY ID - WITH LESSONS
+    // ==========================================
     async getById(id) {
         const course = await prisma.course.findUnique({
             where: { id: Number(id) },
@@ -176,12 +186,13 @@ class CourseService {
         return course;
     }
 
+    // ==========================================
+    // UPDATE COURSE
+    // ==========================================
     async update(id, data) {
         try {
             console.log("🔍 Update called with ID:", id);
-            console.log("📥 Incoming data:", JSON.stringify(data, null, 2));
 
-            // First check if course exists
             const existingCourse = await prisma.course.findUnique({
                 where: { id: Number(id) }
             });
@@ -190,10 +201,8 @@ class CourseService {
                 throw new Error("Course not found.");
             }
 
-            // Build update data - ONLY fields that exist in your schema
             const updateData = {};
 
-            // REQUIRED: Always include these if they're provided
             if (data.title !== undefined && data.title !== null) {
                 updateData.title = data.title.trim();
                 updateData.slug = slugify(data.title.trim(), {
@@ -202,7 +211,6 @@ class CourseService {
                 });
             }
 
-            // Optional string fields
             if (data.subtitle !== undefined) {
                 updateData.subtitle = data.subtitle || null;
             }
@@ -239,7 +247,6 @@ class CourseService {
                 updateData.audience = data.audience || null;
             }
 
-            // Number fields - REQUIRED
             if (data.duration !== undefined) {
                 updateData.duration = Number(data.duration) || 0;
             }
@@ -248,7 +255,6 @@ class CourseService {
                 updateData.price = Number(data.price) || 0;
             }
 
-            // Handle discountPrice - if not provided, keep existing
             if (data.discountPrice !== undefined) {
                 if (data.discountPrice === "" || 
                     data.discountPrice === null || 
@@ -266,7 +272,6 @@ class CourseService {
                 }
             }
 
-            // Boolean fields
             if (data.isFeatured !== undefined) {
                 updateData.isFeatured = data.isFeatured === true || data.isFeatured === "true";
             }
@@ -280,7 +285,6 @@ class CourseService {
                 updateData.status = data.status;
             }
 
-            // Handle categoryId - REQUIRED if provided
             if (data.categoryId !== undefined && data.categoryId !== null && data.categoryId !== "") {
                 const category = await prisma.category.findUnique({
                     where: { id: Number(data.categoryId) }
@@ -293,32 +297,16 @@ class CourseService {
                 };
             }
 
-            // CRITICAL: If price is missing, use existing price
-            if (data.price === undefined && data.price === null) {
-                // Don't update price, keep existing
-            }
-
-            // CRITICAL: If categoryId is missing, use existing category
-            if (data.categoryId === undefined || data.categoryId === null || data.categoryId === "") {
-                // Don't update category, keep existing
-            }
-
-            // Remove any undefined values
             Object.keys(updateData).forEach(key => {
                 if (updateData[key] === undefined) {
                     delete updateData[key];
                 }
             });
 
-            // If no fields to update, return existing course
             if (Object.keys(updateData).length === 0) {
-                console.log("⚠️ No fields to update, returning existing course");
                 return existingCourse;
             }
 
-            console.log("📤 Final update data being sent:", JSON.stringify(updateData, null, 2));
-
-            // Perform the update
             const updatedCourse = await prisma.course.update({
                 where: { id: Number(id) },
                 data: updateData,
@@ -330,20 +318,103 @@ class CourseService {
                             name: true,
                             email: true
                         }
+                    },
+                    modules: {
+                        include: {
+                            lessons: {
+                                orderBy: { position: "asc" }
+                            }
+                        },
+                        orderBy: { position: "asc" }
                     }
                 }
             });
 
-            console.log("✅ Course updated successfully!");
             return updatedCourse;
-
         } catch (error) {
             console.error("❌ Update error:", error);
             throw error;
         }
     }
 
+    // ==========================================
+    // DELETE COURSE
+    // ==========================================
     async delete(id) {
+        const course = await prisma.course.findUnique({
+            where: { id: Number(id) },
+            include: {
+                modules: true,
+                enrollments: true,
+                payments: true,
+                certificates: true,
+                reviews: true,
+            }
+        });
+
+        if (!course) {
+            throw new Error("Course not found.");
+        }
+
+        const relatedRecords = [];
+
+        if (course.modules.length > 0) {
+            relatedRecords.push(`${course.modules.length} module(s)`);
+        }
+
+        if (course.enrollments.length > 0) {
+            relatedRecords.push(`${course.enrollments.length} enrollment(s)`);
+        }
+
+        if (course.payments.length > 0) {
+            relatedRecords.push(`${course.payments.length} payment(s)`);
+        }
+
+        if (course.certificates.length > 0) {
+            relatedRecords.push(`${course.certificates.length} certificate(s)`);
+        }
+
+        if (course.reviews.length > 0) {
+            relatedRecords.push(`${course.reviews.length} review(s)`);
+        }
+
+        if (relatedRecords.length > 0) {
+            const errorMessage = 
+                `Cannot delete course "${course.title}" because it has the following related records:\n\n` +
+                relatedRecords.map((item, index) => `  ${index + 1}. ${item}`).join('\n') +
+                `\n\nPlease delete these related records first.`;
+            
+            const error = new Error(errorMessage);
+            error.statusCode = 400;
+            error.relatedRecords = relatedRecords;
+            throw error;
+        }
+
+        try {
+            await prisma.course.delete({
+                where: { id: Number(id) }
+            });
+
+            return {
+                success: true,
+                message: `Course "${course.title}" deleted successfully.`
+            };
+        } catch (error) {
+            console.error("Delete error:", error);
+            if (error.code === 'P2003') {
+                throw new Error(
+                    "Cannot delete course due to foreign key constraints. " +
+                    "Please delete all related records first."
+                );
+            }
+            throw error;
+        }
+    }
+
+    // ==========================================
+    // TOGGLE COURSE STATUS
+    // ==========================================
+    async toggleStatus(id) {
         const course = await prisma.course.findUnique({
             where: { id: Number(id) }
         });
@@ -352,14 +423,139 @@ class CourseService {
             throw new Error("Course not found.");
         }
 
-        await prisma.course.delete({
+        const newStatus = course.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+
+        return await prisma.course.update({
+            where: { id: Number(id) },
+            data: {
+                status: newStatus,
+                isPublished: newStatus === "PUBLISHED"
+            },
+            include: {
+                category: true,
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                modules: {
+                    include: {
+                        lessons: {
+                            orderBy: { position: "asc" }
+                        }
+                    },
+                    orderBy: { position: "asc" }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // TOGGLE FEATURED
+    // ==========================================
+    async toggleFeatured(id) {
+        const course = await prisma.course.findUnique({
             where: { id: Number(id) }
         });
 
+        if (!course) {
+            throw new Error("Course not found.");
+        }
+
+        return await prisma.course.update({
+            where: { id: Number(id) },
+            data: {
+                isFeatured: !course.isFeatured
+            },
+            include: {
+                category: true,
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                modules: {
+                    include: {
+                        lessons: {
+                            orderBy: { position: "asc" }
+                        }
+                    },
+                    orderBy: { position: "asc" }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // GET COURSE STATS
+    // ==========================================
+    async getStats() {
+        const [total, published, draft, archived, featured] = await Promise.all([
+            prisma.course.count(),
+            prisma.course.count({ where: { status: "PUBLISHED" } }),
+            prisma.course.count({ where: { status: "DRAFT" } }),
+            prisma.course.count({ where: { status: "ARCHIVED" } }),
+            prisma.course.count({ where: { isFeatured: true } })
+        ]);
+
+        const enrollments = await prisma.enrollment.count();
+
         return {
-            success: true,
-            message: "Course deleted successfully."
+            total,
+            published,
+            draft,
+            archived,
+            featured,
+            enrollments
         };
+    }
+
+    // ==========================================
+    // FORCE DELETE COURSE - WITH CASCADE
+    // ==========================================
+    async forceDelete(id) {
+        const course = await prisma.course.findUnique({
+            where: { id: Number(id) }
+        });
+
+        if (!course) {
+            throw new Error("Course not found.");
+        }
+
+        try {
+            await prisma.$transaction([
+                prisma.courseModule.deleteMany({
+                    where: { courseId: Number(id) }
+                }),
+                prisma.enrollment.deleteMany({
+                    where: { courseId: Number(id) }
+                }),
+                prisma.payment.deleteMany({
+                    where: { courseId: Number(id) }
+                }),
+                prisma.certificate.deleteMany({
+                    where: { courseId: Number(id) }
+                }),
+                prisma.review.deleteMany({
+                    where: { courseId: Number(id) }
+                }),
+                prisma.course.delete({
+                    where: { id: Number(id) }
+                })
+            ]);
+
+            return {
+                success: true,
+                message: `Course "${course.title}" and all related data deleted successfully.`
+            };
+        } catch (error) {
+            console.error("Force delete error:", error);
+            throw new Error("Failed to delete course: " + error.message);
+        }
     }
 }
 

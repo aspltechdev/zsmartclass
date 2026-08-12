@@ -1,6 +1,6 @@
 // src/components/admin/AdminHeader.jsx
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, LogOut, Menu, X, ChevronRight, User, Settings, ChevronDown } from "lucide-react";
+import { Bell, LogOut, Menu, ChevronRight, User, Settings, ChevronDown } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
@@ -26,8 +26,6 @@ function AdminHeader({ onToggleMobile }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [pendingCerts, setPendingCerts] = useState(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef(null);
@@ -64,14 +62,6 @@ function AdminHeader({ onToggleMobile }) {
     navigate("/login", { replace: true });
   };
 
-  const handleSearch = (e) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      navigate(`/admin/users?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery("");
-      setShowMobileSearch(false);
-    }
-  };
-
   const toggleProfile = () => {
     setIsProfileOpen(!isProfileOpen);
   };
@@ -93,27 +83,6 @@ function AdminHeader({ onToggleMobile }) {
 
         {/* Right */}
         <div className="ah-right">
-          {/* Desktop search */}
-          <div className="ah-search">
-            <Search size={15} />
-            <input
-              type="text"
-              placeholder="Search users, courses…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearch}
-            />
-          </div>
-
-          {/* Mobile search toggle */}
-          <button
-            className="ah-icon-btn mobile-search-toggle"
-            onClick={() => setShowMobileSearch(true)}
-            aria-label="Search"
-          >
-            <Search size={18} />
-          </button>
-
           {/* Notifications */}
           <button
             className="ah-icon-btn"
@@ -129,7 +98,17 @@ function AdminHeader({ onToggleMobile }) {
           {/* Profile with Dropdown */}
           <div className="ah-profile-wrapper" ref={profileRef}>
             <button className="ah-profile" onClick={toggleProfile}>
-              <div className="ah-avatar">{user?.name?.charAt(0) || "A"}</div>
+              <div className="ah-avatar">
+                {user?.profileImage ? (
+                  <img
+                    src={user.profileImage}
+                    alt={user?.name || "Admin"}
+                    style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                  />
+                ) : (
+                  user?.name?.charAt(0) || "A"
+                )}
+              </div>
               <div className="ah-profile-info">
                 <span className="ah-profile-name">{user?.name || "Admin"}</span>
                 <span className="ah-profile-role">Administrator</span>
@@ -144,7 +123,15 @@ function AdminHeader({ onToggleMobile }) {
               <div className="ah-profile-dropdown">
                 <div className="ah-dropdown-user">
                   <div className="ah-dropdown-avatar">
-                    {user?.name?.charAt(0) || "A"}
+                    {user?.profileImage ? (
+                      <img
+                        src={user.profileImage}
+                        alt={user?.name || "Admin"}
+                        style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      user?.name?.charAt(0) || "A"
+                    )}
                   </div>
                   <div>
                     <h4>{user?.name || "Admin"}</h4>
@@ -176,26 +163,6 @@ function AdminHeader({ onToggleMobile }) {
           </button> */}
         </div>
       </header>
-
-      {/* Mobile search overlay */}
-      {showMobileSearch && (
-        <div className="ah-mobile-search">
-          <div className="ah-search expanded">
-            <Search size={16} />
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearch}
-            />
-          </div>
-          <button className="ah-icon-btn" onClick={() => setShowMobileSearch(false)}>
-            <X size={18} />
-          </button>
-        </div>
-      )}
     </>
   );
 }

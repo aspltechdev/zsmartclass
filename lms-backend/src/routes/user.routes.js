@@ -7,40 +7,76 @@ const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 const upload = require("../middleware/upload.middleware");
 
-// All routes require authentication and ADMIN role
+// ==========================================
+// PUBLIC ROUTES - Invitation flow (NO auth required)
+// ==========================================
+
+// Check if invitation token is valid
+router.get(
+  "/check-invitation/:token",
+  userController.checkInvitation
+);
+
+// Verify invitation and set password
+router.post(
+  "/verify-invitation",
+  userController.verifyInvitation
+);
+
+// ==========================================
+// PROTECTED ROUTES - Authentication required
+// ==========================================
+
+// Get Current User Profile (Self)
+router.get(
+  "/me",
+  authMiddleware,
+  userController.getCurrentUser
+);
+
+// Update Profile (Self)
+router.put(
+  "/update-profile",
+  authMiddleware,
+  upload.single("profileImage"),
+  userController.updateUser
+);
+
+// Change password (Self)
+router.put(
+  "/change-password",
+  authMiddleware,
+  userController.changePassword
+);
+
+// ==========================================
+// ADMIN ROUTES - Authentication + ADMIN role required
+// ==========================================
+
+// All routes below require authentication and ADMIN role
 router.use(authMiddleware);
-router.use(roleMiddleware("ADMIN", "MENTOR"));
+router.use(roleMiddleware("ADMIN"));
 
 // ==========================================
 // User CRUD Operations
 // ==========================================
 
-// Create new user
+// Create new user (INVITE user)
 router.post(
   "/",
   userController.createUser
+);
+
+// Resend invitation to a pending user
+router.post(
+  "/:id/resend-invitation",
+  userController.resendInvitation
 );
 
 // Get all users (with pagination, search, filters)
 router.get(
   "/",
   userController.getAllUsers
-);
-
-// Get Current User Profile (Self)
-router.get(
-  "/me",
-  userController.getCurrentUser
-);
-
-// Update Profile (Self)
-// upload.single("profileImage") parses the multipart/form-data body
-// (text fields + optional "profileImage" file) into req.body / req.file
-// before the controller/service ever touch it.
-router.put(
-  "/update-profile",
-  upload.single("profileImage"),
-  userController.updateUser
 );
 
 // Get single user by ID

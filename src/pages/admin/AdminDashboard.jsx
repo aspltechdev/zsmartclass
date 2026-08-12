@@ -8,9 +8,41 @@ import {
   Award,
   UserCheck,
   ArrowUpRight,
+  TrendingUp,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminDashboard.css";
+
+// Chart.js imports
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Filler,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Filler
+);
 
 function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -24,7 +56,8 @@ function AdminDashboard() {
     certificates: 0,
   });
   
-  const [recentActivities, setRecentActivities] = useState([]);
+  const [enrollmentTrends, setEnrollmentTrends] = useState({ labels: [], data: [] });
+  const [userGrowth, setUserGrowth] = useState({ labels: [], data: [] });
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
 
@@ -39,23 +72,76 @@ function AdminDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      // Fetch users (working)
+      
+      // 1. Fetch users
       const usersRes = await api.get("/users");
       const users = usersRes.data.data || usersRes.data || [];
     
-      // Fetch courses (working)
+      // 2. Fetch courses
       const coursesRes = await api.get("/courses");
       const courses = coursesRes.data.data || coursesRes.data || [];
     
-      // Calculate stats from available data
+      // 3. Fetch enrollments - Try multiple endpoints
+      let enrollments = [];
+      try {
+        // Try the admin endpoint first
+        const enrollRes = await api.get("/enrollments/admin/all");
+        enrollments = enrollRes.data.data || enrollRes.data || [];
+        console.log("✅ Enrollments from admin endpoint:", enrollments.length);
+      } catch (e1) {
+        console.log("Admin enrollments endpoint failed, trying regular...");
+        try {
+          // Try the regular endpoint
+          const enrollRes = await api.get("/enrollments");
+          enrollments = enrollRes.data.data || enrollRes.data || [];
+          console.log("✅ Enrollments from regular endpoint:", enrollments.length);
+        } catch (e2) {
+          console.log("Regular enrollments endpoint failed, trying direct...");
+          try {
+            // Try direct URL
+            const enrollRes = await api.get("/api/enrollments");
+            enrollments = enrollRes.data.data || enrollRes.data || [];
+            console.log("✅ Enrollments from direct endpoint:", enrollments.length);
+          } catch (e3) {
+            console.error("❌ All enrollment endpoints failed");
+            enrollments = [];
+          }
+        }
+      }
+
+      // 4. Fetch certificates
+      let certificates = [];
+      try {
+        const certRes = await api.get("/certificates");
+        certificates = certRes.data.data || certRes.data || [];
+      } catch (e) {
+        console.log("Certificates endpoint not available yet");
+      }
+    
+      // Calculate stats
       const students = users.filter(u => u.role === "STUDENT").length;
       const mentors = users.filter(u => u.role === "MENTOR").length;
       const admins = users.filter(u => u.role === "ADMIN").length;
-    
-      // TEMPORARY: Use placeholder data for missing APIs
-      const enrollmentsCount = 0; // Will be updated when API is ready
-      const totalRevenue = 0; // Will be updated when API is ready
-      const certificatesCount = 0; // Will be updated when API is ready
+      
+      // Calculate revenue from enrollments
+      let totalRevenue = 0;
+      enrollments.forEach(enrollment => {
+        const course = courses.find(c => c.id === enrollment.courseId);
+        if (course) {
+          totalRevenue += (course.discountPrice || course.price || 0);
+        }
+      });
+      
+      console.log("📊 Dashboard Stats:", {
+        users: users.length,
+        students,
+        mentors,
+        admins,
+        courses: courses.length,
+        enrollments: enrollments.length,
+        revenue: totalRevenue,
+        certificates: certificates.length,
+      });
       
       setStats({
         users: users.length,
@@ -63,14 +149,18 @@ function AdminDashboard() {
         mentors,
         admins,
         courses: courses.length,
-        enrollments: enrollmentsCount,
+        enrollments: enrollments.length,
         revenue: totalRevenue,
-        certificates: certificatesCount,
+        certificates: certificates.length,
       });
     
-      // Generate recent activities from available data
-      const activities = generateRecentActivities(users, courses, []);
-      setRecentActivities(activities);
+      // Generate enrollment trends (last 6 months)
+      const trends = generateMonthlyTrends(enrollments);
+      setEnrollmentTrends(trends);
+
+      // Generate user growth (last 6 months)
+      const userGrowthData = generateUserGrowth(users);
+      setUserGrowth(userGrowthData);
     
     } catch (err) {
       console.error("Error loading dashboard data:", err);
@@ -79,75 +169,127 @@ function AdminDashboard() {
     }
   };
 
-  // Generate recent activities from real data
-  const generateRecentActivities = (users, courses, enrollments) => {
-    const activities = [];
-    
-    // Recent users (last 3)
-    const sortedUsers = [...users].sort((a, b) => 
-      new Date(b.createdAt) - new Date(a.createdAt)
-    ).slice(0, 3);
-    
-    sortedUsers.forEach((user) => {
-      activities.push({
-        id: `user-${user.id}`,
-        type: "user",
-        message: `New ${user.role} registered: ${user.name}`,
-        time: getTimeAgo(new Date(user.createdAt)),
-        timestamp: new Date(user.createdAt),
-      });
-    });
-    
-    // Recent enrollments
-    const sortedEnrollments = [...enrollments].sort((a, b) => 
-      new Date(b.enrolledAt) - new Date(a.enrolledAt)
-    ).slice(0, 3);
-    
-    sortedEnrollments.forEach((enrollment) => {
-      const course = courses.find(c => c.id === enrollment.courseId);
-      const user = users.find(u => u.id === enrollment.userId);
-      activities.push({
-        id: `enrollment-${enrollment.id}`,
-        type: "enrollment",
-        message: `${user?.name || 'A student'} enrolled in "${course?.title || 'a course'}"`,
-        time: getTimeAgo(new Date(enrollment.enrolledAt)),
-        timestamp: new Date(enrollment.enrolledAt),
-      });
-    });
-    
-    // Sort all activities by timestamp (newest first)
-    activities.sort((a, b) => b.timestamp - a.timestamp);
-    
-    // Return top 5
-    return activities.slice(0, 5);
-  };
-
-  // Helper function to get time ago
-  const getTimeAgo = (date) => {
+  // Generate monthly enrollment trends
+  const generateMonthlyTrends = (enrollments) => {
+    const months = [];
+    const data = [];
     const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
     
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString();
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthLabel = month.toLocaleString('default', { month: 'short' });
+      months.push(monthLabel);
+      
+      const count = enrollments.filter(e => {
+        const date = new Date(e.enrolledAt || e.createdAt || e.enrolledat || e.createdat);
+        if (isNaN(date.getTime())) return false;
+        return date.getMonth() === month.getMonth() && 
+               date.getFullYear() === month.getFullYear();
+      }).length;
+      data.push(count);
+    }
+    
+    return { labels: months, data };
   };
 
-  // Get activity icon based on type
-  const getActivityIcon = (type) => {
-    const icons = {
-      user: Users,
-      enrollment: BookOpen,
-      payment: CreditCard,
-      course: BookOpen,
-      review: Award,
-      certificate: Award,
-    };
-    return icons[type] || ArrowUpRight;
+  // Generate user growth over time
+  const generateUserGrowth = (users) => {
+    const months = [];
+    const data = [];
+    const now = new Date();
+    let cumulative = 0;
+    
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthLabel = month.toLocaleString('default', { month: 'short' });
+      months.push(monthLabel);
+      
+      const count = users.filter(u => {
+        const date = new Date(u.createdAt || u.createdat);
+        if (isNaN(date.getTime())) return false;
+        return date.getMonth() === month.getMonth() && 
+               date.getFullYear() === month.getFullYear();
+      }).length;
+      
+      cumulative += count;
+      data.push(cumulative);
+    }
+    
+    return { labels: months, data };
+  };
+
+  // Chart data configurations
+  const enrollmentChartData = {
+    labels: enrollmentTrends.labels,
+    datasets: [
+      {
+        label: 'Enrollments',
+        data: enrollmentTrends.data,
+        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+        borderColor: '#667eea',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#667eea',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+      },
+    ],
+  };
+
+  const userGrowthChartData = {
+    labels: userGrowth.labels,
+    datasets: [
+      {
+        label: 'Total Users',
+        data: userGrowth.data,
+        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+        borderColor: '#10b981',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#10b981',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 10,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(0,0,0,0.05)',
+        },
+        ticks: {
+          stepSize: 1,
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
+      },
+    },
   };
 
   const cards = [
@@ -176,16 +318,16 @@ function AdminDashboard() {
       color: "#8b5cf6",
     },
     {
+      title: "Enrollments",
+      value: stats.enrollments,
+      icon: TrendingUp,
+      color: "#06b6d4",
+    },
+    {
       title: "Revenue",
       value: `₹${stats.revenue.toLocaleString()}`,
       icon: CreditCard,
       color: "#ef4444",
-    },
-    {
-      title: "Certificates",
-      value: stats.certificates,
-      icon: Award,
-      color: "#06b6d4",
     },
   ];
 
@@ -203,10 +345,11 @@ function AdminDashboard() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-title">
-        <h1>Welcome Back {userName}.</h1>
-        <p>Manage your Learning Management System from one place.</p>
+        <h1>Welcome Back, {userName} 👋</h1>
+        <p>Here's what's happening with your platform today.</p>
       </div>
 
+      {/* Stats Cards */}
       <div className="dashboard-cards">
         {cards.map((card, index) => {
           const Icon = card.icon;
@@ -227,77 +370,60 @@ function AdminDashboard() {
         })}
       </div>
 
+      {/* Charts Section */}
       <div className="dashboard-grid">
-        <div className="dashboard-box">
-          <h3>Quick Actions</h3>
-          <div className="quick-actions">
-            <button onClick={() => window.location.href = '/admin/users'}>
-              Add User
-            </button>
-            <button onClick={() => window.location.href = '/admin/courses'}>
-              Create Course
-            </button>
-            <button onClick={() => window.location.href = '/admin/categories'}>
-              Add Category
-            </button>
-            <button onClick={() => window.location.href = '/admin/notifications'}>
-              Send Notification
-            </button>
+        <div className="dashboard-box large">
+          <h3>📊 Enrollment Trends</h3>
+          <div className="chart-container">
+            {enrollmentTrends.data && enrollmentTrends.data.some(v => v > 0) ? (
+              <Line data={enrollmentChartData} options={chartOptions} />
+            ) : (
+              <div className="placeholder">
+                <p>No enrollment data available yet</p>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="dashboard-box">
-          <h3>Recent Activity</h3>
-          <ul className="activity-list">
-            {recentActivities.length === 0 ? (
-              <li className="no-activity">No recent activity</li>
+          <h3>📈 User Growth</h3>
+          <div className="chart-container small">
+            {userGrowth.data && userGrowth.data.some(v => v > 0) ? (
+              <Line data={userGrowthChartData} options={chartOptions} />
             ) : (
-              recentActivities.map((activity) => {
-                const Icon = getActivityIcon(activity.type);
-                return (
-                  <li key={activity.id}>
-                    <Icon size={16} />
-                    <span className="activity-message">{activity.message}</span>
-                    <span className="activity-time">{activity.time}</span>
-                  </li>
-                );
-              })
+              <div className="placeholder">
+                <p>No user data available</p>
+              </div>
             )}
-          </ul>
+          </div>
         </div>
       </div>
 
+      {/* Quick Actions Section */}
       <div className="dashboard-grid">
-        <div className="dashboard-box large">
-          <h3>Revenue Overview</h3>
-          <div className="placeholder">
-            <div className="revenue-summary">
-              <span className="revenue-amount">₹{stats.revenue.toLocaleString()}</span>
-              <span className="revenue-label">Total Revenue</span>
-              <span className="revenue-sub">From {stats.enrollments} enrollments</span>
-            </div>
-          </div>
-        </div>
-
         <div className="dashboard-box">
-          <h3>Quick Stats</h3>
-          <div className="quick-stats">
-            <div className="quick-stat">
-              <span className="stat-number">{stats.users}</span>
-              <span className="stat-label">Users</span>
-            </div>
-            <div className="quick-stat">
-              <span className="stat-number">{stats.courses}</span>
-              <span className="stat-label">Courses</span>
-            </div>
-            <div className="quick-stat">
-              <span className="stat-number">{stats.enrollments}</span>
-              <span className="stat-label">Enrollments</span>
-            </div>
-            <div className="quick-stat">
-              <span className="stat-number">{stats.certificates}</span>
-              <span className="stat-label">Certificates</span>
-            </div>
+          <h3>⚡ Quick Actions</h3>
+          <div className="quick-actions">
+            <button onClick={() => window.location.href = '/admin/users'}>
+              <Users size={18} />
+              Manage Users
+            </button>
+            <button onClick={() => window.location.href = '/admin/courses'}>
+              <BookOpen size={18} />
+              Create Course
+            </button>
+            <button onClick={() => window.location.href = '/admin/categories'}>
+              <BookOpen size={18} />
+              Add Category
+            </button>
+            <button onClick={() => window.location.href = '/admin/payments'}>
+              <ArrowUpRight size={18} />
+              Add Payment
+            </button>
+            <button onClick={() => window.location.href = '/admin/notifications'}>
+              <ArrowUpRight size={18} />
+              Send Notification
+            </button>
           </div>
         </div>
       </div>

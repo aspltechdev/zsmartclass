@@ -3,56 +3,13 @@ const prisma = require("../config/prisma");
 
 class EnrollmentService {
 
-    async enroll(data) {
-        const {
-            studentId,
-            courseId
-        } = data;
-
-        const course = await prisma.course.findUnique({
-            where: {
-                id: Number(courseId)
-            }
-        });
-
-        if (!course) {
-            throw new Error("Course not found.");
-        }
-
-        const alreadyEnrolled =
-            await prisma.enrollment.findFirst({
-                where: {
-                    studentId: Number(studentId),
-                    courseId: Number(courseId)
-                }
-            });
-
-        if (alreadyEnrolled) {
-            throw new Error("Already enrolled.");
-        }
-
-        return await prisma.enrollment.create({
-            data: {
-                studentId: Number(studentId),
-                courseId: Number(courseId)
-            },
-            include: {
-                student: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true
-                    }
-                },
-                course: true
-            }
-        });
-    }
-
+    // ==========================================
+    // STUDENT: VIEW OWN COURSES (VIEW ONLY)
+    // ==========================================
     async myCourses(studentId) {
-        return await prisma.enrollment.findMany({
+        const enrollments = await prisma.enrollment.findMany({
             where: {
-                studentId: Number(studentId)
+                userId: Number(studentId),
             },
             include: {
                 course: {
@@ -61,72 +18,72 @@ class EnrollmentService {
                         createdBy: {
                             select: {
                                 id: true,
-                                name: true
-                            }
-                        }
-                    }
-                }
+                                name: true,
+                            },
+                        },
+                    },
+                },
             },
             orderBy: {
-                enrolledAt: "desc"
-            }
+                enrolledAt: "desc",
+            },
+        });
+
+        const now = new Date();
+        return enrollments.map(enrollment => {
+            const isExpired = enrollment.accessExpiry 
+                ? new Date(enrollment.accessExpiry) < now 
+                : false;
+            
+            return {
+                ...enrollment,
+                isExpired: isExpired || enrollment.isExpired,
+                remainingDays: enrollment.accessExpiry
+                    ? Math.max(0, Math.ceil((new Date(enrollment.accessExpiry) - now) / (1000 * 60 * 60 * 24)))
+                    : null,
+                canAccess: !(isExpired || enrollment.isExpired),
+            };
         });
     }
 
+    // ==========================================
+    // STUDENT: VIEW COURSE PROGRESS (VIEW ONLY)
+    // ==========================================
     async courseProgress(studentId, courseId) {
         const enrollment =
             await prisma.enrollment.findFirst({
                 where: {
-                    studentId: Number(studentId),
+                    userId: Number(studentId),
                     courseId: Number(courseId)
                 }
             });
 
         if (!enrollment) {
             throw new Error("Enrollment not found.");
+        }
+
+        const now = new Date();
+        const isExpired = enrollment.accessExpiry 
+            ? new Date(enrollment.accessExpiry) < now 
+            : false;
+
+        if (isExpired || enrollment.isExpired) {
+            throw new Error("Your access to this course has expired. Please contact the admin.");
         }
 
         return enrollment;
     }
 
-    async cancelEnrollment(studentId, courseId) {
-        const enrollment =
-            await prisma.enrollment.findFirst({
-                where: {
-                    studentId: Number(studentId),
-                    courseId: Number(courseId)
-                }
-            });
-
-        if (!enrollment) {
-            throw new Error("Enrollment not found.");
-        }
-
-        await prisma.enrollment.delete({
-            where: {
-                id: enrollment.id
-            }
-        });
-
-        return {
-            success: true,
-            message: "Enrollment cancelled successfully."
-        };
-    }
-
     // ==========================================
-    // ADMIN METHODS - FIXED
+    // ADMIN & MENTOR: GET ALL ENROLLMENTS (FULL VIEW)
     // ==========================================
-
-    // Get all enrollments with student and course details
     async getAllEnrollments() {
         try {
             console.log("📊 Fetching all enrollments...");
             
-            // First, try to get all enrollments with raw query
             const enrollments = await prisma.enrollment.findMany({
                 include: {
-                    student: {
+                    user: {
                         select: {
                             id: true,
                             name: true,
@@ -138,7 +95,14 @@ class EnrollmentService {
                         select: {
                             id: true,
                             title: true,
-                            thumbnail: true
+                            thumbnail: true,
+                            createdById: true,
+                            createdBy: {
+                                select: {
+                                    id: true,
+                                    name: true
+                                }
+                            }
                         }
                     }
                 },
@@ -151,19 +115,20 @@ class EnrollmentService {
             return enrollments;
         } catch (error) {
             console.error("Error in getAllEnrollments:", error);
-            // If there's an error, return empty array
             return [];
         }
     }
 
-    // Get enrollment by ID
+    // ==========================================
+    // ADMIN & MENTOR: GET ENROLLMENT BY ID (FULL VIEW)
+    // ==========================================
     async getEnrollmentById(id) {
         const enrollment = await prisma.enrollment.findUnique({
             where: {
                 id: Number(id)
             },
             include: {
-                student: {
+                user: {
                     select: {
                         id: true,
                         name: true,
@@ -175,7 +140,14 @@ class EnrollmentService {
                     select: {
                         id: true,
                         title: true,
-                        thumbnail: true
+                        thumbnail: true,
+                        createdById: true,
+                        createdBy: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        }
                     }
                 }
             }
@@ -188,7 +160,178 @@ class EnrollmentService {
         return enrollment;
     }
 
-    // Update enrollment (admin)
+    // ==========================================
+    // ADMIN & MENTOR: GET ENROLLMENTS BY COURSE (FULL VIEW)
+    // ==========================================
+    async getEnrollmentsByCourse(courseId) {
+        return await prisma.enrollment.findMany({
+            where: {
+                courseId: Number(courseId)
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                course: {
+                    select: {
+                        id: true,
+                        title: true
+                    }
+                }
+            },
+            orderBy: {
+                enrolledAt: "desc"
+            }
+        });
+    }
+
+    // ==========================================
+    // ADMIN & MENTOR: GET ENROLLMENT STATS (FULL VIEW)
+    // ==========================================
+    async getEnrollmentStats() {
+        const [total, completed, inProgress, notStarted, expired, needsReminder] = await Promise.all([
+            prisma.enrollment.count(),
+            prisma.enrollment.count({
+                where: { completed: true }
+            }),
+            prisma.enrollment.count({
+                where: {
+                    progress: { gt: 0, lt: 100 },
+                    completed: false
+                }
+            }),
+            prisma.enrollment.count({
+                where: {
+                    progress: 0,
+                    completed: false
+                }
+            }),
+            prisma.enrollment.count({
+                where: {
+                    isExpired: true,
+                    completed: false
+                }
+            }),
+            prisma.enrollment.count({
+                where: {
+                    progress: { lt: 50 },
+                    completed: false,
+                    isExpired: false
+                }
+            })
+        ]);
+
+        return {
+            total,
+            completed,
+            inProgress,
+            notStarted,
+            expired,
+            needsReminder
+        };
+    }
+
+    // ==========================================
+    // ADMIN & MENTOR: GET STUDENT ENROLLMENTS (FULL VIEW)
+    // ==========================================
+    async getStudentEnrollments(userId) {
+        const enrollments = await prisma.enrollment.findMany({
+            where: {
+                userId: parseInt(userId),
+            },
+            include: {
+                course: {
+                    select: {
+                        id: true,
+                        title: true,
+                        thumbnail: true,
+                        level: true,
+                        price: true,
+                    },
+                },
+            },
+            orderBy: {
+                enrolledAt: 'desc',
+            },
+        });
+
+        const now = new Date();
+        return enrollments.map(enrollment => {
+            const isExpired = enrollment.accessExpiry 
+                ? new Date(enrollment.accessExpiry) < now 
+                : false;
+
+            return {
+                ...enrollment,
+                isExpired: isExpired || enrollment.isExpired,
+                accessExpiry: enrollment.accessExpiry,
+                accessDuration: enrollment.accessDuration,
+                remainingDays: enrollment.accessExpiry
+                    ? Math.max(0, Math.ceil((new Date(enrollment.accessExpiry) - now) / (1000 * 60 * 60 * 24)))
+                    : null,
+            };
+        });
+    }
+
+    // ==========================================
+    // ADMIN & MENTOR: GET MENTOR'S STUDENTS (FULL VIEW)
+    // ==========================================
+    async getMentorStudents(mentorId) {
+        const courses = await prisma.course.findMany({
+            where: {
+                createdById: parseInt(mentorId)
+            },
+            select: {
+                id: true,
+                title: true,
+                enrollments: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                profileImage: true,
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const studentsMap = new Map();
+        
+        courses.forEach(course => {
+            course.enrollments.forEach(enrollment => {
+                if (!studentsMap.has(enrollment.user.id)) {
+                    studentsMap.set(enrollment.user.id, {
+                        ...enrollment.user,
+                        courses: []
+                    });
+                }
+                studentsMap.get(enrollment.user.id).courses.push({
+                    id: course.id,
+                    title: course.title,
+                    enrollmentId: enrollment.id,
+                    progress: enrollment.progress,
+                    completed: enrollment.completed,
+                    enrolledAt: enrollment.enrolledAt,
+                    isExpired: enrollment.isExpired,
+                    accessExpiry: enrollment.accessExpiry,
+                });
+            });
+        });
+
+        return Array.from(studentsMap.values());
+    }
+
+    // ==========================================
+    // ADMIN ONLY: UPDATE ENROLLMENT
+    // ==========================================
     async updateEnrollment(id, data) {
         const { progress, completed, certificateId, certificateNo } = data;
 
@@ -214,7 +357,7 @@ class EnrollmentService {
                 updatedAt: new Date()
             },
             include: {
-                student: {
+                user: {
                     select: {
                         id: true,
                         name: true,
@@ -231,7 +374,9 @@ class EnrollmentService {
         });
     }
 
-    // Delete enrollment (admin)
+    // ==========================================
+    // ADMIN ONLY: DELETE ENROLLMENT
+    // ==========================================
     async deleteEnrollment(id) {
         const enrollment = await prisma.enrollment.findUnique({
             where: {
@@ -243,7 +388,6 @@ class EnrollmentService {
             throw new Error("Enrollment not found.");
         }
 
-        // First, remove certificate reference if exists
         if (enrollment.certificateId) {
             await prisma.enrollment.update({
                 where: {
@@ -268,65 +412,169 @@ class EnrollmentService {
         };
     }
 
-    // Get enrollments by course
-    async getEnrollmentsByCourse(courseId) {
-        return await prisma.enrollment.findMany({
+    // ==========================================
+    // ADMIN ONLY: GRANT ACCESS
+    // ==========================================
+    async grantAccess(userId, courseId, durationDays = null, grantedBy = null) {
+        const existingEnrollment = await prisma.enrollment.findUnique({
             where: {
-                courseId: Number(courseId)
+                userId_courseId: {
+                    userId: parseInt(userId),
+                    courseId: parseInt(courseId),
+                },
+            },
+        });
+
+        if (existingEnrollment) {
+            if (existingEnrollment.isExpired || 
+                (existingEnrollment.accessExpiry && new Date(existingEnrollment.accessExpiry) < new Date())) {
+                
+                const accessExpiry = durationDays 
+                    ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000)
+                    : null;
+
+                return await prisma.enrollment.update({
+                    where: { id: existingEnrollment.id },
+                    data: {
+                        isExpired: false,
+                        accessExpiry: accessExpiry,
+                        accessDuration: durationDays || null,
+                        progress: 0,
+                        completed: false,
+                        updatedAt: new Date(),
+                    },
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                            },
+                        },
+                        course: {
+                            select: {
+                                id: true,
+                                title: true,
+                                thumbnail: true,
+                            },
+                        },
+                    },
+                });
+            }
+
+            const error = new Error("Student already has active access to this course");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const accessExpiry = durationDays 
+            ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000)
+            : null;
+
+        const enrollment = await prisma.enrollment.create({
+            data: {
+                userId: parseInt(userId),
+                courseId: parseInt(courseId),
+                enrolledAt: new Date(),
+                accessExpiry: accessExpiry,
+                accessDuration: durationDays || null,
+                isExpired: false,
+                progress: 0,
+                completed: false,
             },
             include: {
-                student: {
+                user: {
                     select: {
                         id: true,
                         name: true,
-                        email: true
-                    }
+                        email: true,
+                    },
                 },
                 course: {
                     select: {
                         id: true,
-                        title: true
-                    }
-                }
+                        title: true,
+                        thumbnail: true,
+                        price: true,
+                        level: true,
+                    },
+                },
             },
-            orderBy: {
-                enrolledAt: "desc"
-            }
         });
+
+        return enrollment;
     }
 
-    // Get enrollment stats
-    async getEnrollmentStats() {
-        const [total, completed, inProgress, notStarted] = await Promise.all([
-            prisma.enrollment.count(),
-            prisma.enrollment.count({
-                where: { completed: true }
-            }),
-            prisma.enrollment.count({
-                where: {
-                    progress: { gt: 0, lt: 100 },
-                    completed: false
-                }
-            }),
-            prisma.enrollment.count({
-                where: {
-                    progress: 0,
-                    completed: false
-                }
-            })
-        ]);
+    // ==========================================
+    // ADMIN ONLY: EXTEND ACCESS
+    // ==========================================
+    async extendAccess(enrollmentId, additionalDays) {
+        const enrollment = await prisma.enrollment.findUnique({
+            where: { id: parseInt(enrollmentId) },
+        });
+
+        if (!enrollment) {
+            const error = new Error("Enrollment not found");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const currentExpiry = enrollment.accessExpiry || new Date();
+        const newExpiry = new Date(currentExpiry);
+        newExpiry.setDate(newExpiry.getDate() + additionalDays);
+
+        const updatedEnrollment = await prisma.enrollment.update({
+            where: { id: parseInt(enrollmentId) },
+            data: {
+                accessExpiry: newExpiry,
+                isExpired: false,
+                accessDuration: (enrollment.accessDuration || 0) + additionalDays,
+                updatedAt: new Date(),
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                course: {
+                    select: {
+                        id: true,
+                        title: true,
+                        thumbnail: true,
+                    },
+                },
+            },
+        });
+
+        return updatedEnrollment;
+    }
+
+    // ==========================================
+    // ADMIN ONLY: CHECK AND EXPIRE ENROLLMENTS
+    // ==========================================
+    async checkAndExpireEnrollments() {
+        const now = new Date();
+
+        const expiredEnrollments = await prisma.enrollment.updateMany({
+            where: {
+                isExpired: false,
+                accessExpiry: {
+                    lt: now,
+                    not: null,
+                },
+            },
+            data: {
+                isExpired: true,
+                updatedAt: now,
+            },
+        });
 
         return {
-            total,
-            completed,
-            inProgress,
-            notStarted,
-            needsReminder: await prisma.enrollment.count({
-                where: {
-                    progress: { lt: 50 },
-                    completed: false
-                }
-            })
+            expiredCount: expiredEnrollments.count,
+            message: `${expiredEnrollments.count} enrollment(s) expired`,
         };
     }
 }

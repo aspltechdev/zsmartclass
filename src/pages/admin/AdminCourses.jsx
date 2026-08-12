@@ -1,5 +1,5 @@
 ﻿// src/pages/admin/AdminCourses.jsx
-import { useEffect, useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Search,
@@ -7,63 +7,65 @@ import {
   Trash2,
   Eye,
   BookOpen,
-  IndianRupee,
   Users,
   Star,
   Upload,
   X,
   RefreshCw,
-  Filter,
   CheckCircle,
   XCircle,
   Clock,
   AlertCircle,
-  Image as ImageIcon,
-  Calendar,
-  Tag,
-  Layers,
-  DollarSign,
-  TrendingUp,
-  Award,
-  PlayCircle,
-  FileCheck,
-  Link2,
-  Copy,
   Save,
-  ArrowLeft,
+  Library,
+  Layers,
+  Calendar,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminCourses.css";
 
-// ✅ FIX: Local fallback image (no external dependencies)
+// ─── FIX: Use the API base URL from your api service ──────────────
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'%3E%3Crect width='300' height='200' fill='%23667eea'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20' font-family='sans-serif'%3ECourse%3C/text%3E%3C/svg%3E";
 
+// ─── Get base URL from api or use default ─────────────────────────
+const getImageUrl = (path) => {
+  if (!path) return FALLBACK_IMAGE;
+  if (path.startsWith('http')) return path;
+  // Use the same base URL as your API
+  const baseUrl = api.defaults?.baseURL || 'http://localhost:5000';
+  return `${baseUrl}${path}`;
+};
+
 function AdminCourses() {
+  // ─── STATE ──────────────────────────────────────────────────────────
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [availableModules, setAvailableModules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [viewingCourse, setViewingCourse] = useState(null);
-  const [formErrors, setFormErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const [thumbnailPreview, setThumbnailPreview] = useState(null);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const fileInputRef = useRef(null);
 
-  // Form state
-  const [form, setForm] = useState({
+  // ─── MODAL STATES ──────────────────────────────────────────────────
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showModuleLibraryModal, setShowModuleLibraryModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // ─── EDITING STATES ────────────────────────────────────────────────
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [viewingCourse, setViewingCourse] = useState(null);
+  const [courseToDelete, setCourseToDelete] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
+  // ─── FORM STATE ────────────────────────────────────────────────────
+  const [formData, setFormData] = useState({
     title: "",
     slug: "",
     subtitle: "",
     description: "",
-    price: "",
-    discountPrice: "",
     categoryId: "",
     level: "BEGINNER",
     language: "English",
@@ -71,398 +73,77 @@ function AdminCourses() {
     requirements: "",
     outcomes: "",
     audience: "",
-    status: "DRAFT",
-    isFeatured: false,
-    isFree: false,
-    duration: "",
     videoUrl: "",
     isPublished: false,
+    isFeatured: false,
   });
 
+  const [formErrors, setFormErrors] = useState({});
+  const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // ─── STATS ──────────────────────────────────────────────────────────
   const [stats, setStats] = useState({
     total: 0,
     published: 0,
     draft: 0,
     archived: 0,
     featured: 0,
-    totalEnrollments: 0,
-    totalRevenue: 0,
+    enrollments: 0,
   });
 
+  // ─── LEVELS & LANGUAGES ────────────────────────────────────────────
+  const levels = ["BEGINNER", "INTERMEDIATE", "ADVANCED"];
+  const languages = ["English", "Hindi", "Tamil", "Telugu", "Malayalam", "Kannada", "Spanish", "French", "German", "Chinese"];
+
+  // ─── EFFECTS ────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchCourses();
-    fetchCategories();
+    fetchAllData();
   }, []);
 
-  const fetchCourses = async () => {
+  // ─── API CALLS ─────────────────────────────────────────────────────
+  const fetchAllData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await api.get("/courses");
-      const data = res.data.data || res.data;
-      setCourses(data);
-      calculateStats(data);
-    } catch (err) {
-      console.error("Error fetching courses:", err);
-      setCourses([]);
-      calculateStats([]);
+      const [coursesRes, categoriesRes, modulesRes] = await Promise.all([
+        api.get("/courses"),
+        api.get("/categories"),
+        api.get("/modules"),
+      ]);
+
+      const coursesData = coursesRes.data?.data || coursesRes.data || [];
+      const categoriesData = categoriesRes.data?.data || categoriesRes.data || [];
+      const modulesData = modulesRes.data?.data || modulesRes.data || [];
+
+      setCourses(coursesData);
+      setCategories(categoriesData);
+      setAvailableModules(modulesData);
+      calculateStats(coursesData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  // ─── STATS CALCULATION ─────────────────────────────────────────────
   const calculateStats = (data) => {
     const total = data.length;
-    const published = data.filter(c => c.status === "PUBLISHED").length;
-    const draft = data.filter(c => c.status === "DRAFT").length;
-    const archived = data.filter(c => c.status === "ARCHIVED").length;
-    const featured = data.filter(c => c.isFeatured).length;
-    const totalEnrollments = data.reduce((sum, c) => sum + (c._count?.enrollments || 0), 0);
-    const totalRevenue = data.reduce((sum, c) => sum + ((c.price || 0) * (c._count?.enrollments || 0)), 0);
+    const published = data.filter((c) => c.status === "PUBLISHED").length;
+    const draft = data.filter((c) => c.status === "DRAFT").length;
+    const archived = data.filter((c) => c.status === "ARCHIVED").length;
+    const featured = data.filter((c) => c.isFeatured).length;
+    const enrollments = data.reduce((sum, c) => sum + (c._count?.enrollments || 0), 0);
 
-    setStats({ total, published, draft, archived, featured, totalEnrollments, totalRevenue });
+    setStats({ total, published, draft, archived, featured, enrollments });
   };
 
-  const fetchCategories = async () => {
-    try {
-      const res = await api.get("/categories");
-      setCategories(res.data.data || res.data);
-    } catch (err) {
-      console.error("Error fetching categories:", err);
-      setCategories([]);
-    }
-  };
-
-  const generateSlug = (title) => {
-    return title
+  // ─── HELPERS ────────────────────────────────────────────────────────
+  const generateSlug = (text) => {
+    return text
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-    
-    if (type === "file") {
-      const file = files[0];
-      if (file) {
-        setForm({ ...form, thumbnail: file });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setThumbnailPreview(reader.result);
-        };
-        reader.readAsDataURL(file);
-      }
-    } else if (type === "checkbox") {
-      setForm({ ...form, [name]: checked });
-    } else {
-      setForm({ ...form, [name]: value });
-      if (name === "title" && !editing) {
-        setForm(prev => ({
-          ...prev,
-          slug: generateSlug(value)
-        }));
-      }
-    }
-    
-    if (formErrors[name]) {
-      setFormErrors({ ...formErrors, [name]: "" });
-    }
-  };
-
-  const handleSaveCourse = async () => {
-    try {
-      const errors = {};
-      if (!form.title || form.title.trim() === "") {
-        errors.title = "Course title is required";
-      }
-      if (!form.categoryId) {
-        errors.categoryId = "Category is required";
-      }
-      if (!form.price && form.price !== 0) {
-        errors.price = "Price is required";
-      }
-      if (form.price < 0) {
-        errors.price = "Price cannot be negative";
-      }
-      
-      if (form.discountPrice && form.discountPrice < 0) {
-        errors.discountPrice = "Discount price cannot be negative";
-      }
-      if (form.discountPrice && form.discountPrice > form.price) {
-        errors.discountPrice = "Discount price cannot be greater than original price";
-      }
-
-      if (Object.keys(errors).length > 0) {
-        setFormErrors(errors);
-        return;
-      }
-
-      setIsSubmitting(true);
-
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const createdById = user.id || 1;
-
-      const data = {
-        title: form.title.trim(),
-        slug: form.slug || generateSlug(form.title),
-        subtitle: form.subtitle || "",
-        description: form.description || "",
-        language: form.language || "English",
-        level: form.level || "BEGINNER",
-        duration: parseInt(form.duration) || 0,
-        price: parseFloat(form.price) || 0,
-        requirements: form.requirements || "null",
-        outcomes: form.outcomes || "null",
-        audience: form.audience || "null",
-        categoryId: parseInt(form.categoryId),
-        createdById: createdById,
-        trailer: form.videoUrl || "null",
-        isPublished: form.isPublished,
-        isFeatured: form.isFeatured,
-        isFree: form.isFree,
-        status: form.isPublished ? "PUBLISHED" : "DRAFT",
-      };
-
-      if (form.slug) {
-        data.slug = form.slug;
-      } else {
-        data.slug = generateSlug(form.title);
-      }
-
-      if (form.discountPrice !== undefined && 
-          form.discountPrice !== null && 
-          form.discountPrice !== "" && 
-          form.discountPrice !== "0") {
-        const discountValue = parseFloat(form.discountPrice);
-        if (!isNaN(discountValue) && discountValue > 0) {
-          data.discountPrice = discountValue;
-        }
-      }
-
-      Object.keys(data).forEach(key => {
-        if (data[key] === undefined) {
-          delete data[key];
-        }
-      });
-
-      console.log("📤 Sending data:", JSON.stringify(data, null, 2));
-
-      let response;
-      if (editing) {
-        response = await api.put(`/courses/${editing.id}`, data);
-      } else {
-        response = await api.post("/courses", data);
-      }
-
-      console.log("✅ Response:", response.data);
-
-      setShowModal(false);
-      setEditing(null);
-      resetForm();
-      await fetchCourses();
-      setIsSubmitting(false);
-      setIsEditMode(false);
-      setShowViewModal(false);
-      
-      alert(editing ? "Course updated successfully!" : "Course created successfully!");
-    } catch (err) {
-      setIsSubmitting(false);
-      console.error("❌ Error:", err);
-      console.error("❌ Response:", err.response);
-      console.error("❌ Error data:", err.response?.data);
-      
-      let errorMessage = "Failed to save course";
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.response?.data?.errors) {
-        const validationErrors = Object.values(err.response.data.errors).flat().join(", ");
-        errorMessage = `Validation error: ${validationErrors}`;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      alert("Error: " + errorMessage);
-    }
-  };
-
-  const handleDeleteCourse = async (id) => {
-    try {
-      await api.delete(`/courses/${id}`);
-      await fetchCourses();
-      setShowDeleteConfirm(null);
-      setShowViewModal(false);
-      setIsEditMode(false);
-      alert("Course deleted successfully!");
-    } catch (err) {
-      const message = err.response?.data?.message || "Failed to delete course";
-      if (message.includes("foreign key") || message.includes("constraint")) {
-        alert("Cannot delete this course because it has related data. Please delete all related data first.");
-      } else {
-        alert(message);
-      }
-    }
-  };
-
-  const handleTogglePublish = async (course) => {
-    const newStatus = course.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
-    try {
-      await api.put(`/courses/${course.id}`, { 
-        status: newStatus, 
-        isPublished: newStatus === "PUBLISHED" 
-      });
-      await fetchCourses();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to update course status");
-    }
-  };
-
-  const handleToggleFeatured = async (course) => {
-    try {
-      await api.put(`/courses/${course.id}`, { isFeatured: !course.isFeatured });
-      await fetchCourses();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to update featured status");
-    }
-  };
-
-  const resetForm = () => {
-    setForm({
-      title: "",
-      slug: "",
-      subtitle: "",
-      description: "",
-      price: "",
-      discountPrice: "",
-      categoryId: "",
-      level: "BEGINNER",
-      language: "English",
-      thumbnail: null,
-      requirements: "",
-      outcomes: "",
-      audience: "",
-      status: "DRAFT",
-      isFeatured: false,
-      isFree: false,
-      duration: "",
-      videoUrl: "",
-      welcomeMessage: "",
-      completionMessage: "",
-      isPublished: false,
-    });
-    setThumbnailPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    setFormErrors({});
-  };
-
-  const openCreateModal = () => {
-    setEditing(null);
-    resetForm();
-    setShowModal(true);
-  };
-
-  const openEditModal = (course) => {
-    setEditing(course);
-    setForm({
-      title: course.title || "",
-      slug: course.slug || "",
-      subtitle: course.subtitle || "",
-      description: course.description || "",
-      price: course.price || "",
-      discountPrice: course.discountPrice || "",
-      categoryId: course.categoryId || "",
-      level: course.level || "BEGINNER",
-      language: course.language || "English",
-      thumbnail: null,
-      requirements: course.requirements || "",
-      outcomes: course.outcomes || "",
-      audience: course.audience || "",
-      status: course.status || "DRAFT",
-      isFeatured: course.isFeatured || false,
-      isFree: course.isFree || false,
-      duration: course.duration || "",
-      videoUrl: course.trailer || "",
-      isPublished: course.isPublished || course.status === "PUBLISHED" || false,
-    });
-    setThumbnailPreview(course.thumbnail || null);
-    setIsEditMode(true);
-    setShowViewModal(true);
-    setFormErrors({});
-  };
-
-  const openViewModal = (course) => {
-    setViewingCourse(course);
-    setIsEditMode(false);
-    setShowViewModal(true);
-  };
-
-  const handleEditClick = () => {
-    if (viewingCourse) {
-      openEditModal(viewingCourse);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditMode(false);
-    if (viewingCourse) {
-      setForm({
-        title: viewingCourse.title || "",
-        slug: viewingCourse.slug || "",
-        subtitle: viewingCourse.subtitle || "",
-        description: viewingCourse.description || "",
-        price: viewingCourse.price || "",
-        discountPrice: viewingCourse.discountPrice || "",
-        categoryId: viewingCourse.categoryId || "",
-        level: viewingCourse.level || "BEGINNER",
-        language: viewingCourse.language || "English",
-        thumbnail: null,
-        requirements: viewingCourse.requirements || "",
-        outcomes: viewingCourse.outcomes || "",
-        audience: viewingCourse.audience || "",
-        status: viewingCourse.status || "DRAFT",
-        isFeatured: viewingCourse.isFeatured || false,
-        isFree: viewingCourse.isFree || false,
-        duration: viewingCourse.duration || "",
-        videoUrl: viewingCourse.trailer || "",
-        welcomeMessage: viewingCourse.welcomeMessage || "",
-        completionMessage: viewingCourse.completionMessage || "",
-        isPublished: viewingCourse.isPublished || false,
-      });
-      setThumbnailPreview(viewingCourse.thumbnail || null);
-    }
-    setFormErrors({});
-  };
-
-  const handleDuplicateCourse = async (course) => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const { id, ...courseData } = course;
-      const newCourse = {
-        ...courseData,
-        title: `${course.title} (Copy)`,
-        slug: `${course.slug}-copy`,
-        status: "DRAFT",
-        isPublished: false,
-        isFeatured: false,
-        createdById: user.id || 1,
-        _count: { enrollments: 0 },
-      };
-      await api.post("/courses", newCourse);
-      await fetchCourses();
-      alert("Course duplicated successfully!");
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to duplicate course");
-    }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount || 0);
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   };
 
   const formatDate = (date) => {
@@ -475,34 +156,285 @@ function AdminCourses() {
   };
 
   const getLevelColor = (level) => {
-    const colors = {
-      BEGINNER: "#10b981",
-      INTERMEDIATE: "#f59e0b",
-      ADVANCED: "#ef4444",
-    };
+    const colors = { BEGINNER: "#10b981", INTERMEDIATE: "#f59e0b", ADVANCED: "#ef4444" };
     return colors[level] || "#64748b";
   };
 
   const getStatusBadge = (status) => {
-    const classes = {
-      PUBLISHED: "status-published",
-      DRAFT: "status-draft",
-      ARCHIVED: "status-archived",
-    };
+    const classes = { PUBLISHED: "status-published", DRAFT: "status-draft", ARCHIVED: "status-archived" };
     return classes[status] || "status-draft";
   };
 
+  // ─── FORM HANDLERS ──────────────────────────────────────────────────
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      slug: "",
+      subtitle: "",
+      description: "",
+      categoryId: "",
+      level: "BEGINNER",
+      language: "English",
+      thumbnail: null,
+      requirements: "",
+      outcomes: "",
+      audience: "",
+      videoUrl: "",
+      isPublished: false,
+      isFeatured: false,
+    });
+    setThumbnailPreview(null);
+    setFormErrors({});
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value, type, checked, files } = e.target;
+
+    if (type === "file") {
+      const file = files[0];
+      if (file) {
+        setFormData({ ...formData, thumbnail: file });
+        const reader = new FileReader();
+        reader.onloadend = () => setThumbnailPreview(reader.result);
+        reader.readAsDataURL(file);
+      }
+    } else if (type === "checkbox") {
+      setFormData({ ...formData, [name]: checked });
+    } else {
+      setFormData({ ...formData, [name]: value });
+      if (name === "title" && !editingCourse) {
+        setFormData((prev) => ({ ...prev, slug: generateSlug(value) }));
+      }
+    }
+
+    if (formErrors[name]) setFormErrors({ ...formErrors, [name]: "" });
+  };
+
+  // ─── COURSE CRUD ────────────────────────────────────────────────────
+  const openCreateModal = () => {
+    setEditingCourse(null);
+    resetForm();
+    setShowCreateModal(true);
+  };
+
+  const openEditModal = (course) => {
+    setEditingCourse(course);
+    setFormData({
+      title: course.title || "",
+      slug: course.slug || "",
+      subtitle: course.subtitle || "",
+      description: course.description || "",
+      categoryId: course.categoryId || "",
+      level: course.level || "BEGINNER",
+      language: course.language || "English",
+      thumbnail: null,
+      requirements: course.requirements || "",
+      outcomes: course.outcomes || "",
+      audience: course.audience || "",
+      videoUrl: course.trailer || "",
+      isPublished: course.isPublished || course.status === "PUBLISHED",
+      isFeatured: course.isFeatured || false,
+    });
+    setThumbnailPreview(course.thumbnail || null);
+    setIsEditMode(true);
+    setShowViewModal(true);
+  };
+
+  const openViewModal = (course) => {
+    setViewingCourse(course);
+    setIsEditMode(false);
+    setShowViewModal(true);
+  };
+
+  const handleSaveCourse = async () => {
+    const errors = {};
+    if (!formData.title.trim()) errors.title = "Title is required";
+    if (!formData.categoryId) errors.categoryId = "Category is required";
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const payload = {
+        title: formData.title.trim(),
+        slug: formData.slug || generateSlug(formData.title),
+        subtitle: formData.subtitle || "",
+        description: formData.description || "",
+        language: formData.language,
+        level: formData.level,
+        requirements: formData.requirements || null,
+        outcomes: formData.outcomes || null,
+        audience: formData.audience || null,
+        categoryId: parseInt(formData.categoryId),
+        createdById: user.id || 1,
+        trailer: formData.videoUrl || null,
+        isPublished: formData.isPublished,
+        isFeatured: formData.isFeatured,
+        status: formData.isPublished ? "PUBLISHED" : "DRAFT",
+        price: 0,
+        duration: 0,
+      };
+
+      if (editingCourse) {
+        await api.put(`/courses/${editingCourse.id}`, payload);
+      } else {
+        await api.post("/courses", payload);
+      }
+
+      setShowCreateModal(false);
+      setShowViewModal(false);
+      setIsEditMode(false);
+      resetForm();
+      await fetchAllData();
+      alert(editingCourse ? "✅ Course updated successfully!" : "✅ Course created successfully!");
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to save course");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ─── DELETE COURSE ──────────────────────────────────────────────────
+  const openDeleteModal = (course) => {
+    setCourseToDelete(course.id);
+    setDeleteError(null);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteCourse = async () => {
+    if (!courseToDelete) return;
+
+    setIsSubmitting(true);
+    setDeleteError(null);
+
+    try {
+      await api.delete(`/courses/${courseToDelete}`);
+      setShowDeleteModal(false);
+      setCourseToDelete(null);
+      setShowViewModal(false);
+      await fetchAllData();
+      alert("✅ Course deleted successfully!");
+    } catch (error) {
+      console.error("Delete error:", error);
+      const errorMessage = error.response?.data?.message || "Failed to delete course";
+      setDeleteError(errorMessage);
+      
+      if (errorMessage.includes("related records") || errorMessage.includes("foreign key")) {
+        // Keep modal open with error
+      } else {
+        alert(`❌ Error: ${errorMessage}`);
+        setShowDeleteModal(false);
+        setCourseToDelete(null);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const togglePublish = async (course) => {
+    const newStatus = course.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+    try {
+      await api.put(`/courses/${course.id}`, {
+        status: newStatus,
+        isPublished: newStatus === "PUBLISHED",
+      });
+      await fetchAllData();
+    } catch (error) {
+      alert("Failed to update status");
+    }
+  };
+
+  const toggleFeatured = async (course) => {
+    try {
+      await api.put(`/courses/${course.id}`, { isFeatured: !course.isFeatured });
+      await fetchAllData();
+    } catch (error) {
+      alert("Failed to update featured status");
+    }
+  };
+
+  // ─── MODULE MANAGEMENT ─────────────────────────────────────────────
+  const openModuleLibrary = () => {
+    setShowModuleLibraryModal(true);
+  };
+
+  const addModuleToCourse = async (moduleId) => {
+    if (!viewingCourse?.id) {
+      alert("Please save the course first.");
+      return;
+    }
+
+    // Check if already added
+    const moduleToAdd = availableModules.find(m => m.id === moduleId);
+    if (!moduleToAdd) {
+      alert("Module not found.");
+      return;
+    }
+
+    const alreadyAdded = viewingCourse.modules?.some((m) => m.moduleSlug === moduleToAdd.moduleSlug);
+    if (alreadyAdded) {
+      alert("Module already added to this course.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const response = await api.post(
+        `/modules/add-to-course/${viewingCourse.id}/${moduleId}`
+      );
+
+      if (response.data.success) {
+        alert(`✅ Module added to course successfully!`);
+        setViewingCourse(response.data.data);
+        await fetchAllData();
+        setShowModuleLibraryModal(false);
+      }
+    } catch (error) {
+      console.error("Error adding module:", error);
+      alert(error.response?.data?.message || "Failed to add module");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const removeModuleFromCourse = async (moduleId) => {
+    if (!confirm("Remove this module from the course?")) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      const response = await api.delete(
+        `/modules/remove-from-course/${viewingCourse.id}/${moduleId}`
+      );
+
+      if (response.data.success) {
+        alert(`✅ Module removed from course!`);
+        setViewingCourse(response.data.data);
+        await fetchAllData();
+      }
+    } catch (error) {
+      console.error("Error removing module:", error);
+      alert(error.response?.data?.message || "Failed to remove module");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ─── FILTERING ──────────────────────────────────────────────────────
   const filteredCourses = courses.filter((course) => {
-    const matchesSearch = course.title?.toLowerCase().includes(search.toLowerCase()) ||
-                         course.description?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || course.status === statusFilter;
-    const matchesCategory = !categoryFilter || course.categoryId === Number(categoryFilter);
-    return matchesSearch && matchesStatus && matchesCategory;
+    const matchSearch = course.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = statusFilter === "all" || course.status === statusFilter;
+    const matchCategory = !categoryFilter || course.categoryId === Number(categoryFilter);
+    return matchSearch && matchStatus && matchCategory;
   });
 
-  const levels = ["BEGINNER", "INTERMEDIATE", "ADVANCED"];
-  const languages = ["English", "Hindi", "Tamil", "Telugu", "Malayalam", "Kannada", "Spanish", "French", "German", "Chinese"];
-
+  // ─── RENDER ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="courses-page">
@@ -516,21 +448,18 @@ function AdminCourses() {
 
   return (
     <div className="courses-page">
-      {/* Header */}
+      {/* ─── HEADER ─────────────────────────────────────────────────── */}
       <div className="page-header">
         <div>
           <h1>Course Management</h1>
-          <p className="subtitle">Manage your courses and their content</p>
+          <p className="subtitle">Manage your courses and organize modules</p>
         </div>
-        <div className="header-actions">
-          <button className="add-btn" onClick={openCreateModal}>
-            <Plus size={18} />
-            New Course
-          </button>
-        </div>
+        <button className="add-btn" onClick={openCreateModal}>
+          <Plus size={18} /> New Course
+        </button>
       </div>
 
-      {/* Stats Cards */}
+      {/* ─── STATS ───────────────────────────────────────────────────── */}
       <div className="course-cards">
         <div className="card">
           <BookOpen size={28} />
@@ -554,19 +483,19 @@ function AdminCourses() {
         </div>
         <div className="card">
           <Users size={28} />
-          <h2>{stats.totalEnrollments}</h2>
+          <h2>{stats.enrollments}</h2>
           <p>Enrollments</p>
         </div>
       </div>
 
-      {/* Toolbar */}
+      {/* ─── TOOLBAR ─────────────────────────────────────────────────── */}
       <div className="toolbar">
         <div className="search-box">
           <Search size={18} />
           <input
             placeholder="Search courses..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
@@ -587,27 +516,26 @@ function AdminCourses() {
           onChange={(e) => setCategoryFilter(e.target.value)}
         >
           <option value="">All Categories</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
             </option>
           ))}
         </select>
 
-        <button className="refresh-btn" onClick={fetchCourses}>
+        <button className="refresh-btn" onClick={fetchAllData}>
           <RefreshCw size={18} />
         </button>
       </div>
 
-      {/* Courses Table */}
+      {/* ─── TABLE ───────────────────────────────────────────────────── */}
       <div className="table-wrapper">
         <table className="course-table">
           <thead>
             <tr>
-              <th style={{ width: "30%" }}>Course</th>
+              <th style={{ width: "35%" }}>Course</th>
               <th>Category</th>
               <th>Level</th>
-              <th>Price</th>
               <th>Status</th>
               <th>Students</th>
               <th style={{ width: "180px" }}>Actions</th>
@@ -616,14 +544,13 @@ function AdminCourses() {
           <tbody>
             {filteredCourses.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "40px" }}>
+                <td colSpan="6">
                   <div className="empty-state">
                     <BookOpen size={48} />
                     <h3>No courses found</h3>
                     <p>Create your first course to get started</p>
                     <button className="add-btn" onClick={openCreateModal}>
-                      <Plus size={18} />
-                      Create Course
+                      <Plus size={18} /> Create Course
                     </button>
                   </div>
                 </td>
@@ -633,9 +560,8 @@ function AdminCourses() {
                 <tr key={course.id}>
                   <td>
                     <div className="course-title">
-                      {/* ✅ FIXED: Use FALLBACK_IMAGE instead of via.placeholder.com */}
                       <img
-                        src={course.thumbnail || FALLBACK_IMAGE}
+                        src={course.thumbnail ? getImageUrl(course.thumbnail) : FALLBACK_IMAGE}
                         alt={course.title}
                         className="course-thumbnail"
                         onError={(e) => {
@@ -646,49 +572,25 @@ function AdminCourses() {
                         <strong>{course.title}</strong>
                         <br />
                         <small className="text-muted">
-                          {course._count?.modules || 0} Modules • Created: {formatDate(course.createdAt)}
+                          {course._count?.modules || 0} Modules • {formatDate(course.createdAt)}
                         </small>
-                        {course.isFeatured && (
-                          <span className="featured-badge">★ Featured</span>
-                        )}
-                        {course.isFree && (
-                          <span className="free-badge">Free</span>
-                        )}
+                        {course.isFeatured && <span className="featured-badge">★ Featured</span>}
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span className="category-badge">
-                      {course.category?.name || "N/A"}
-                    </span>
+                    <span className="category-badge">{course.category?.name || "N/A"}</span>
                   </td>
                   <td>
                     <span
                       className="level-badge"
                       style={{
-                        position: "static",
-                        backgroundColor: getLevelColor(course.level) + '20',
-                        color: getLevelColor(course.level)
+                        backgroundColor: getLevelColor(course.level) + "20",
+                        color: getLevelColor(course.level),
                       }}
                     >
-                      {course.level || "Not set"}
+                      {course.level || "N/A"}
                     </span>
-                  </td>
-                  <td>
-                    {course.isFree ? (
-                      <span className="price-badge free">Free</span>
-                    ) : (
-                      <>
-                        <span className="price-badge">
-                          {formatCurrency(course.price)}
-                        </span>
-                        {course.discountPrice > 0 && course.discountPrice < course.price && (
-                          <small className="discount-text">
-                            {formatCurrency(course.discountPrice)}
-                          </small>
-                        )}
-                      </>
-                    )}
                   </td>
                   <td>
                     <span className={`status-badge ${getStatusBadge(course.status)}`}>
@@ -704,24 +606,20 @@ function AdminCourses() {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button 
-                        title="View Course" 
-                        className="view-btn"
-                        onClick={() => openViewModal(course)}
-                      >
+                      <button className="view-btn" onClick={() => openViewModal(course)} title="View">
                         <Eye size={18} />
                       </button>
-                      <button 
+                      <button
+                        className={`feature-btn ${course.isFeatured ? "active" : ""}`}
+                        onClick={() => toggleFeatured(course)}
                         title={course.isFeatured ? "Remove Featured" : "Make Featured"}
-                        className={`feature-btn ${course.isFeatured ? 'active' : ''}`}
-                        onClick={() => handleToggleFeatured(course)}
                       >
                         <Star size={18} />
                       </button>
-                      <button 
-                        title={course.status === "PUBLISHED" ? "Unpublish" : "Publish"}
+                      <button
                         className="publish-btn"
-                        onClick={() => handleTogglePublish(course)}
+                        onClick={() => togglePublish(course)}
+                        title={course.status === "PUBLISHED" ? "Unpublish" : "Publish"}
                       >
                         {course.status === "PUBLISHED" ? <XCircle size={18} /> : <CheckCircle size={18} />}
                       </button>
@@ -734,41 +632,13 @@ function AdminCourses() {
         </table>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="modal confirm-modal" onClick={() => setShowDeleteConfirm(null)}>
-          <div className="modal-content confirm-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Confirm Delete</h2>
-              <button className="modal-close" onClick={() => setShowDeleteConfirm(null)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="confirm-body">
-              <AlertCircle size={48} className="confirm-icon" />
-              <p>Are you sure you want to delete this course?</p>
-              <p className="confirm-sub">This action cannot be undone. All associated data will be permanently removed.</p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setShowDeleteConfirm(null)}>
-                Cancel
-              </button>
-              <button className="btn-danger" onClick={() => handleDeleteCourse(showDeleteConfirm)}>
-                <Trash2 size={18} />
-                Delete Course
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Modal */}
-      {showModal && !editing && (
-        <div className="modal" onClick={() => setShowModal(false)}>
+      {/* ─── CREATE MODAL ───────────────────────────────────────────── */}
+      {showCreateModal && (
+        <div className="modal" onClick={() => setShowCreateModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Create New Course</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}>
+              <button className="modal-close" onClick={() => setShowCreateModal(false)}>
                 <X size={20} />
               </button>
             </div>
@@ -776,53 +646,32 @@ function AdminCourses() {
             <div className="modal-body">
               <div className="form-section">
                 <h3>Basic Information</h3>
-                
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Course Title *</label>
+                    <label>Title *</label>
                     <input
                       type="text"
                       name="title"
-                      placeholder="Enter course title"
-                      value={form.title}
-                      onChange={handleInputChange}
+                      value={formData.title}
+                      onChange={handleFormChange}
                       className={formErrors.title ? "error" : ""}
                     />
                     {formErrors.title && <span className="error-text">{formErrors.title}</span>}
                   </div>
-
                   <div className="form-group">
                     <label>Slug</label>
-                    <input
-                      type="text"
-                      name="slug"
-                      placeholder="course-url-slug"
-                      value={form.slug}
-                      onChange={handleInputChange}
-                    />
+                    <input type="text" name="slug" value={formData.slug} onChange={handleFormChange} />
                   </div>
                 </div>
 
                 <div className="form-group">
                   <label>Subtitle</label>
-                  <input
-                    type="text"
-                    name="subtitle"
-                    placeholder="Short subtitle for the course"
-                    value={form.subtitle}
-                    onChange={handleInputChange}
-                  />
+                  <input type="text" name="subtitle" value={formData.subtitle} onChange={handleFormChange} />
                 </div>
 
                 <div className="form-group">
                   <label>Description</label>
-                  <textarea
-                    name="description"
-                    placeholder="Describe your course..."
-                    rows={4}
-                    value={form.description}
-                    onChange={handleInputChange}
-                  />
+                  <textarea name="description" rows={4} value={formData.description} onChange={handleFormChange} />
                 </div>
 
                 <div className="form-row">
@@ -830,174 +679,84 @@ function AdminCourses() {
                     <label>Category *</label>
                     <select
                       name="categoryId"
-                      value={form.categoryId}
-                      onChange={handleInputChange}
+                      value={formData.categoryId}
+                      onChange={handleFormChange}
                       className={formErrors.categoryId ? "error" : ""}
                     >
-                      <option value="">Choose Category</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
+                      <option value="">Select Category</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
                         </option>
                       ))}
                     </select>
                     {formErrors.categoryId && <span className="error-text">{formErrors.categoryId}</span>}
                   </div>
-
                   <div className="form-group">
                     <label>Level</label>
-                    <select
-                      name="level"
-                      value={form.level}
-                      onChange={handleInputChange}
-                    >
-                      {levels.map((level) => (
-                        <option key={level} value={level}>
-                          {level}
+                    <select name="level" value={formData.level} onChange={handleFormChange}>
+                      {levels.map((l) => (
+                        <option key={l} value={l}>
+                          {l}
                         </option>
                       ))}
                     </select>
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Language</label>
-                    <select
-                      name="language"
-                      value={form.language}
-                      onChange={handleInputChange}
-                    >
-                      {languages.map((lang) => (
-                        <option key={lang} value={lang}>
-                          {lang}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Duration (minutes)</label>
-                    <input
-                      type="number"
-                      name="duration"
-                      placeholder="120"
-                      value={form.duration}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-section">
-                <h3>Pricing</h3>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Price (₹) *</label>
-                    <input
-                      type="number"
-                      name="price"
-                      placeholder="0"
-                      value={form.price}
-                      onChange={handleInputChange}
-                      className={formErrors.price ? "error" : ""}
-                    />
-                    {formErrors.price && <span className="error-text">{formErrors.price}</span>}
-                  </div>
-
-                  <div className="form-group">
-                    <label>Discount Price (₹)</label>
-                    <input
-                      type="number"
-                      name="discountPrice"
-                      placeholder="0"
-                      value={form.discountPrice}
-                      onChange={handleInputChange}
-                      className={formErrors.discountPrice ? "error" : ""}
-                    />
-                    {formErrors.discountPrice && <span className="error-text">{formErrors.discountPrice}</span>}
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="toggle-label">
-                    <input
-                      type="checkbox"
-                      name="isFree"
-                      checked={form.isFree}
-                      onChange={handleInputChange}
-                    />
-                    <span>Free Course</span>
-                  </label>
+                  <label>Language</label>
+                  <select name="language" value={formData.language} onChange={handleFormChange}>
+                    {languages.map((lang) => (
+                      <option key={lang} value={lang}>
+                        {lang}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               <div className="form-section">
                 <h3>Course Content</h3>
-                
                 <div className="form-group">
                   <label>Requirements</label>
-                  <textarea
-                    name="requirements"
-                    placeholder="What students need to know before taking this course?"
-                    rows={3}
-                    value={form.requirements}
-                    onChange={handleInputChange}
-                  />
+                  <textarea name="requirements" rows={3} value={formData.requirements} onChange={handleFormChange} />
                 </div>
-
                 <div className="form-group">
                   <label>Learning Outcomes</label>
-                  <textarea
-                    name="outcomes"
-                    placeholder="What will students learn from this course?"
-                    rows={3}
-                    value={form.outcomes}
-                    onChange={handleInputChange}
-                  />
+                  <textarea name="outcomes" rows={3} value={formData.outcomes} onChange={handleFormChange} />
                 </div>
-
                 <div className="form-group">
                   <label>Target Audience</label>
-                  <textarea
-                    name="audience"
-                    placeholder="Who is this course for?"
-                    rows={3}
-                    value={form.audience}
-                    onChange={handleInputChange}
-                  />
+                  <textarea name="audience" rows={3} value={formData.audience} onChange={handleFormChange} />
                 </div>
               </div>
 
               <div className="form-section">
-                <h3>Media & Additional</h3>
-                
+                <h3>Media</h3>
                 <div className="form-group">
                   <label>Thumbnail</label>
                   <div className="file-upload">
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={handleInputChange}
                       ref={fileInputRef}
-                      id="thumbnail-upload"
+                      onChange={handleFormChange}
                       name="thumbnail"
+                      id="thumbnail-upload"
                     />
                     <label htmlFor="thumbnail-upload" className="file-upload-label">
                       <Upload size={18} />
-                      {form.thumbnail ? form.thumbnail.name : "Upload Thumbnail"}
+                      {formData.thumbnail ? formData.thumbnail.name : "Upload Thumbnail"}
                     </label>
                     {thumbnailPreview && (
                       <div className="thumbnail-preview">
-                        <img src={thumbnailPreview} alt="Thumbnail preview" />
-                        <button 
-                          type="button"
+                        <img src={thumbnailPreview} alt="Preview" />
+                        <button
                           onClick={() => {
                             setThumbnailPreview(null);
-                            setForm({ ...form, thumbnail: null });
-                            if (fileInputRef.current) {
-                              fileInputRef.current.value = "";
-                            }
+                            setFormData({ ...formData, thumbnail: null });
+                            if (fileInputRef.current) fileInputRef.current.value = "";
                           }}
                         >
                           <X size={16} />
@@ -1006,16 +765,9 @@ function AdminCourses() {
                     )}
                   </div>
                 </div>
-
                 <div className="form-group">
                   <label>Promo Video URL</label>
-                  <input
-                    type="url"
-                    name="videoUrl"
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    value={form.videoUrl}
-                    onChange={handleInputChange}
-                  />
+                  <input type="url" name="videoUrl" value={formData.videoUrl} onChange={handleFormChange} />
                 </div>
               </div>
 
@@ -1024,24 +776,13 @@ function AdminCourses() {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="toggle-label">
-                      <input
-                        type="checkbox"
-                        name="isPublished"
-                        checked={form.isPublished}
-                        onChange={handleInputChange}
-                      />
+                      <input type="checkbox" name="isPublished" checked={formData.isPublished} onChange={handleFormChange} />
                       <span>Publish Course</span>
                     </label>
                   </div>
-
                   <div className="form-group">
                     <label className="toggle-label">
-                      <input
-                        type="checkbox"
-                        name="isFeatured"
-                        checked={form.isFeatured}
-                        onChange={handleInputChange}
-                      />
+                      <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleFormChange} />
                       <span>Featured Course</span>
                     </label>
                   </div>
@@ -1050,41 +791,51 @@ function AdminCourses() {
             </div>
 
             <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowCreateModal(false)}>
+                Cancel
+              </button>
               <button className="btn-save" onClick={handleSaveCourse} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <div className="spinner-small"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save size={18} />
-                    Create Course
-                  </>
-                )}
+                {isSubmitting ? <><span className="spinner-small" /> Saving...</> : <><Save size={18} /> Create</>}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* View/Edit Modal - Inline Edit */}
+      {/* ─── VIEW/EDIT MODAL ────────────────────────────────────────── */}
       {showViewModal && viewingCourse && (
-        <div className="modal view-modal" onClick={() => {
-          if (!isEditMode) {
-            setShowViewModal(false);
-          }
-        }}>
+        <div className="modal view-modal" onClick={() => !isEditMode && setShowViewModal(false)}>
           <div className="modal-content view-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{isEditMode ? "Edit Course" : "Course Details"}</h2>
-              <button className="modal-close" onClick={() => {
-                if (isEditMode) {
-                  handleCancelEdit();
-                } else {
-                  setShowViewModal(false);
-                }
-              }}>
+              <button
+                className="modal-close"
+                onClick={() => {
+                  if (isEditMode) {
+                    setIsEditMode(false);
+                    setFormData({
+                      title: viewingCourse.title || "",
+                      slug: viewingCourse.slug || "",
+                      subtitle: viewingCourse.subtitle || "",
+                      description: viewingCourse.description || "",
+                      categoryId: viewingCourse.categoryId || "",
+                      level: viewingCourse.level || "BEGINNER",
+                      language: viewingCourse.language || "English",
+                      thumbnail: null,
+                      requirements: viewingCourse.requirements || "",
+                      outcomes: viewingCourse.outcomes || "",
+                      audience: viewingCourse.audience || "",
+                      videoUrl: viewingCourse.trailer || "",
+                      isPublished: viewingCourse.isPublished || false,
+                      isFeatured: viewingCourse.isFeatured || false,
+                    });
+                    setThumbnailPreview(viewingCourse.thumbnail || null);
+                    setFormErrors({});
+                  } else {
+                    setShowViewModal(false);
+                  }
+                }}
+              >
                 <X size={20} />
               </button>
             </div>
@@ -1097,26 +848,23 @@ function AdminCourses() {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={handleInputChange}
                       ref={fileInputRef}
-                      id="edit-thumbnail-upload"
+                      onChange={handleFormChange}
                       name="thumbnail"
+                      id="edit-thumbnail-upload"
                     />
                     <label htmlFor="edit-thumbnail-upload" className="file-upload-label">
                       <Upload size={18} />
-                      {form.thumbnail ? form.thumbnail.name : "Change Thumbnail"}
+                      {formData.thumbnail ? formData.thumbnail.name : "Change Thumbnail"}
                     </label>
                     {thumbnailPreview ? (
                       <div className="thumbnail-preview">
-                        <img src={thumbnailPreview} alt="Thumbnail preview" />
-                        <button 
-                          type="button"
+                        <img src={thumbnailPreview} alt="Preview" />
+                        <button
                           onClick={() => {
                             setThumbnailPreview(null);
-                            setForm({ ...form, thumbnail: null });
-                            if (fileInputRef.current) {
-                              fileInputRef.current.value = "";
-                            }
+                            setFormData({ ...formData, thumbnail: null });
+                            if (fileInputRef.current) fileInputRef.current.value = "";
                           }}
                         >
                           <X size={16} />
@@ -1124,77 +872,45 @@ function AdminCourses() {
                       </div>
                     ) : viewingCourse.thumbnail && (
                       <div className="thumbnail-preview">
-                        <img 
-                          src={viewingCourse.thumbnail} 
-                          alt="Current thumbnail"
-                          onError={(e) => {
-                            e.target.src = FALLBACK_IMAGE;
-                          }}
-                        />
+                        <img src={getImageUrl(viewingCourse.thumbnail)} alt="Current" onError={(e) => (e.target.src = FALLBACK_IMAGE)} />
                       </div>
                     )}
                   </div>
                 ) : (
-                  <img
-                    src={viewingCourse.thumbnail || FALLBACK_IMAGE}
-                    alt={viewingCourse.title}
-                    onError={(e) => {
-                      e.target.src = FALLBACK_IMAGE;
-                    }}
-                  />
+                  <img src={viewingCourse.thumbnail ? getImageUrl(viewingCourse.thumbnail) : FALLBACK_IMAGE} alt={viewingCourse.title} onError={(e) => (e.target.src = FALLBACK_IMAGE)} />
                 )}
               </div>
 
-              {/* Course Info / Edit Form */}
               <div className="view-info">
                 {isEditMode ? (
-                  // Edit Mode - Form fields inline
+                  // ─── EDIT MODE ────────────────────────────────────
                   <div className="edit-form">
                     <div className="form-row">
                       <div className="form-group">
-                        <label>Course Title *</label>
+                        <label>Title *</label>
                         <input
                           type="text"
                           name="title"
-                          placeholder="Enter course title"
-                          value={form.title}
-                          onChange={handleInputChange}
+                          value={formData.title}
+                          onChange={handleFormChange}
                           className={formErrors.title ? "error" : ""}
                         />
                         {formErrors.title && <span className="error-text">{formErrors.title}</span>}
                       </div>
                       <div className="form-group">
                         <label>Slug</label>
-                        <input
-                          type="text"
-                          name="slug"
-                          placeholder="course-url-slug"
-                          value={form.slug}
-                          onChange={handleInputChange}
-                        />
+                        <input type="text" name="slug" value={formData.slug} onChange={handleFormChange} />
                       </div>
                     </div>
 
                     <div className="form-group">
                       <label>Subtitle</label>
-                      <input
-                        type="text"
-                        name="subtitle"
-                        placeholder="Short subtitle for the course"
-                        value={form.subtitle}
-                        onChange={handleInputChange}
-                      />
+                      <input type="text" name="subtitle" value={formData.subtitle} onChange={handleFormChange} />
                     </div>
 
                     <div className="form-group">
                       <label>Description</label>
-                      <textarea
-                        name="description"
-                        placeholder="Describe your course..."
-                        rows={3}
-                        value={form.description}
-                        onChange={handleInputChange}
-                      />
+                      <textarea name="description" rows={3} value={formData.description} onChange={handleFormChange} />
                     </div>
 
                     <div className="form-row">
@@ -1202,14 +918,14 @@ function AdminCourses() {
                         <label>Category *</label>
                         <select
                           name="categoryId"
-                          value={form.categoryId}
-                          onChange={handleInputChange}
+                          value={formData.categoryId}
+                          onChange={handleFormChange}
                           className={formErrors.categoryId ? "error" : ""}
                         >
-                          <option value="">Choose Category</option>
-                          {categories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
+                          <option value="">Select Category</option>
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
                             </option>
                           ))}
                         </select>
@@ -1217,150 +933,45 @@ function AdminCourses() {
                       </div>
                       <div className="form-group">
                         <label>Level</label>
-                        <select
-                          name="level"
-                          value={form.level}
-                          onChange={handleInputChange}
-                        >
-                          {levels.map((level) => (
-                            <option key={level} value={level}>
-                              {level}
+                        <select name="level" value={formData.level} onChange={handleFormChange}>
+                          {levels.map((l) => (
+                            <option key={l} value={l}>
+                              {l}
                             </option>
                           ))}
                         </select>
-                      </div>
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Language</label>
-                        <select
-                          name="language"
-                          value={form.language}
-                          onChange={handleInputChange}
-                        >
-                          {languages.map((lang) => (
-                            <option key={lang} value={lang}>
-                              {lang}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>Duration (minutes)</label>
-                        <input
-                          type="number"
-                          name="duration"
-                          placeholder="120"
-                          value={form.duration}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Price (₹) *</label>
-                        <input
-                          type="number"
-                          name="price"
-                          placeholder="0"
-                          value={form.price}
-                          onChange={handleInputChange}
-                          className={formErrors.price ? "error" : ""}
-                        />
-                        {formErrors.price && <span className="error-text">{formErrors.price}</span>}
-                      </div>
-                      <div className="form-group">
-                        <label>Discount Price (₹)</label>
-                        <input
-                          type="number"
-                          name="discountPrice"
-                          placeholder="0"
-                          value={form.discountPrice}
-                          onChange={handleInputChange}
-                          className={formErrors.discountPrice ? "error" : ""}
-                        />
-                        {formErrors.discountPrice && <span className="error-text">{formErrors.discountPrice}</span>}
                       </div>
                     </div>
 
                     <div className="form-group">
-                      <label className="toggle-label">
-                        <input
-                          type="checkbox"
-                          name="isFree"
-                          checked={form.isFree}
-                          onChange={handleInputChange}
-                        />
-                        <span>Free Course</span>
-                      </label>
+                      <label>Language</label>
+                      <select name="language" value={formData.language} onChange={handleFormChange}>
+                        {languages.map((lang) => (
+                          <option key={lang} value={lang}>
+                            {lang}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="form-group">
                       <label>Requirements</label>
-                      <textarea
-                        name="requirements"
-                        placeholder="What students need to know before taking this course?"
-                        rows={2}
-                        value={form.requirements}
-                        onChange={handleInputChange}
-                      />
+                      <textarea name="requirements" rows={2} value={formData.requirements} onChange={handleFormChange} />
                     </div>
 
                     <div className="form-group">
                       <label>Learning Outcomes</label>
-                      <textarea
-                        name="outcomes"
-                        placeholder="What will students learn from this course?"
-                        rows={2}
-                        value={form.outcomes}
-                        onChange={handleInputChange}
-                      />
+                      <textarea name="outcomes" rows={2} value={formData.outcomes} onChange={handleFormChange} />
                     </div>
 
                     <div className="form-group">
                       <label>Target Audience</label>
-                      <textarea
-                        name="audience"
-                        placeholder="Who is this course for?"
-                        rows={2}
-                        value={form.audience}
-                        onChange={handleInputChange}
-                      />
+                      <textarea name="audience" rows={2} value={formData.audience} onChange={handleFormChange} />
                     </div>
 
                     <div className="form-group">
                       <label>Promo Video URL</label>
-                      <input
-                        type="url"
-                        name="videoUrl"
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        value={form.videoUrl}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Welcome Message</label>
-                      <input
-                        type="text"
-                        name="welcomeMessage"
-                        placeholder="Welcome to the course!"
-                        value={form.welcomeMessage}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Completion Message</label>
-                      <input
-                        type="text"
-                        name="completionMessage"
-                        placeholder="Congratulations on completing the course!"
-                        value={form.completionMessage}
-                        onChange={handleInputChange}
-                      />
+                      <input type="url" name="videoUrl" value={formData.videoUrl} onChange={handleFormChange} />
                     </div>
 
                     <div className="form-row">
@@ -1369,10 +980,10 @@ function AdminCourses() {
                           <input
                             type="checkbox"
                             name="isPublished"
-                            checked={form.isPublished}
-                            onChange={handleInputChange}
+                            checked={formData.isPublished}
+                            onChange={handleFormChange}
                           />
-                          <span>Publish Course</span>
+                          <span>Publish</span>
                         </label>
                       </div>
                       <div className="form-group">
@@ -1380,21 +991,19 @@ function AdminCourses() {
                           <input
                             type="checkbox"
                             name="isFeatured"
-                            checked={form.isFeatured}
-                            onChange={handleInputChange}
+                            checked={formData.isFeatured}
+                            onChange={handleFormChange}
                           />
-                          <span>Featured Course</span>
+                          <span>Featured</span>
                         </label>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  // View Mode - Display all details
+                  // ─── VIEW MODE ────────────────────────────────────
                   <>
                     <h3>{viewingCourse.title}</h3>
-                    {viewingCourse.subtitle && (
-                      <p className="view-subtitle">{viewingCourse.subtitle}</p>
-                    )}
+                    {viewingCourse.subtitle && <p className="view-subtitle">{viewingCourse.subtitle}</p>}
 
                     <div className="view-stats">
                       <div className="view-stat">
@@ -1404,16 +1013,6 @@ function AdminCourses() {
                       <div className="view-stat">
                         <Users size={18} />
                         <span>{viewingCourse._count?.enrollments || 0} Students</span>
-                      </div>
-                      <div className="view-stat">
-                        <Clock size={18} />
-                        <span>{viewingCourse.duration || 0} min</span>
-                      </div>
-                      <div className="view-stat">
-                        <IndianRupee size={18} />
-                        <span>
-                          {viewingCourse.isFree ? "Free" : formatCurrency(viewingCourse.price)}
-                        </span>
                       </div>
                     </div>
 
@@ -1442,13 +1041,53 @@ function AdminCourses() {
                           <span className="featured-text">⭐ Featured</span>
                         </div>
                       )}
-                      {viewingCourse.discountPrice && viewingCourse.discountPrice < viewingCourse.price && (
-                        <div className="view-detail-item">
-                          <label>Discount</label>
-                          <span className="discount-text">
-                            {formatCurrency(viewingCourse.discountPrice)}
-                          </span>
+                    </div>
+
+                    {/* ─── MODULES SECTION ────────────────────────── */}
+                    <div className="view-section">
+                      <div className="section-header-with-actions">
+                        <h4>
+                          <Layers size={16} /> Course Modules
+                        </h4>
+                        <button className="btn-add-module" onClick={openModuleLibrary}>
+                          <Plus size={16} /> Add from Library
+                        </button>
+                      </div>
+
+                      {viewingCourse.modules?.length > 0 ? (
+                        <div className="view-modules">
+                          {viewingCourse.modules.map((module, idx) => (
+                            <div key={module.id} className="view-module">
+                              <div className="view-module-header">
+                                <span className="module-number">{idx + 1}.</span>
+                                <span className="module-title">{module.title}</span>
+                                <span className="module-lessons">{module.lessons?.length || 0} lessons</span>
+                                <span className="shared-badge">
+                                  <Library size={12} /> Shared
+                                </span>
+                                <button
+                                  className="btn-remove-module"
+                                  onClick={() => removeModuleFromCourse(module.id)}
+                                  disabled={isSubmitting}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                              {module.lessons?.length > 0 && (
+                                <div className="view-lessons">
+                                  {module.lessons.map((lesson, li) => (
+                                    <div key={lesson.id} className="view-lesson">
+                                      <span className="lesson-number">{li + 1}.</span>
+                                      <span className="lesson-title">{lesson.title}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
+                      ) : (
+                        <p className="no-modules">No modules added yet. Click "Add from Library".</p>
                       )}
                     </div>
 
@@ -1459,109 +1098,222 @@ function AdminCourses() {
                       </div>
                     )}
 
-                    {viewingCourse.requirements && (
-                      <div className="view-section">
-                        <h4>Requirements</h4>
-                        <p>{viewingCourse.requirements}</p>
-                      </div>
-                    )}
-
-                    {viewingCourse.outcomes && (
-                      <div className="view-section">
-                        <h4>What You'll Learn</h4>
-                        <p>{viewingCourse.outcomes}</p>
-                      </div>
-                    )}
-
-                    {viewingCourse.audience && (
-                      <div className="view-section">
-                        <h4>Target Audience</h4>
-                        <p>{viewingCourse.audience}</p>
-                      </div>
-                    )}
-
-                    {viewingCourse.modules && viewingCourse.modules.length > 0 && (
-                      <div className="view-section">
-                        <h4>Course Content</h4>
-                        <div className="view-modules">
-                          {viewingCourse.modules.map((module, index) => (
-                            <div key={module.id} className="view-module">
-                              <div className="view-module-header">
-                                <span className="module-number">{index + 1}.</span>
-                                <span className="module-title">{module.title}</span>
-                                <span className="module-lessons">
-                                  {module.lessons?.length || 0} lessons
-                                </span>
-                              </div>
-                              {module.lessons && module.lessons.length > 0 && (
-                                <div className="view-lessons">
-                                  {module.lessons.map((lesson, lessonIndex) => (
-                                    <div key={lesson.id} className="view-lesson">
-                                      <span className="lesson-number">{lessonIndex + 1}.</span>
-                                      <span className="lesson-title">{lesson.title}</span>
-                                      {lesson.duration && (
-                                        <span className="lesson-duration">
-                                          <Clock size={14} />
-                                          {lesson.duration} min
-                                        </span>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     <div className="view-meta">
                       <span>Created: {formatDate(viewingCourse.createdAt)}</span>
-                      {viewingCourse.updatedAt && (
-                        <span>Updated: {formatDate(viewingCourse.updatedAt)}</span>
-                      )}
+                      {viewingCourse.updatedAt && <span>Updated: {formatDate(viewingCourse.updatedAt)}</span>}
                     </div>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Footer - Different based on mode */}
             <div className="modal-footer">
               {isEditMode ? (
                 <>
-                  <button className="btn-cancel" onClick={handleCancelEdit}>
+                  <button
+                    className="btn-cancel"
+                    onClick={() => {
+                      setIsEditMode(false);
+                      setFormData({
+                        title: viewingCourse.title || "",
+                        slug: viewingCourse.slug || "",
+                        subtitle: viewingCourse.subtitle || "",
+                        description: viewingCourse.description || "",
+                        categoryId: viewingCourse.categoryId || "",
+                        level: viewingCourse.level || "BEGINNER",
+                        language: viewingCourse.language || "English",
+                        thumbnail: null,
+                        requirements: viewingCourse.requirements || "",
+                        outcomes: viewingCourse.outcomes || "",
+                        audience: viewingCourse.audience || "",
+                        videoUrl: viewingCourse.trailer || "",
+                        isPublished: viewingCourse.isPublished || false,
+                        isFeatured: viewingCourse.isFeatured || false,
+                      });
+                      setThumbnailPreview(viewingCourse.thumbnail || null);
+                      setFormErrors({});
+                    }}
+                  >
                     Cancel
                   </button>
                   <button className="btn-save" onClick={handleSaveCourse} disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <div className="spinner-small"></div>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save size={18} />
-                        Update Course
-                      </>
-                    )}
+                    {isSubmitting ? <><span className="spinner-small" /> Saving...</> : <><Save size={18} /> Update</>}
                   </button>
                 </>
               ) : (
                 <>
-                  <button className="btn-edit" onClick={handleEditClick}>
-                    <Edit size={18} />
-                    Edit
+                  <button className="btn-edit" onClick={() => openEditModal(viewingCourse)}>
+                    <Edit size={18} /> Edit
                   </button>
-                  <button className="btn-danger" onClick={() => {
-                    setShowViewModal(false);
-                    setShowDeleteConfirm(viewingCourse.id);
-                  }}>
-                    <Trash2 size={18} />
-                    Delete
+                  <button
+                    className="btn-danger"
+                    onClick={() => {
+                      setShowViewModal(false);
+                      openDeleteModal(viewingCourse);
+                    }}
+                  >
+                    <Trash2 size={18} /> Delete
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODULE LIBRARY MODAL ──────────────────────────────────── */}
+      {showModuleLibraryModal && (
+        <div className="modal library-modal" onClick={() => setShowModuleLibraryModal(false)}>
+          <div className="modal-content library-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>
+                <Library size={20} /> Module Library
+              </h2>
+              <button className="modal-close" onClick={() => setShowModuleLibraryModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p className="library-subtitle">Browse modules and add them to your course</p>
+
+              {availableModules.length === 0 ? (
+                <div className="empty-library">
+                  <Library size={48} />
+                  <h3>No modules available</h3>
+                  <p>Create modules first in Module Management.</p>
+                </div>
+              ) : (
+                <div className="library-grid">
+                  {availableModules.map((module) => {
+                    const isAdded = viewingCourse?.modules?.some((m) => m.moduleSlug === module.moduleSlug);
+                    return (
+                      <div key={module.id} className="library-item">
+                        <div className="library-item-header">
+                          <h4>{module.title}</h4>
+                          <span className="module-lessons-count">{module.lessons?.length || 0} lessons</span>
+                        </div>
+                        <p className="library-item-desc">{module.description || "No description"}</p>
+                        <div className="library-item-actions">
+                          {isAdded ? (
+                            <button className="btn-already-added" disabled>
+                              <CheckCircle size={16} /> Already Added
+                            </button>
+                          ) : (
+                            <button 
+                              className="btn-add-to-course" 
+                              onClick={() => addModuleToCourse(module.id)}
+                              disabled={isSubmitting}
+                            >
+                              {isSubmitting ? (
+                                <span className="spinner-small" />
+                              ) : (
+                                <>
+                                  <Plus size={16} /> Add to Course
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowModuleLibraryModal(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── DELETE CONFIRMATION MODAL ─────────────────────────────── */}
+      {showDeleteModal && (
+        <div className="modal confirm-modal" onClick={() => {
+          if (!isSubmitting) {
+            setShowDeleteModal(false);
+            setDeleteError(null);
+            setCourseToDelete(null);
+          }
+        }}>
+          <div className="modal-content confirm-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Confirm Delete</h2>
+              <button 
+                className="modal-close" 
+                onClick={() => {
+                  if (!isSubmitting) {
+                    setShowDeleteModal(false);
+                    setDeleteError(null);
+                    setCourseToDelete(null);
+                  }
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="confirm-body">
+              <AlertCircle size={48} className="confirm-icon" />
+              <p>Are you sure you want to delete this course?</p>
+              <p className="confirm-sub">
+                This will permanently remove the course and all its related data.
+              </p>
+
+              {viewingCourse && viewingCourse.modules?.length > 0 && (
+                <div className="confirm-warning">
+                  <AlertCircle size={16} />
+                  <span>This course has {viewingCourse.modules.length} module(s) attached.</span>
+                </div>
+              )}
+              {viewingCourse && viewingCourse._count?.enrollments > 0 && (
+                <div className="confirm-warning">
+                  <AlertCircle size={16} />
+                  <span>This course has {viewingCourse._count.enrollments} enrollment(s).</span>
+                </div>
+              )}
+
+              {deleteError && (
+                <div className="confirm-error">
+                  <AlertCircle size={16} />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn-cancel" 
+                onClick={() => {
+                  if (!isSubmitting) {
+                    setShowDeleteModal(false);
+                    setDeleteError(null);
+                    setCourseToDelete(null);
+                  }
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-danger" 
+                onClick={handleDeleteCourse} 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="spinner-small" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={18} /> Delete Course
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

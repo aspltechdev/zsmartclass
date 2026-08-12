@@ -1,173 +1,19 @@
-// const prisma = require("../config/prisma");
-
-// class LessonService {
-
-//     async create(data) {
-
-//         const {
-//             title,
-//             description,
-//             videoUrl,
-//             videoType,
-//             attachment,
-//             duration,
-//             position,
-//             isPreview,
-//             moduleId
-//         } = data;
-
-//         const module = await prisma.courseModule.findUnique({
-//             where: {
-//                 id: Number(moduleId)
-//             }
-//         });
-
-//         if (!module) {
-//             throw new Error("Module not found.");
-//         }
-
-//         const lesson = await prisma.lesson.create({
-
-//             data: {
-
-//                 title,
-//                 description,
-//                 videoUrl,
-//                 videoType,
-//                 attachment,
-
-//                 duration: Number(duration),
-
-//                 position: Number(position),
-
-//                 isPreview: Boolean(isPreview),
-
-//                 module: {
-//                     connect: {
-//                         id: Number(moduleId)
-//                     }
-//                 }
-
-//             },
-
-//             include: {
-//                 module: true
-//             }
-
-//         });
-
-//         return lesson;
-
-//     }
-
-//     async getAll() {
-
-//         return await prisma.lesson.findMany({
-
-//             include: {
-//                 module: true
-//             },
-
-//             orderBy: {
-//                 position: "asc"
-//             }
-
-//         });
-
-//     }
-
-//     async getById(id) {
-
-//         const lesson = await prisma.lesson.findUnique({
-
-//             where: {
-//                 id: Number(id)
-//             },
-
-//             include: {
-//                 module: true
-//             }
-
-//         });
-
-//         if (!lesson) {
-//             throw new Error("Lesson not found.");
-//         }
-
-//         return lesson;
-
-//     }
-
-//     async getByModule(moduleId) {
-
-//         return await prisma.lesson.findMany({
-
-//             where: {
-//                 moduleId: Number(moduleId)
-//             },
-
-//             include: {
-//                 module: true
-//             },
-
-//             orderBy: {
-//                 position: "asc"
-//             }
-
-//         });
-
-//     }
-
-//     async update(id, data) {
-
-//         return await prisma.lesson.update({
-
-//             where: {
-//                 id: Number(id)
-//             },
-
-//             data
-
-//         });
-
-//     }
-
-//     async delete(id) {
-
-//         await prisma.lesson.delete({
-
-//             where: {
-//                 id: Number(id)
-//             }
-
-//         });
-
-//         return {
-//             success: true,
-//             message: "Lesson deleted successfully."
-//         };
-
-//     }
-
-// }
-
-// module.exports = new LessonService();
-
-
-
+// src/services/lesson.service.js
 const prisma = require("../config/prisma");
+const slugify = require("slugify");
 
 class LessonService {
 
+    // ==========================================
+    // CREATE LESSON (NO duration)
+    // ==========================================
     async create(data) {
-
         const {
             title,
             description,
             videoUrl,
             videoType,
             attachment,
-            duration,
             position,
             isPreview,
             moduleId
@@ -181,16 +27,9 @@ class LessonService {
             throw new Error("Video type is required.");
         }
 
-        if (!duration) {
-            throw new Error("Lesson duration is required.");
-        }
-
         const module = await prisma.courseModule.findUnique({
             where: {
                 id: Number(moduleId)
-            },
-            include: {
-                course: true
             }
         });
 
@@ -198,68 +37,61 @@ class LessonService {
             throw new Error("Module not found.");
         }
 
+        // Generate lesson slug
+        const slug = slugify(title, { 
+            lower: true, 
+            strict: true,
+            remove: /[*+~.()'"!:@]/g
+        });
+        
+        const lessonSlug = `${module.moduleSlug}-${slug}`;
+
+        // Calculate position if not provided
+        let finalPosition = position || 0;
+        if (!position) {
+            const maxPosition = await prisma.lesson.aggregate({
+                where: {
+                    moduleId: Number(moduleId)
+                },
+                _max: {
+                    position: true
+                }
+            });
+            finalPosition = (maxPosition._max.position || 0) + 1;
+        }
+
         const lesson = await prisma.lesson.create({
-
             data: {
-
                 title,
-                description,
-                videoUrl,
-                videoType,
-                attachment,
-
-                duration: Number(duration),
-
-                position: Number(position),
-
-                isPreview: Boolean(isPreview),
-
-                module: {
-                    connect: {
-                        id: Number(moduleId)
-                    }
-                }
-
+                description: description || null,
+                videoUrl: videoUrl || null,
+                videoType: videoType || "VIDEO",
+                attachment: attachment || null,
+                position: Number(finalPosition),
+                isPreview: Boolean(isPreview || false),
+                isShared: true,
+                lessonSlug: lessonSlug,
+                moduleId: Number(moduleId)
             },
-
             include: {
-
-                module: {
-
-                    include: {
-
-                        course: true
-
-                    }
-
-                }
-
+                module: true
             }
-
         });
 
         return lesson;
-
     }
 
+    // ==========================================
+    // GET ALL LESSONS
+    // ==========================================
     async getAll() {
-
         return await prisma.lesson.findMany({
-
-            include: {
-
-                module: {
-
-                    include: {
-
-                        course: true
-
-                    }
-
-                }
-
+            where: {
+                isShared: true,
             },
-
+            include: {
+                module: true
+            },
             orderBy: [
                 {
                     moduleId: "asc"
@@ -268,33 +100,20 @@ class LessonService {
                     position: "asc"
                 }
             ]
-
         });
-
     }
 
+    // ==========================================
+    // GET LESSON BY ID
+    // ==========================================
     async getById(id) {
-
         const lesson = await prisma.lesson.findUnique({
-
             where: {
                 id: Number(id)
             },
-
             include: {
-
-                module: {
-
-                    include: {
-
-                        course: true
-
-                    }
-
-                }
-
+                module: true
             }
-
         });
 
         if (!lesson) {
@@ -302,17 +121,16 @@ class LessonService {
         }
 
         return lesson;
-
     }
 
+    // ==========================================
+    // GET LESSONS BY MODULE
+    // ==========================================
     async getByModule(moduleId) {
-
         const module = await prisma.courseModule.findUnique({
-
             where: {
                 id: Number(moduleId)
             }
-
         });
 
         if (!module) {
@@ -320,100 +138,85 @@ class LessonService {
         }
 
         return await prisma.lesson.findMany({
-
             where: {
-                moduleId: Number(moduleId)
+                moduleId: Number(moduleId),
+                isShared: true,
             },
-
             include: {
-
-                module: {
-
-                    include: {
-
-                        course: true
-
-                    }
-
-                }
-
+                module: true
             },
-
             orderBy: {
                 position: "asc"
             }
-
         });
-
     }
 
+    // ==========================================
+    // UPDATE LESSON (NO duration)
+    // ==========================================
     async update(id, data) {
+        const {
+            title,
+            description,
+            videoUrl,
+            videoType,
+            attachment,
+            position,
+            isPreview
+        } = data;
 
         const lesson = await prisma.lesson.findUnique({
-
             where: {
                 id: Number(id)
+            },
+            include: {
+                module: true
             }
-
         });
 
         if (!lesson) {
             throw new Error("Lesson not found.");
         }
 
-        return await prisma.lesson.update({
+        const updateData = {
+            title: title || lesson.title,
+            description: description !== undefined ? description : lesson.description,
+            videoUrl: videoUrl !== undefined ? videoUrl : lesson.videoUrl,
+            videoType: videoType || lesson.videoType,
+            attachment: attachment !== undefined ? attachment : lesson.attachment,
+            position: position !== undefined ? Number(position) : lesson.position,
+            isPreview: isPreview !== undefined ? Boolean(isPreview) : lesson.isPreview,
+        };
 
+        // Update lesson slug if title changed
+        if (title && title !== lesson.title) {
+            const slug = slugify(title, { 
+                lower: true, 
+                strict: true,
+                remove: /[*+~.()'"!:@]/g
+            });
+            updateData.lessonSlug = `${lesson.module.moduleSlug}-${slug}`;
+        }
+
+        return await prisma.lesson.update({
             where: {
                 id: Number(id)
             },
-
-            data: {
-
-                ...data,
-
-                duration:
-                    data.duration !== undefined
-                        ? Number(data.duration)
-                        : lesson.duration,
-
-                position:
-                    data.position !== undefined
-                        ? Number(data.position)
-                        : lesson.position,
-
-                isPreview:
-                    data.isPreview !== undefined
-                        ? Boolean(data.isPreview)
-                        : lesson.isPreview
-
-            },
-
+            data: updateData,
             include: {
-
-                module: {
-
-                    include: {
-
-                        course: true
-
-                    }
-
-                }
-
+                module: true
             }
-
         });
-
     }
 
+    // ==========================================
+    // DELETE LESSON
+    // ==========================================
     async delete(id) {
-
         const lesson = await prisma.lesson.findUnique({
-
             where: {
                 id: Number(id)
             }
-
         });
 
         if (!lesson) {
@@ -421,20 +224,48 @@ class LessonService {
         }
 
         await prisma.lesson.delete({
-
             where: {
                 id: Number(id)
             }
-
         });
 
         return {
             success: true,
             message: "Lesson deleted successfully."
         };
-
     }
 
+    // ==========================================
+    // REORDER LESSONS
+    // ==========================================
+    async reorderLessons(moduleId, lessonIds) {
+        const module = await prisma.courseModule.findUnique({
+            where: {
+                id: Number(moduleId)
+            }
+        });
+
+        if (!module) {
+            throw new Error("Module not found.");
+        }
+
+        // Update each lesson's position
+        for (let i = 0; i < lessonIds.length; i++) {
+            await prisma.lesson.update({
+                where: {
+                    id: Number(lessonIds[i])
+                },
+                data: {
+                    position: i + 1
+                }
+            });
+        }
+
+        return {
+            success: true,
+            message: "Lessons reordered successfully."
+        };
+    }
 }
 
 module.exports = new LessonService();

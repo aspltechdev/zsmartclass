@@ -65,12 +65,6 @@ const menu = [
     icon: Layers,
     category: "Content",
   },
-  {
-    title: "Lessons",
-    path: "/admin/lessons",
-    icon: FileText,
-    category: "Content",
-  },
 
   // ==========================================
   // OPERATIONS

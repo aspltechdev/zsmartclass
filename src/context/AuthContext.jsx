@@ -927,6 +927,12 @@ export const AuthProvider = ({ children }) => {
   }, [clearAllStorage]);
 
   const updateUser = useCallback((userData) => {
+
+    if (!userData || typeof userData !== 'object') {
+      console.warn("UpdateUser was called with invalid data. Skipping update.", userData);
+      return; // This prevents the "Cannot destructure property" crash!
+    }
+    
     const updatedUser = { ...user, ...userData };
     const { password, confirmPassword, ...safeUser } = updatedUser;
     

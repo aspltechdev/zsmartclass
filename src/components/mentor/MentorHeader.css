@@ -1,0 +1,544 @@
+/* src/components/mentor/MentorHeader.css */
+
+/* ========================================== */
+/* CSS Variables */
+/* ========================================== */
+:root {
+  --brand-primary: #667eea;
+  --brand-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --border: #e2e8f0;
+  --bg-subtle: #f1f5f9;
+  --text-primary: #1a1a2e;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --danger: #ef4444;
+  --danger-bg: #fef2f2;
+  --radius-sm: 8px;
+  --radius-full: 9999px;
+  --transition: all 0.2s ease;
+}
+
+/* ========================================== */
+/* Mentor Header Container */
+/* ========================================== */
+.mentor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-sizing: border-box;
+  gap: 16px;
+}
+
+/* ========================================== */
+/* Left Section */
+/* ========================================== */
+.mh-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mh-menu-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.mh-menu-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.mh-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mh-breadcrumb-parent {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.mh-breadcrumb-sep {
+  color: var(--text-muted);
+}
+
+.mh-breadcrumb-current {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ========================================== */
+/* Right Section */
+/* ========================================== */
+.mh-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ========================================== */
+/* Search Bar */
+/* ========================================== */
+.mh-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  width: 220px;
+  transition: var(--transition);
+}
+
+.mh-search:focus-within {
+  background: #fff;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  width: 260px;
+}
+
+.mh-search svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.mh-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text-primary);
+  width: 100%;
+}
+
+.mh-search input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ========================================== */
+/* Icon Buttons */
+/* ========================================== */
+.mh-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.mh-icon-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+/* ========================================== */
+/* Profile Wrapper & Button */
+/* ========================================== */
+.mh-profile-wrapper {
+  position: relative;
+}
+
+.mh-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.mh-profile:hover {
+  background: var(--bg-subtle);
+}
+
+.mh-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--brand-gradient);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.mh-profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.mh-profile-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.mh-profile-role {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mh-profile-arrow {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.mh-profile-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* ========================================== */
+/* Profile Dropdown */
+/* ========================================== */
+.mh-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  z-index: 200;
+  animation: slideDown 0.2s ease;
+}
+
+.mh-dropdown-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.mh-dropdown-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.mh-dropdown-user h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.mh-dropdown-user span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.mh-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 12px;
+}
+
+.mh-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition);
+  background: none;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.mh-dropdown-item:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.mh-dropdown-item svg {
+  color: var(--text-muted);
+}
+
+.mh-dropdown-item:hover svg {
+  color: var(--text-primary);
+}
+
+.mh-dropdown-logout {
+  color: var(--danger);
+}
+
+.mh-dropdown-logout:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.mh-dropdown-logout:hover svg {
+  color: var(--danger);
+}
+
+/* ========================================== */
+/* Animations */
+/* ========================================== */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ========================================== */
+/* Mobile Search Overlay */
+/* ========================================== */
+.mh-mobile-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 64px;
+  z-index: 99;
+}
+
+.mh-mobile-search .mh-search.expanded {
+  flex: 1;
+  width: auto;
+}
+
+.mobile-search-toggle {
+  display: none;
+}
+
+/* ========================================== */
+/* Dark Mode Support */
+/* ========================================== */
+@media (prefers-color-scheme: dark) {
+  .mentor-header {
+    background: rgba(26, 26, 46, 0.95);
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .mh-breadcrumb-parent {
+    color: #64748b;
+  }
+
+  .mh-breadcrumb-current {
+    color: #e2e8f0;
+  }
+
+  .mh-search {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .mh-search input {
+    color: #e2e8f0;
+  }
+
+  .mh-search input::placeholder {
+    color: #64748b;
+  }
+
+  .mh-search:focus-within {
+    background: #1a1a2e;
+    border-color: #667eea;
+  }
+
+  .mh-icon-btn {
+    background: #1a1a2e;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+  }
+
+  .mh-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+  }
+
+  .mh-profile {
+    background: #1a1a2e;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .mh-profile-name {
+    color: #e2e8f0;
+  }
+
+  .mh-profile-role {
+    color: #64748b;
+  }
+
+  .mh-profile-dropdown {
+    background: #1a1a2e;
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .mh-dropdown-user h4 {
+    color: #e2e8f0;
+  }
+
+  .mh-dropdown-user span {
+    color: #64748b;
+  }
+
+  .mh-dropdown-item {
+    color: #94a3b8;
+  }
+
+  .mh-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+  }
+
+  .mh-dropdown-item svg {
+    color: #64748b;
+  }
+
+  .mh-dropdown-item:hover svg {
+    color: #e2e8f0;
+  }
+
+  .mh-dropdown-divider {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .mh-mobile-search {
+    background: #1a1a2e;
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* ========================================== */
+/* Responsive Design */
+/* ========================================== */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .mh-profile-info {
+    display: none;
+  }
+  
+  .mh-search {
+    width: 160px;
+  }
+  
+  .mh-search:focus-within {
+    width: 200px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .mentor-header {
+    padding: 0 16px;
+    height: 60px;
+  }
+  
+  .mh-menu-btn {
+    display: flex;
+  }
+  
+  .mh-search {
+    display: none;
+  }
+  
+  .mobile-search-toggle {
+    display: flex;
+  }
+  
+  .mh-profile {
+    padding: 4px;
+  }
+  
+  .mh-profile-info {
+    display: none;
+  }
+  
+  .mh-profile-arrow {
+    display: none;
+  }
+  
+  .mh-profile-dropdown {
+    right: -20px;
+    width: 220px;
+  }
+  
+  .mh-mobile-search {
+    top: 60px;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .mentor-header {
+    padding: 0 12px;
+  }
+  
+  .mh-breadcrumb-parent {
+    display: none;
+  }
+  
+  .mh-breadcrumb-sep {
+    display: none;
+  }
+  
+  .mh-profile-dropdown {
+    right: -10px;
+    width: 200px;
+  }
+}

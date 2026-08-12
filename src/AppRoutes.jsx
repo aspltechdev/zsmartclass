@@ -1,81 +1,3 @@
-// import {
-//   BrowserRouter,
-//   Routes,
-//   Route,
-//   Navigate
-// } from "react-router-dom";
-
-// import Login from "./pages/auth/Login";
-// import Register from "./pages/auth/Register";
-// import Dashboard from "./pages/Dashboard";
-// import ProtectedRoute from "./ProtectedRoute";
-
-// import ForgotPassword from "./pages/auth/ForgotPassword";
-// import ResetPassword from "./pages/auth/ResetPassword";
-// import VerifyOTP from "./pages/auth/VerifyOTP";
-// import VerifyResetOTP from "./pages/auth/VerifyResetOTP";
-
-// function AppRoutes() {
-//   return (
-//     <BrowserRouter>
-//       <Routes>
-
-//         <Route
-//           path="/"
-//           element={<Navigate to="/login" />}
-//         />
-
-//         <Route
-//           path="/login"
-//           element={<Login />}
-//         />
-
-//         <Route
-//           path="/register"
-//           element={<Register />}
-//         />
-
-        
-
-//         <Route
-//           path="/dashboard"
-//           element={
-//             <ProtectedRoute>
-//               <Dashboard />
-//             </ProtectedRoute>
-//           }
-//         />
-
-// <Route
-//     path="/verify-otp"
-//     element={<VerifyOTP />}
-// />
-
-// <Route
-//   path="/forgot-password"
-//   element={<ForgotPassword />}
-// />
-
-
-// <Route
-//     path="/reset-password"
-//     element={<ResetPassword />}
-// />
-
-
-
-// <Route
-//   path="/verify-reset-otp"
-//   element={<VerifyResetOTP />}
-// />
-//       </Routes>
-//     </BrowserRouter>
-//   );
-// }
-
-// export default AppRoutes;
-
-
 import {
   BrowserRouter,
   Routes,
@@ -90,6 +12,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import VerifyOTP from "./pages/auth/VerifyOTP";
 import VerifyResetOTP from "./pages/auth/VerifyResetOTP";
+import InviteRegistration from "./pages/InviteRegistration";
 
 // Protected Route Component
 import ProtectedRoute from "./ProtectedRoute";
@@ -109,7 +32,7 @@ import AdminPayments from "./pages/admin/AdminPayments";
 import AdminCertificates from "./pages/admin/AdminCertificates";
 import AdminModules from "./pages/admin/AdminModules";
 import AdminEnrollments from "./pages/admin/AdminEnrollments";
-import AdminLessons from "./pages/admin/AdminLessons";
+//import AdminLessons from "./pages/admin/AdminLessons";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 //import AdminReviews from "./pages/admin/AdminReviews";
 import AdminReports from "./pages/admin/AdminReports";
@@ -150,6 +73,7 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-reset-otp" element={<VerifyResetOTP />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/register/invite" element={<InviteRegistration />} />
 
        
         <Route
@@ -186,7 +110,7 @@ function AppRoutes() {
           <Route path="/admin/certificates" element={<AdminCertificates />} />
           <Route path="/admin/modules" element={<AdminModules />} />
           <Route path="/admin/enrollments" element={<AdminEnrollments />} />
-          <Route path="/admin/lessons" element={<AdminLessons />} />
+          {/*<Route path="/admin/lessons" element={<AdminLessons />} />*/}
           <Route path="/admin/notifications" element={<AdminNotifications />} />
           {/*<Route path="/admin/reviews" element={<AdminReviews />} />*/}
           <Route path="/admin/reports" element={<AdminReports />} />

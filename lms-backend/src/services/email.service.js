@@ -1,295 +1,3 @@
-// const transporter = require("../config/mail");
-
-// class EmailService {
-
-//     async sendOTP(email, otp) {
-
-//         await transporter.sendMail({
-//             from: process.env.SMTP_USER,
-//             to: email,
-//             subject: "Verify your Email - LMS",
-//             html: `
-//                 <h2>Email Verification</h2>
-
-//                 <p>Your OTP is</p>
-
-//                 <h1>${otp}</h1>
-
-//                 <p>This OTP expires in 5 minutes.</p>
-//             `
-//         });
-
-//     }
-
-//     async sendResetOTP(email, otp) {
-
-//     await transporter.sendMail({
-//         from: process.env.SMTP_USER,
-//         to: email,
-//         subject: "Reset Password OTP",
-//         html: `
-//             <h2>Password Reset</h2>
-
-//             <p>Your OTP is</p>
-
-//             <h1>${otp}</h1>
-
-//             <p>Valid for 5 minutes.</p>
-//         `
-//     });
-
-// }
-
-// }
-
-// module.exports = new EmailService();
-
-
-
-
-
-
-
-
-// const transporter = require("../config/mail");
-
-// class EmailService {
-
-//     // ==========================================
-//     // Generic Email Sender
-//     // ==========================================
-//     async sendMail(to, subject, html) {
-
-//         return await transporter.sendMail({
-
-//             from: process.env.SMTP_USER,
-
-//             to,
-
-//             subject,
-
-//             html
-
-//         });
-
-//     }
-
-//     // ==========================================
-//     // Registration OTP
-//     // ==========================================
-//     async sendOTP(email, otp) {
-
-//         return await this.sendMail(
-
-//             email,
-
-//             "Verify your Email - MentorIQ LMS",
-
-//             `
-//                 <h2>Email Verification</h2>
-
-//                 <p>Your OTP is</p>
-
-//                 <h1>${otp}</h1>
-
-//                 <p>This OTP expires in 5 minutes.</p>
-//             `
-//         );
-
-//     }
-
-//     // ==========================================
-//     // Reset Password OTP
-//     // ==========================================
-//     async sendResetOTP(email, otp) {
-
-//         return await this.sendMail(
-
-//             email,
-
-//             "Reset Password OTP",
-
-//             `
-//                 <h2>Password Reset</h2>
-
-//                 <p>Your OTP is</p>
-
-//                 <h1>${otp}</h1>
-
-//                 <p>This OTP expires in 5 minutes.</p>
-//             `
-//         );
-
-//     }
-
-//     // ==========================================
-//     // Payment Successful
-//     // ==========================================
-//     async sendPaymentSuccess(email, studentName, courseTitle, amount) {
-
-//         return await this.sendMail(
-
-//             email,
-
-//             "Payment Successful",
-
-//             `
-//                 <h2>Hello ${studentName},</h2>
-
-//                 <p>Your payment was successful.</p>
-
-//                 <h3>${courseTitle}</h3>
-
-//                 <h2>Amount Paid: ₹${amount}</h2>
-
-//                 <p>
-//                     Thank you for choosing MentorIQ LMS.
-//                 </p>
-//             `
-//         );
-
-//     }
-
-//     // ==========================================
-//     // Welcome After Enrollment
-//     // ==========================================
-//     async sendWelcomeCourse(email, studentName, courseTitle) {
-
-//         return await this.sendMail(
-
-//             email,
-
-//             "Welcome to MentorIQ LMS",
-
-//             `
-//                 <h2>Welcome ${studentName} 👋</h2>
-
-//                 <p>
-
-//                 Congratulations!
-
-//                 </p>
-
-//                 <p>
-
-//                 You are successfully enrolled in
-
-//                 <strong>${courseTitle}</strong>
-
-//                 </p>
-
-//                 <p>
-
-//                 Login and start learning today.
-
-//                 </p>
-
-//                 <br>
-
-//                 <p>Happy Learning!</p>
-
-//                 <h3>MentorIQ Team</h3>
-//             `
-//         );
-
-//     }
-
-//     // ==========================================
-//     // Certificate Ready
-//     // ==========================================
-//     async sendCertificate(email, studentName, courseTitle, certificateUrl) {
-
-//         return await this.sendMail(
-
-//             email,
-
-//             "Your Certificate is Ready",
-
-//             `
-//                 <h2>Congratulations ${studentName} 🎉</h2>
-
-//                 <p>
-
-//                 You have successfully completed
-
-//                 <strong>${courseTitle}</strong>
-
-//                 </p>
-
-//                 <br>
-
-//                 <a href="${certificateUrl}">
-
-//                     Download Certificate
-
-//                 </a>
-
-//                 <br><br>
-
-//                 <p>
-
-//                 Keep Learning with MentorIQ LMS.
-
-//                 </p>
-//             `
-//         );
-
-//     }
-
-
-//     async sendWelcomeEmail(user, password) {
-
-//     await transporter.sendMail({
-
-//         from: process.env.SMTP_USER,
-
-//         to: user.email,
-
-//         subject: "Welcome to ZsmartClass LMS",
-
-//         html: `
-//             <h2>Welcome ${user.name}</h2>
-
-//             <p>Your LMS account has been created successfully.</p>
-
-//             <table>
-//                 <tr>
-//                     <td><b>Email</b></td>
-//                     <td>${user.email}</td>
-//                 </tr>
-
-//                 <tr>
-//                     <td><b>Password</b></td>
-//                     <td>${password}</td>
-//                 </tr>
-
-//                 <tr>
-//                     <td><b>Role</b></td>
-//                     <td>${user.role}</td>
-//                 </tr>
-//             </table>
-
-//             <p>
-//                 Login:
-//                 <a href="http://localhost:5173/login">
-//                     Open LMS
-//                 </a>
-//             </p>
-
-//             <p>Please change your password after your first login.</p>
-
-//         `
-
-//     });
-
-// }
-
-// }
-
-// module.exports = new EmailService();
-
-
-
 // src/services/email.service.js
 const transporter = require("../config/mail");
 
@@ -310,6 +18,77 @@ class EmailService {
       console.error(`Failed to send email to ${to}:`, error.message);
       throw error;
     }
+  }
+
+  // ==========================================
+  // INVITATION EMAIL - NEW
+  // ==========================================
+  async sendInvitationEmail(user, token) {
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const invitationLink = `${FRONTEND_URL}/register/invite?token=${token}`;
+
+    return await this.sendMail(
+      user.email,
+      "You're Invited to Join ZsmartClass!",
+      `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .header h2 { margin: 0; font-size: 24px; }
+            .header p { margin: 10px 0 0; opacity: 0.9; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .role-badge { display: inline-block; background: #667eea; color: white; padding: 4px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+            .btn { display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+            .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+            .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+            .info-box p { margin: 5px 0; }
+            .warning { background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 20px; border-left: 4px solid #ffc107; font-size: 14px; }
+            .footer { text-align: center; margin-top: 20px; color: #999; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h2>🎓 You're Invited!</h2>
+              <p>Join ZsmartClass - The Future of Learning</p>
+            </div>
+            <div class="content">
+              <p>Hello <strong>${user.name}</strong>! 👋</p>
+              <p>An administrator has invited you to join <strong>ZsmartClass</strong>, a modern Learning Management System.</p>
+              
+              <div class="info-box">
+                <p><strong>📧 Email:</strong> ${user.email}</p>
+                <p><strong>👤 Role:</strong> <span class="role-badge">${user.role}</span></p>
+              </div>
+              
+              <p>Click the button below to set up your account and start learning:</p>
+              
+              <center>
+                <a href="${invitationLink}" class="btn">🚀 Complete Registration</a>
+              </center>
+              
+              <div class="warning">
+                ⏰ This invitation link will expire in <strong>48 hours</strong>.<br>
+                🔒 If you didn't request this, please ignore this email.
+              </div>
+              
+              <p style="margin-top: 20px; color: #666; font-size: 14px;">
+                Need help? Contact your administrator.
+              </p>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} ZsmartClass. All rights reserved.</p>
+              <p>This is an automated message. Please do not reply to this email.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    );
   }
 
   // ==========================================
@@ -587,7 +366,7 @@ class EmailService {
   }
 
   // ==========================================
-  // Welcome Email for New Users (Admin Created)
+  // Welcome Email for New Users (Admin Created - Legacy)
   // ==========================================
   async sendWelcomeEmail(user, password) {
     return await this.sendMail(

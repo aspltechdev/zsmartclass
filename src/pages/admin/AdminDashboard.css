@@ -1,12 +1,21 @@
 /* src/pages/admin/AdminDashboard.css */
 
 /* ========================================== */
+/* Font Import */
+/* ========================================== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+/* ========================================== */
 /* Dashboard Page Container */
 /* ========================================== */
 .dashboard-page {
-  padding: 8px 0;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 2rem;
+  max-width: 1600px;
+  margin: 2px;
+  margin-right: 2px;
+  background: #dfe5eb;
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* ========================================== */
@@ -23,6 +32,7 @@
   margin: 0 0 6px 0;
   letter-spacing: -0.5px;
   line-height: 1.2;
+  font-family: 'Poppins', sans-serif;
 }
 
 .dashboard-title p {
@@ -31,6 +41,7 @@
   margin: 0;
   font-weight: 400;
   line-height: 1.5;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* ========================================== */
@@ -118,6 +129,7 @@
   margin: 0 0 4px 0;
   line-height: 1;
   letter-spacing: -0.5px;
+  font-family: 'Poppins', sans-serif;
 }
 
 .dashboard-card p {
@@ -127,6 +139,7 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* Card Color Variations */
@@ -134,8 +147,8 @@
 .dashboard-card:nth-child(2) { border-top: 3px solid #10b981; }
 .dashboard-card:nth-child(3) { border-top: 3px solid #f59e0b; }
 .dashboard-card:nth-child(4) { border-top: 3px solid #8b5cf6; }
-.dashboard-card:nth-child(5) { border-top: 3px solid #ef4444; }
-.dashboard-card:nth-child(6) { border-top: 3px solid #06b6d4; }
+.dashboard-card:nth-child(5) { border-top: 3px solid #06b6d4; }
+.dashboard-card:nth-child(6) { border-top: 3px solid #ef4444; }
 
 /* Card Entrance Animation */
 @keyframes cardSlideUp {
@@ -194,6 +207,7 @@
   padding-bottom: 12px;
   border-bottom: 2px solid #f1f5f9;
   letter-spacing: -0.3px;
+  font-family: 'Poppins', sans-serif;
 }
 
 .dashboard-box.large {
@@ -201,17 +215,31 @@
 }
 
 /* ========================================== */
-/* Quick Actions */
+/* Chart Container */
+/* ========================================== */
+.chart-container {
+  height: 250px;
+  position: relative;
+}
+
+.chart-container.small {
+  height: 200px;
+}
+
+/* ========================================== */
+/* Quick Actions - Flex Layout */
 /* ========================================== */
 .quick-actions {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .quick-actions button {
-  width: 100%;
-  padding: 12px 16px;
+  flex: 1 1 auto;
+  min-width: 140px;
+  max-width: 100%;
+  padding: 14px 20px;
   background: #f8fafc;
   color: #334155;
   border: 1px solid #e2e8f0;
@@ -223,6 +251,15 @@
   text-align: left;
   position: relative;
   overflow: hidden;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quick-actions button svg {
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
 }
 
 .quick-actions button::after {
@@ -240,8 +277,8 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #ffffff;
   border-color: transparent;
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
   padding-right: 40px;
 }
 
@@ -251,72 +288,12 @@
   color: #ffffff;
 }
 
+.quick-actions button:hover svg {
+  transform: scale(1.1);
+}
+
 .quick-actions button:active {
-  transform: translateX(2px);
-}
-
-/* ========================================== */
-/* Activity List */
-/* ========================================== */
-.activity-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.activity-list li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  color: #334155;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.activity-list li:hover {
-  background: #f8fafc;
-  transform: translateX(4px);
-}
-
-.activity-list li svg {
-  color: #667eea;
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-
-.activity-list li:hover svg {
-  transform: translateX(2px) translateY(-2px);
-  color: #4f46e5;
-}
-
-.activity-message {
-  flex: 1;
-}
-
-.activity-time {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-weight: 400;
-  flex-shrink: 0;
-}
-
-.no-activity {
-  color: #94a3b8 !important;
-  font-style: italic;
-  justify-content: center;
-  cursor: default !important;
-}
-
-.no-activity:hover {
-  background: none !important;
-  transform: none !important;
+  transform: translateY(0px);
 }
 
 /* ========================================== */
@@ -335,75 +312,12 @@
   font-weight: 500;
   letter-spacing: 0.3px;
   transition: all 0.2s ease;
+  font-family: 'Poppins', sans-serif;
 }
 
 .placeholder:hover {
   border-color: #cbd5e1;
   color: #64748b;
-}
-
-/* Revenue Summary */
-.revenue-summary {
-  text-align: center;
-  padding: 1rem 0;
-}
-
-.revenue-amount {
-  display: block;
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #1a1a2e;
-}
-
-.revenue-label {
-  display: block;
-  font-size: 0.875rem;
-  color: #64748b;
-  margin-top: 0.25rem;
-}
-
-.revenue-sub {
-  display: block;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin-top: 0.25rem;
-}
-
-/* ========================================== */
-/* Quick Stats */
-/* ========================================== */
-.quick-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.quick-stat {
-  background: #f8fafc;
-  border-radius: 10px;
-  padding: 1rem;
-  text-align: center;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
-}
-
-.quick-stat:hover {
-  border-color: #667eea;
-  transform: translateY(-2px);
-}
-
-.stat-number {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1a1a2e;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 
 /* ========================================== */
@@ -416,6 +330,7 @@
   justify-content: center;
   min-height: 400px;
   color: #64748b;
+  font-family: 'Poppins', sans-serif;
 }
 
 .spinner {
@@ -463,6 +378,16 @@
   
   .dashboard-card h2 {
     font-size: 24px;
+  }
+  
+  .chart-container {
+    height: 220px;
+  }
+  
+  .quick-actions button {
+    min-width: 120px;
+    padding: 12px 16px;
+    font-size: 13px;
   }
 }
 
@@ -517,22 +442,28 @@
     margin-bottom: 16px;
   }
   
+  .quick-actions {
+    gap: 8px;
+  }
+  
   .quick-actions button {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
     padding: 10px 14px;
-    font-size: 13px;
+    font-size: 12px;
   }
   
   .placeholder {
     min-height: 150px;
     font-size: 13px;
   }
-
-  .quick-stats {
-    grid-template-columns: 1fr 1fr;
+  
+  .chart-container {
+    height: 180px;
   }
-
-  .revenue-amount {
-    font-size: 2rem;
+  
+  .chart-container.small {
+    height: 160px;
   }
 }
 
@@ -558,13 +489,25 @@
   .dashboard-box {
     padding: 14px;
   }
-
-  .quick-stats {
-    grid-template-columns: 1fr;
+  
+  .chart-container {
+    height: 150px;
   }
-
-  .revenue-amount {
-    font-size: 1.75rem;
+  
+  .chart-container.small {
+    height: 130px;
+  }
+  
+  .quick-actions button {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    font-size: 13px;
+    justify-content: center;
+  }
+  
+  .quick-actions button::after {
+    display: none;
   }
 }
 
@@ -630,42 +573,26 @@
     color: #ffffff;
   }
   
-  .activity-list li {
-    color: #cbd5e1;
-  }
-  
-  .activity-list li:hover {
-    background: #16213e;
-  }
-  
-  .activity-list li svg {
-    color: #818cf8;
-  }
-  
-  .activity-time {
-    color: #64748b;
-  }
-  
   .placeholder {
     background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
     border-color: #2d2d44;
     color: #64748b;
   }
+}
 
-  .quick-stat {
-    background: #16213e;
-    border-color: #2d2d44;
-  }
+/* ========================================== */
+/* Chart Customization */
+/* ========================================== */
+.chart-container canvas {
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
 
-  .quick-stat:hover {
-    border-color: #667eea;
-  }
-
-  .stat-number {
-    color: #e2e8f0;
-  }
-
-  .revenue-amount {
-    color: #e2e8f0;
+/* Tooltip customization for dark mode */
+@media (prefers-color-scheme: dark) {
+  .chart-container .chartjs-tooltip {
+    background: #1a1a2e !important;
+    border-color: #2d2d44 !important;
+    color: #e2e8f0 !important;
   }
 }

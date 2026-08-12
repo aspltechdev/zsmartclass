@@ -1,5 +1,5 @@
 // src/pages/admin/AdminCategories.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Layers,
   Plus,
@@ -13,6 +13,7 @@ import {
   Save,
   Calendar,
   Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminCategories.css";
@@ -29,13 +30,16 @@ function AdminCategories() {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageBase64, setImageBase64] = useState(null);
+  const fileInputRef = useRef(null);
 
-  // Form state - Matches your table schema
+  // Form state
   const [form, setForm] = useState({
     name: "",
     slug: "",
     description: "",
-    image: "",
+    image: "", // Will store Base64 string
   });
 
   const [stats, setStats] = useState({
@@ -77,7 +81,49 @@ function AdminCategories() {
       .replace(/^-+|-+$/g, '');
   };
 
-  // Save category
+  // Handle image upload - convert to Base64
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload a valid image file (JPEG, PNG, GIF, etc.)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+
+    // Convert to Base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      setImagePreview(base64String);
+      setImageBase64(base64String);
+      setForm({ ...form, image: base64String });
+      setFormErrors({ ...formErrors, image: "" });
+    };
+    reader.readAsDataURL(file);
+
+    // Clear any existing errors
+    setFormErrors({ ...formErrors, image: "" });
+  };
+
+  // Remove image
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setImageBase64(null);
+    setForm({ ...form, image: "" });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Save category (with Base64 image)
   const handleSaveCategory = async () => {
     try {
       const errors = {};
@@ -99,7 +145,7 @@ function AdminCategories() {
         name: form.name.trim(),
         slug: form.slug.trim().toLowerCase().replace(/ /g, '-'),
         description: form.description || "",
-        image: form.image || null,
+        image: form.image || null, // Send Base64 directly
       };
 
       if (editing) {
@@ -151,7 +197,12 @@ function AdminCategories() {
       description: "",
       image: "",
     });
+    setImagePreview(null);
+    setImageBase64(null);
     setFormErrors({});
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   // Open create modal
@@ -161,7 +212,7 @@ function AdminCategories() {
     setShowModal(true);
   };
 
-  // Open edit from view modal (inline edit - layout stays the same)
+  // Open edit from view modal
   const openEditFromView = () => {
     if (viewingCategory) {
       setEditing(viewingCategory);
@@ -171,12 +222,14 @@ function AdminCategories() {
         description: viewingCategory.description || "",
         image: viewingCategory.image || "",
       });
+      setImagePreview(viewingCategory.image || null);
+      setImageBase64(viewingCategory.image || null);
       setIsEditMode(true);
       setFormErrors({});
     }
   };
 
-  // Cancel edit mode (switch back to view mode)
+  // Cancel edit mode
   const handleCancelEdit = () => {
     setIsEditMode(false);
     if (viewingCategory) {
@@ -186,6 +239,8 @@ function AdminCategories() {
         description: viewingCategory.description || "",
         image: viewingCategory.image || "",
       });
+      setImagePreview(viewingCategory.image || null);
+      setImageBase64(viewingCategory.image || null);
     }
     setFormErrors({});
   };
@@ -433,14 +488,36 @@ function AdminCategories() {
               </div>
 
               <div className="form-group">
-                <label>Image URL</label>
-                <input
-                  type="text"
-                  name="image"
-                  placeholder="https://example.com/image.jpg"
-                  value={form.image || ""}
-                  onChange={(e) => setForm({ ...form, image: e.target.value })}
-                />
+                <label>Category Image</label>
+                <div className="file-upload-wrapper">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    id="category-image-upload"
+                    style={{ display: "none" }}
+                  />
+                  <label htmlFor="category-image-upload" className="file-upload-label">
+                    <Upload size={18} />
+                    {imagePreview ? "Change Image" : "Upload Image"}
+                  </label>
+                  
+                  {imagePreview && (
+                    <div className="image-preview-container">
+                      <img src={imagePreview} alt="Category preview" className="image-preview" />
+                      <button 
+                        type="button" 
+                        className="remove-image-btn"
+                        onClick={handleRemoveImage}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                  
+                  <p className="field-hint">Supported formats: JPEG, PNG, GIF, WebP (Max 5MB)</p>
+                </div>
               </div>
             </div>
 
@@ -491,7 +568,7 @@ function AdminCategories() {
                   <h3>{isEditMode ? form.name || viewingCategory.name : viewingCategory.name}</h3>
                 </div>
 
-                {/* SAME GRID LAYOUT for both View and Edit - only fields change */}
+                {/* SAME GRID LAYOUT for both View and Edit */}
                 <div className="view-details-grid">
                   {/* Name - Editable in edit mode */}
                   <div className="view-detail-item">
@@ -556,31 +633,54 @@ function AdminCategories() {
                     )}
                   </div>
 
-                  {/* Image URL - Editable in edit mode */}
+                  {/* Image - Editable in edit mode */}
                   <div className="view-detail-item full-width">
-                    <label>Image URL</label>
+                    <label>Image</label>
                     {isEditMode ? (
-                      <input
-                        type="text"
-                        name="image"
-                        placeholder="https://example.com/image.jpg"
-                        value={form.image || ""}
-                        onChange={(e) => setForm({ ...form, image: e.target.value })}
-                      />
+                      <div className="file-upload-wrapper">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          id="edit-category-image-upload"
+                          style={{ display: "none" }}
+                        />
+                        <label htmlFor="edit-category-image-upload" className="file-upload-label">
+                          <Upload size={18} />
+                          {imagePreview ? "Change Image" : "Upload Image"}
+                        </label>
+                        
+                        {imagePreview && (
+                          <div className="image-preview-container">
+                            <img src={imagePreview} alt="Category preview" className="image-preview" />
+                            <button 
+                              type="button" 
+                              className="remove-image-btn"
+                              onClick={handleRemoveImage}
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                      <span>{viewingCategory.image || "No image"}</span>
+                      <div className="view-image-container">
+                        {viewingCategory.image ? (
+                          <img 
+                            src={viewingCategory.image} 
+                            alt={viewingCategory.name} 
+                            className="view-image"
+                            onError={(e) => {
+                              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='120' viewBox='0 0 200 120'%3E%3Crect width='200' height='120' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-size='14' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
+                            }}
+                          />
+                        ) : (
+                          <span className="no-image-text">No image uploaded</span>
+                        )}
+                      </div>
                     )}
                   </div>
-
-                  {/* Image Preview - Only show in view mode if image exists */}
-                  {!isEditMode && viewingCategory.image && (
-                    <div className="view-detail-item full-width">
-                      <label>Image Preview</label>
-                      <div className="category-image-preview">
-                        <img src={viewingCategory.image} alt={viewingCategory.name} />
-                      </div>
-                    </div>
-                  )}
 
                   {/* Created At - Read-only */}
                   <div className="view-detail-item">

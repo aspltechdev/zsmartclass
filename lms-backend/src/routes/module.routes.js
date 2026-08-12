@@ -1,23 +1,4 @@
-// const express = require("express");
-// const router = express.Router();
-
-// const moduleController = require("../controllers/module.controller");
-
-// router.post("/", moduleController.create);
-
-// router.get("/", moduleController.getAll);
-
-// router.get("/course/:courseId", moduleController.getByCourse);
-
-// router.get("/:id", moduleController.getById);
-
-// router.put("/:id", moduleController.update);
-
-// router.delete("/:id", moduleController.delete);
-
-// module.exports = router;
-
-
+// src/routes/module.routes.js
 const express = require("express");
 const router = express.Router();
 
@@ -26,14 +7,24 @@ const moduleController = require("../controllers/module.controller");
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
-// Public Routes
+// ==========================================
+// PUBLIC ROUTES
+// ==========================================
+
+// Get all modules
 router.get("/", moduleController.getAll);
 
-router.get("/course/:courseId", moduleController.getByCourse);
-
+// Get module by ID
 router.get("/:id", moduleController.getById);
 
-// Protected Routes
+// Get module stats
+router.get("/stats/all", moduleController.getStats);
+
+// ==========================================
+// PROTECTED ROUTES (Admin & Mentor)
+// ==========================================
+
+// Create module
 router.post(
     "/",
     authMiddleware,
@@ -41,6 +32,7 @@ router.post(
     moduleController.create
 );
 
+// Update module
 router.put(
     "/:id",
     authMiddleware,
@@ -48,6 +40,7 @@ router.put(
     moduleController.update
 );
 
+// Delete module
 router.delete(
     "/:id",
     authMiddleware,
@@ -55,5 +48,24 @@ router.delete(
     moduleController.delete
 );
 
-module.exports = router;
+// ==========================================
+// COURSE MODULE MANAGEMENT
+// ==========================================
 
+// Add module to course
+router.post(
+    "/add-to-course/:courseId/:moduleId",
+    authMiddleware,
+    roleMiddleware("ADMIN", "MENTOR"),
+    moduleController.addModuleToCourse
+);
+
+// Remove module from course
+router.delete(
+    "/remove-from-course/:courseId/:moduleId",
+    authMiddleware,
+    roleMiddleware("ADMIN", "MENTOR"),
+    moduleController.removeModuleFromCourse
+);
+
+module.exports = router;

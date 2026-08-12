@@ -8,25 +8,37 @@ datasource db {
 }
 
 model User {
-  id             Int              @id @default(autoincrement())
-  name           String
-  email          String           @unique
-  password       String
-  createdAt      DateTime         @default(now())
-  emailVerified  Boolean          @default(false)
-  updatedAt      DateTime         @updatedAt
-  role           UserRole         @default(STUDENT)
-  expertise      String?
-  bio            String?
-  social_links   String?
-  profileImage   String?
-  certificates   Certificate[]
-  coursesCreated Course[]         @relation("CourseCreator")
-  enrollments    Enrollment[]
-  lessonProgress LessonProgress[]
-  notifications  Notification[]
-  payments       Payment[]
-  reviews        Review[]
+  id                   Int                    @id @default(autoincrement())
+  name                 String
+  email                String                 @unique
+  password             String?
+  createdAt            DateTime               @default(now())
+  emailVerified        Boolean                @default(false)
+  updatedAt            DateTime               @updatedAt
+  role                 UserRole               @default(STUDENT)
+  expertise            String?
+  bio                  String?
+  social_links         String?
+  profileImage         String?
+  isActive             Boolean?               @default(false)
+  invitationToken      String?                @unique
+  invitationExpiry     DateTime?              @db.Timestamp(6)
+  invitedBy            Int?
+  Assignment           Assignment[]
+  AssignmentSubmission AssignmentSubmission[]
+  certificates         Certificate[]
+  coursesCreated       Course[]               @relation("CourseCreator")
+  enrollments          Enrollment[]
+  lessonProgress       LessonProgress[]
+  notifications        Notification[]
+  payments             Payment[]
+  reviews              Review[]
+  User                 User?                  @relation("UserToUser", fields: [invitedBy], references: [id], onUpdate: NoAction)
+  other_User           User[]                 @relation("UserToUser")
+
+  @@index([email], map: "idx_user_email")
+  @@index([isActive], map: "idx_user_isActive")
+  @@index([role], map: "idx_user_role")
 }
 
 model PendingUser {
@@ -92,6 +104,7 @@ model Course {
   outcomes            String?
   requirements        String?
   status              CourseStatus         @default(DRAFT)
+  Assignment          Assignment[]
   certificates        Certificate[]
   certificateTemplate CertificateTemplate?
   category            Category             @relation(fields: [categoryId], references: [id])
@@ -106,12 +119,21 @@ model CourseModule {
   id          Int      @id @default(autoincrement())
   title       String
   position    Int
-  courseId    Int
+  courseId    Int?
   createdAt   DateTime @default(now())
   description String?
   updatedAt   DateTime @updatedAt
-  course      Course   @relation(fields: [courseId], references: [id])
+  isShared    Boolean? @default(false)
+  moduleSlug  String?  @unique
+  isPublished Boolean? @default(true)
+  thumbnail   String?
+  category    String?
+  tags        String[] @default([])
+  course      Course?  @relation(fields: [courseId], references: [id], onUpdate: NoAction)
   lessons     Lesson[]
+
+  @@index([isShared], map: "idx_coursemodule_isShared")
+  @@index([moduleSlug], map: "idx_coursemodule_moduleSlug")
 }
 
 model Lesson {
@@ -119,34 +141,45 @@ model Lesson {
   title       String
   description String?
   videoUrl    String?
-  duration    Int
-  position    Int
+  position    Int              @default(0)
   moduleId    Int
   attachment  String?
   createdAt   DateTime         @default(now())
   isPreview   Boolean          @default(false)
   updatedAt   DateTime         @updatedAt
-  videoType   String
+  videoType   String           @default("VIDEO")
+  lessonSlug  String?          @unique
+  isShared    Boolean?         @default(false)
   module      CourseModule     @relation(fields: [moduleId], references: [id])
   progress    LessonProgress[]
+
+  @@index([isShared], map: "idx_lesson_isShared")
+  @@index([lessonSlug], map: "idx_lesson_lessonSlug")
 }
 
 model Enrollment {
-  id            Int          @id @default(autoincrement())
-  userId        Int
-  courseId      Int
-  progress      Float        @default(0)
-  completed     Boolean      @default(false)
-  enrolledAt    DateTime     @default(now())
-  certificateId Int?         @unique
-  certificateNo String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  certificate   Certificate? @relation(fields: [certificateId], references: [id])
-  course        Course       @relation(fields: [courseId], references: [id])
-  user          User         @relation(fields: [userId], references: [id])
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  courseId       Int
+  progress       Float        @default(0)
+  completed      Boolean      @default(false)
+  enrolledAt     DateTime     @default(now())
+  certificateId  Int?         @unique
+  certificateNo  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  accessExpiry   DateTime?    @db.Timestamp(6)
+  accessDuration Int?
+  isExpired      Boolean?     @default(false)
+  certificate    Certificate? @relation(fields: [certificateId], references: [id])
+  course         Course       @relation(fields: [courseId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([userId, courseId])
+  @@index([accessExpiry], map: "idx_enrollment_accessExpiry")
+  @@index([courseId], map: "idx_enrollment_courseId")
+  @@index([isExpired], map: "idx_enrollment_isExpired")
+  @@index([userId], map: "idx_enrollment_userId")
 }
 
 model Review {
@@ -161,18 +194,19 @@ model Review {
   reply     String?
   updatedAt DateTime  @default(now())
   course    Course    @relation(fields: [courseId], references: [id])
-  user      User      @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model LessonProgress {
-  id        Int       @id @default(autoincrement())
-  studentId Int
-  lessonId  Int
-  completed Boolean   @default(false)
-  watchedAt DateTime?
-  createdAt DateTime  @default(now())
-  lesson    Lesson    @relation(fields: [lessonId], references: [id])
-  student   User      @relation(fields: [studentId], references: [id])
+  id             Int       @id @default(autoincrement())
+  studentId      Int
+  lessonId       Int
+  completed      Boolean   @default(false)
+  watchedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  watchedSeconds Int       @default(0)
+  lesson         Lesson    @relation(fields: [lessonId], references: [id])
+  student        User      @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([studentId, lessonId])
 }
@@ -191,7 +225,7 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   course    Course   @relation(fields: [courseId], references: [id])
-  student   User     @relation(fields: [studentId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model Notification {
@@ -202,7 +236,7 @@ model Notification {
   isRead    Boolean  @default(false)
   studentId Int
   createdAt DateTime @default(now())
-  student   User     @relation(fields: [studentId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model Certificate {
@@ -222,7 +256,7 @@ model Certificate {
   studentName    String
   updatedAt      DateTime    @updatedAt
   course         Course      @relation(fields: [courseId], references: [id])
-  student        User        @relation(fields: [studentId], references: [id])
+  student        User        @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   Enrollment     Enrollment?
 }
 
@@ -245,6 +279,35 @@ model Settings {
   id        Int      @id @default(1)
   data      Json
   updatedAt DateTime @updatedAt
+}
+
+model Assignment {
+  id                   Int                    @id @default(autoincrement())
+  title                String
+  description          String
+  dueDate              DateTime
+  totalMarks           Int
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  courseId             Int
+  mentorId             Int
+  Course               Course                 @relation(fields: [courseId], references: [id])
+  User                 User                   @relation(fields: [mentorId], references: [id])
+  AssignmentSubmission AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id             Int        @id @default(autoincrement())
+  assignmentId   Int
+  studentId      Int
+  submissionText String?
+  attachment     String?
+  marks          Float?
+  feedback       String?
+  status         String     @default("PENDING")
+  submittedAt    DateTime   @default(now())
+  Assignment     Assignment @relation(fields: [assignmentId], references: [id])
+  User           User       @relation(fields: [studentId], references: [id])
 }
 
 enum UserRole {
