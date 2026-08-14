@@ -1,785 +1,714 @@
+// src/pages/mentor/Assignments/Assignments.jsx
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Plus,
   Eye,
-  Pencil,
-  Trash2,
-  ClipboardCheck
+  X
 } from "lucide-react";
 import "./Assignments.css";
 
-function MentorAssignments() {
-  const [courses, setCourses] = useState([]);
-  const [modules, setModules] = useState([]);
+const API = "http://localhost:5000/api";
+
+function Assignments() {
+
+  const token = localStorage.getItem("token");
+
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  };
+
   const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState([]);
+
+  // Add Assignment Popup
+  const [showModal, setShowModal] = useState(false);
+
+  // View Popup
+  const [showViewModal, setShowViewModal] = useState(false);
+
+  // Selected Assignment
   const [selectedAssignment, setSelectedAssignment] = useState(null);
-  const [showView, setShowView] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
-  const [showSubmissions, setShowSubmissions] = useState(false);
-  const [submissions, setSubmissions] = useState([]);
 
-  const [newAssignment, setNewAssignment] = useState({
+  // Edit Mode
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Form
+  const [formData, setFormData] = useState({
+    courseId: "",
     title: "",
     description: "",
-    assignmentLink: "",
-    courseId: "",
-    moduleId: "",
-    dueDate: "",
-    totalMarks: ""
-  });
-
-  const [editAssignment, setEditAssignment] = useState({
-    id: "",
-    title: "",
-    description: "",
-    assignmentLink: "",
-    courseId: "",
-    moduleId: "",
     dueDate: "",
     totalMarks: ""
   });
 
   useEffect(() => {
+
     fetchAssignments();
+
     fetchCourses();
+
   }, []);
 
-  const fetchCourses = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        "http://localhost:5000/api/courses",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setCourses(res.data.data || []);
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  const fetchModules = async (courseId) => {
-    if (!courseId) {
-      setModules([]);
-      return;
-    }
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `http://localhost:5000/api/modules/course/${courseId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setModules(res.data.data || []);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  // ===========================
+  // Fetch Assignments
+  // ===========================
 
   const fetchAssignments = async () => {
+
     try {
-      const token = localStorage.getItem("token");
+
       const res = await axios.get(
-        "http://localhost:5000/api/assignments",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+        `${API}/assignments`,
+        config
       );
+
       setAssignments(res.data.data || []);
+
     } catch (err) {
-      console.log(err);
-    } finally {
-      setLoading(false);
+
+      console.error(err);
+
     }
+
   };
 
-  const addAssignment = async () => {
-    if (
-      !newAssignment.title ||
-      !newAssignment.dueDate ||
-      !newAssignment.courseId ||
-      !newAssignment.totalMarks
-    ) {
-      alert("Please fill all required fields.");
-      return;
-    }
+  // ===========================
+  // Fetch Courses
+  // ===========================
+
+  const fetchCourses = async () => {
 
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        "http://localhost:5000/api/assignments",
-        newAssignment,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+
+      const res = await axios.get(
+        `${API}/courses`,
+        config
       );
-      alert("Assignment created successfully.");
-      setShowAdd(false);
-      setNewAssignment({
-        title: "",
-        description: "",
-        assignmentLink: "",
-        courseId: "",
-        moduleId: "",
-        dueDate: "",
-        totalMarks: ""
-      });
-      fetchAssignments();
+
+      setCourses(res.data.data || []);
+
     } catch (err) {
-      console.log(err);
-      alert(
-        err.response?.data?.message ||
-        "Unable to create assignment."
-      );
+
+      console.error(err);
+
     }
+
   };
 
-  const handleView = (assignment) => {
-    setSelectedAssignment(assignment);
-    setShowView(true);
-  };
+  // ===========================
+  // Form Change
+  // ===========================
 
-  const handleEdit = (assignment) => {
-    setEditAssignment({
-      ...assignment,
-      dueDate: assignment.dueDate?.slice(0, 10)
+  const handleChange = (e) => {
+
+    setFormData({
+
+      ...formData,
+
+      [e.target.name]: e.target.value
+
     });
-    setShowEdit(true);
+
   };
 
-  const updateAssignment = async () => {
+  // ===========================
+  // Add Assignment
+  // ===========================
+
+  const handleSubmit = async (e) => {
+
+    e.preventDefault();
+
     try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5000/api/assignments/${editAssignment.id}`,
-        editAssignment,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+
+      await axios.post(
+
+        `${API}/assignments`,
+
+        formData,
+
+        config
+
       );
-      alert("Assignment updated successfully.");
-      setShowEdit(false);
+
       fetchAssignments();
+
+      setShowModal(false);
+
+      setFormData({
+
+        courseId: "",
+
+        title: "",
+
+        description: "",
+
+        dueDate: "",
+
+        totalMarks: ""
+
+      });
+
     } catch (err) {
-      console.log(err);
-      alert(
-        err.response?.data?.message ||
-        "Unable to update assignment."
-      );
+
+      console.error(err);
+
+      alert("Unable to create assignment.");
+
     }
+
   };
+
+  // ===========================
+  // Delete Assignment
+  // ===========================
 
   const deleteAssignment = async (id) => {
+
     if (!window.confirm("Delete this assignment?")) return;
 
     try {
-      const token = localStorage.getItem("token");
+
       await axios.delete(
-        `http://localhost:5000/api/assignments/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+
+        `${API}/assignments/${id}`,
+
+        config
+
       );
-      setShowView(false);
+
       fetchAssignments();
+
+      setShowViewModal(false);
+
     } catch (err) {
-      console.log(err);
+
+      console.error(err);
+
       alert("Unable to delete assignment.");
+
     }
+
   };
 
-  const viewSubmissions = async (assignmentId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `http://localhost:5000/api/submissions/assignment/${assignmentId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      setSubmissions(res.data.data || []);
-      setShowSubmissions(true);
-    } catch (err) {
-      console.log(err);
-      alert("Unable to fetch submissions.");
-    }
-  };
+  // ===========================
+  // Update Assignment
+  // ===========================
 
-  const reviewSubmission = async (
-    submissionId,
-    marks,
-    feedback
-  ) => {
+  const updateAssignment = async () => {
+
     try {
-      const token = localStorage.getItem("token");
+
       await axios.put(
-        `http://localhost:5000/api/submissions/${submissionId}/review`,
-        {
-          marks,
-          feedback
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      alert("Submission reviewed.");
-      if (selectedAssignment) {
-        viewSubmissions(selectedAssignment.id);
-      }
-    } catch (err) {
-      console.log(err);
-      alert("Unable to review submission.");
-    }
-  };
 
-  if (loading) return <h2>Loading Assignments...</h2>;
+        `${API}/assignments/${selectedAssignment.id}`,
+
+        {
+
+          title: selectedAssignment.title,
+
+          description: selectedAssignment.description,
+
+          dueDate: selectedAssignment.dueDate,
+
+          totalMarks: selectedAssignment.totalMarks,
+
+          courseId: selectedAssignment.courseId
+
+        },
+
+        config
+
+      );
+
+      fetchAssignments();
+
+      setIsEditing(false);
+
+      setShowViewModal(false);
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert("Unable to update assignment.");
+
+    }
+
+  };
+    // ===========================
+  // JSX
+  // ===========================
 
   return (
+
     <div className="mentor-assignments">
-      {/* HEADER */}
+
       <div className="assignment-header">
+
         <div>
+
           <h1>Assignments</h1>
-          <p>Create, manage and review course assignments.</p>
+
+          <p>Create and manage course assignments.</p>
+
         </div>
+
         <button
           className="add-btn"
-          onClick={() => setShowAdd(true)}
+          onClick={() => setShowModal(true)}
         >
           <Plus size={18} />
           Add Assignment
         </button>
+
       </div>
 
-      {/* TABLE */}
       <div className="assignment-table">
+
         <table>
+
           <thead>
+
             <tr>
+
               <th>Title</th>
+
               <th>Course</th>
-              <th>Module</th>
+
               <th>Due Date</th>
+
               <th>Total Marks</th>
+
               <th>Submissions</th>
+
               <th>Actions</th>
+
             </tr>
+
           </thead>
+
           <tbody>
-            {assignments.length > 0 ? (
-              assignments.map((assignment) => (
-                <tr key={assignment.id}>
-                  <td>{assignment.title}</td>
-                  <td>{assignment.course?.title}</td>
-                  <td>{assignment.module?.title || "-"}</td>
-                  <td>
-                    {new Date(assignment.dueDate).toLocaleDateString()}
-                  </td>
-                  <td>{assignment.totalMarks}</td>
-                <td>
-  <div className="submission-progress">
 
-    <div className="progress-bar">
-      <div
-        className="progress-fill"
-        style={{
-          width: `${
-            assignment.course?.enrollments?.length
-              ? (assignment._count.submissions /
-                  assignment.course.enrollments.length) *
-                100
-              : 0
-          }%`
-        }}
-      />
-    </div>
+            {assignments.length === 0 ? (
 
-    <button
-      className="submission-count-btn"
-      onClick={() => {
-        setSelectedAssignment(assignment);
-        viewSubmissions(assignment.id);
-      }}
-    >
-      {assignment._count?.submissions || 0}/
-      {assignment.course?.enrollments?.length || 0}
-    </button>
-
-  </div>
-</td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        className="view-btn"
-                        onClick={() => handleView(assignment)}
-                      >
-                        <Eye size={17} />
-                        View
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
               <tr>
-                <td
-                  colSpan="7"
-                  style={{
-                    textAlign: "center",
-                    padding: "40px"
-                  }}
-                >
-                  No assignments found.
+
+                <td colSpan="6">
+
+                  No Assignments Found.
+
                 </td>
+
               </tr>
+
+            ) : (
+
+              assignments.map((assignment) => (
+
+                <tr key={assignment.id}>
+
+                  <td>{assignment.title}</td>
+
+                  <td>{assignment.course?.title}</td>
+
+                  <td>
+
+                    {new Date(
+                      assignment.dueDate
+                    ).toLocaleDateString()}
+
+                  </td>
+
+                  <td>{assignment.totalMarks}</td>
+
+                  <td>
+
+                    {assignment.submissions?.length || 0}
+
+                  </td>
+
+                  <td>
+
+                    <div className="actions">
+
+                      <button
+
+                        onClick={() => {
+
+                          setSelectedAssignment(assignment);
+
+                          setShowViewModal(true);
+
+                        }}
+
+                      >
+
+                        <Eye size={17} />
+
+                      </button>
+
+                    </div>
+
+                  </td>
+
+                </tr>
+
+              ))
+
             )}
+
           </tbody>
+
         </table>
+
       </div>
 
-      {/* ======================================
-          VIEW ASSIGNMENT MODAL - WITH EDIT & DELETE
-      ====================================== */}
-      {showView && selectedAssignment && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Assignment Details</h2>
-            
-            <div className="view-grid">
-              <div>
-                <label>Assignment Title</label>
-                <p>{selectedAssignment.title}</p>
-              </div>
-              <div>
-                <label>Course</label>
-                <p>{selectedAssignment.course?.title}</p>
-              </div>
-              <div>
-                <label>Module</label>
-                <p>{selectedAssignment.module?.title || "-"}</p>
-              </div>
-              <div>
-                <label>Total Marks</label>
-                <p>{selectedAssignment.totalMarks}</p>
-              </div>
-              <div>
-                <label>Due Date</label>
-                <p>
-                  {new Date(selectedAssignment.dueDate).toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <label>Attachment</label>
-                {selectedAssignment.assignmentLink ? (
-                  <a
-                    className="assignment-link"
-                    href={selectedAssignment.assignmentLink}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    📎 Open Attachment
-                  </a>
-                ) : (
-                  <p className="no-attachment">No attachment</p>
-                )}
-              </div>
-            </div>
+      {/* ===============================
+          Add Assignment Popup
+      ================================ */}
 
-            <label>Description</label>
-            <div className="description-box">
-              {selectedAssignment.description || "No description provided."}
-            </div>
+      {showModal && (
 
-            <label>Instructions</label>
-            <div className="description-box">
-              {selectedAssignment.instructions || "No instructions provided."}
-            </div>
+        <div className="modal-overlay">
 
-            {/* EDIT & DELETE BUTTONS IN VIEW MODAL */}
-            <div className="popup-buttons">
+          <div className="assignment-modal">
+
+            <div className="modal-header">
+
+              <h2>Create Assignment</h2>
+
               <button
-                className="edit-btn"
+                onClick={() => setShowModal(false)}
+              >
+
+                <X />
+
+              </button>
+
+            </div>
+
+            <form onSubmit={handleSubmit}>
+
+              <label>
+
+                Course
+
+              </label>
+
+              <select
+
+                name="courseId"
+
+                value={formData.courseId}
+
+                onChange={handleChange}
+
+                required
+
+              >
+
+                <option value="">
+
+                  Select Course
+
+                </option>
+
+                {courses.map((course) => (
+
+                  <option
+                    key={course.id}
+                    value={course.id}
+                  >
+
+                    {course.title}
+
+                  </option>
+
+                ))}
+
+              </select>
+
+              <label>
+
+                Assignment Title
+
+              </label>
+
+              <input
+
+                type="text"
+
+                name="title"
+
+                value={formData.title}
+
+                onChange={handleChange}
+
+                required
+
+              />
+
+              <label>
+
+                Assignment Description
+
+              </label>
+
+              <textarea
+
+                rows="6"
+
+                name="description"
+
+                value={formData.description}
+
+                onChange={handleChange}
+
+                required
+
+              />
+
+              <div className="row">
+
+                <div>
+
+                  <label>
+
+                    Due Date
+
+                  </label>
+
+                  <input
+
+                    type="date"
+
+                    name="dueDate"
+
+                    value={formData.dueDate}
+
+                    onChange={handleChange}
+
+                    required
+
+                  />
+
+                </div>
+
+                <div>
+
+                  <label>
+
+                    Total Marks
+
+                  </label>
+
+                  <input
+
+                    type="number"
+
+                    name="totalMarks"
+
+                    value={formData.totalMarks}
+
+                    onChange={handleChange}
+
+                    required
+
+                  />
+
+                </div>
+
+              </div>
+
+              <button
+                className="submit-btn"
+              >
+
+                Create Assignment
+
+              </button>
+
+            </form>
+
+          </div>
+
+        </div>
+
+           )}
+
+      {/* ===============================
+          View / Edit Assignment Popup
+      ================================ */}
+
+      {showViewModal && selectedAssignment && (
+
+        <div className="modal-overlay">
+
+          <div className="assignment-modal">
+
+            <div className="modal-header">
+
+              <h2>Assignment Details</h2>
+
+              <button
+                type="button"
                 onClick={() => {
-                  setShowView(false);
-                  handleEdit(selectedAssignment);
+                  setShowViewModal(false);
+                  setIsEditing(false);
                 }}
               >
-                <Pencil size={16} />
-                Edit 
+                <X />
               </button>
-              <button
-                className="delete-btn"
-                onClick={() => deleteAssignment(selectedAssignment.id)}
-              >
-                <Trash2 size={16} />
-                Delete 
-              </button>
-              <button
-                className="close-btn"
-                onClick={() => setShowView(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* ======================================
-          ADD ASSIGNMENT MODAL
-      ====================================== */}
-      {showAdd && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Create Assignment</h2>
-            <input
-              placeholder="Assignment Title"
-              value={newAssignment.title}
-              onChange={(e) =>
-                setNewAssignment({
-                  ...newAssignment,
-                  title: e.target.value
-                })
-              }
-            />
-            <textarea
-              rows="4"
-              placeholder="Description"
-              value={newAssignment.description}
-              onChange={(e) =>
-                setNewAssignment({
-                  ...newAssignment,
-                  description: e.target.value
-                })
-              }
-            />
-            <textarea
-              rows="4"
-              placeholder="Instructions (Optional)"
-              value={newAssignment.instructions}
-              onChange={(e) =>
-                setNewAssignment({
-                  ...newAssignment,
-                  instructions: e.target.value
-                })
-              }
-            />
-            <input
-              placeholder="Assignment Link"
-              value={newAssignment.assignmentLink}
-              onChange={(e) =>
-                setNewAssignment({
-                  ...newAssignment,
-                  assignmentLink: e.target.value
-                })
-              }
-            />
-            <select
-              value={newAssignment.courseId}
-              onChange={(e) => {
-                setNewAssignment({
-                  ...newAssignment,
-                  courseId: e.target.value,
-                  moduleId: "",
-                });
-                fetchModules(e.target.value);
-              }}
-            >
-              <option value="">Select Course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-            <select
-              value={newAssignment.moduleId}
-              onChange={(e) =>
-                setNewAssignment({
-                  ...newAssignment,
-                  moduleId: e.target.value,
-                })
-              }
-            >
-              <option value="">Select Module (Optional)</option>
-              {modules.map((module) => (
-                <option key={module.id} value={module.id}>
-                  {module.title}
-                </option>
-              ))}
-            </select>
-            <input
-              type="date"
-              value={newAssignment.dueDate}
-              onChange={(e) =>
-                setNewAssignment({
-                  ...newAssignment,
-                  dueDate: e.target.value
-                })
-              }
-            />
-            <input
-              type="number"
-              placeholder="Total Marks"
-              value={newAssignment.totalMarks}
-              onChange={(e) =>
-                setNewAssignment({
-                  ...newAssignment,
-                  totalMarks: e.target.value
-                })
-              }
-            />
-            <div className="popup-buttons">
-              <button className="save-btn" onClick={addAssignment}>
-                Create Assignment
-              </button>
-              <button className="close-btn" onClick={() => setShowAdd(false)}>
-                Cancel
-              </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ======================================
-          EDIT ASSIGNMENT MODAL
-      ====================================== */}
-      {showEdit && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Edit Assignment</h2>
-            <input
-              placeholder="Assignment Title"
-              value={editAssignment.title}
-              onChange={(e) =>
-                setEditAssignment({
-                  ...editAssignment,
-                  title: e.target.value
-                })
-              }
-            />
-            <textarea
-              rows="4"
-              placeholder="Description"
-              value={editAssignment.description}
-              onChange={(e) =>
-                setEditAssignment({
-                  ...editAssignment,
-                  description: e.target.value
-                })
-              }
-            />
-            <textarea
-              rows="4"
-              placeholder="Instructions (Optional)"
-              value={editAssignment.instructions}
-              onChange={(e) =>
-                setEditAssignment({
-                  ...editAssignment,
-                  instructions: e.target.value
-                })
-              }
-            />
-            <input
-              placeholder="Assignment Link"
-              value={editAssignment.assignmentLink}
-              onChange={(e) =>
-                setEditAssignment({
-                  ...editAssignment,
-                  assignmentLink: e.target.value
-                })
-              }
-            />
-            <select
-              value={editAssignment.courseId}
-              onChange={(e) => {
-                setEditAssignment({
-                  ...editAssignment,
-                  courseId: e.target.value,
-                  moduleId: "",
-                });
-                fetchModules(e.target.value);
-              }}
-            >
-              <option value="">Select Course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-            <select
-              value={editAssignment.moduleId}
-              onChange={(e) =>
-                setEditAssignment({
-                  ...editAssignment,
-                  moduleId: e.target.value,
-                })
-              }
-            >
-              <option value="">Select Module (Optional)</option>
-              {modules.map((module) => (
-                <option key={module.id} value={module.id}>
-                  {module.title}
-                </option>
-              ))}
-            </select>
-            <input
-              type="date"
-              value={editAssignment.dueDate}
-              onChange={(e) =>
-                setEditAssignment({
-                  ...editAssignment,
-                  dueDate: e.target.value
-                })
-              }
-            />
-            <input
-              type="number"
-              placeholder="Total Marks"
-              value={editAssignment.totalMarks}
-              onChange={(e) =>
-                setEditAssignment({
-                  ...editAssignment,
-                  totalMarks: e.target.value
-                })
-              }
-            />
-            <div className="popup-buttons">
-              <button className="save-btn" onClick={updateAssignment}>
-                Save Changes
-              </button>
-              <button className="close-btn" onClick={() => setShowEdit(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            <div className="assignment-view">
 
-      {/* ======================================
-          SUBMISSION REVIEW MODAL
-      ====================================== */}
-      {showSubmissions && (
-        <div className="popup-overlay">
-          <div className="popup large-popup">
-            <div className="submission-header">
-              <div>
-                <h2>Student Submissions</h2>
-                <p>
-                  Assignment: <strong>{selectedAssignment?.title}</strong>
-                </p>
-              </div>
-              <div className="submission-count">
-                {submissions.length} Submission{submissions.length !== 1 && "s"}
-              </div>
-            </div>
-            
-            {submissions.length > 0 ? (
-              submissions.map((submission) => (
-                <div key={submission.id} className="submission-card">
-                  <div className="submission-top">
-                    <div>
-                      <h3>{submission.student?.name}</h3>
-                      <p>{submission.student?.email}</p>
-                    </div>
-                    <span className={`submission-status ${submission.status.toLowerCase()}`}>
-                      {submission.status}
-                    </span>
-                  </div>
-                  <div className="submission-body">
-                    <p>
-                      <strong>Submitted:</strong>{" "}
-                      {new Date(submission.submittedAt).toLocaleString()}
-                    </p>
-                    <a
-                      href={submission.submissionLink}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Open Submission
-                    </a>
-                  </div>
+              <label>Course</label>
+
+              <input
+                type="text"
+                disabled
+                value={selectedAssignment.course?.title || ""}
+              />
+
+              <label>Assignment Title</label>
+
+              <input
+                type="text"
+                disabled={!isEditing}
+                value={selectedAssignment.title}
+                onChange={(e) =>
+                  setSelectedAssignment({
+                    ...selectedAssignment,
+                    title: e.target.value,
+                  })
+                }
+              />
+
+              <label>Description</label>
+
+              <textarea
+                rows="6"
+                disabled={!isEditing}
+                value={selectedAssignment.description}
+                onChange={(e) =>
+                  setSelectedAssignment({
+                    ...selectedAssignment,
+                    description: e.target.value,
+                  })
+                }
+              />
+
+              <div className="row">
+
+                <div>
+
+                  <label>Due Date</label>
+
+                  <input
+                    type="date"
+                    disabled={!isEditing}
+                    value={
+                      selectedAssignment.dueDate
+                        ? selectedAssignment.dueDate.split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) =>
+                      setSelectedAssignment({
+                        ...selectedAssignment,
+                        dueDate: e.target.value,
+                      })
+                    }
+                  />
+
+                </div>
+
+                <div>
+
+                  <label>Total Marks</label>
+
                   <input
                     type="number"
-                    placeholder="Marks"
-                    defaultValue={submission.marks || ""}
-                    readOnly={submission.status === "REVIEWED"}
-                    id={`marks-${submission.id}`}
+                    disabled={!isEditing}
+                    value={selectedAssignment.totalMarks}
+                    onChange={(e) =>
+                      setSelectedAssignment({
+                        ...selectedAssignment,
+                        totalMarks: e.target.value,
+                      })
+                    }
                   />
-                  <textarea
-                    rows="4"
-                    placeholder="Feedback"
-                    defaultValue={submission.feedback || ""}
-                    readOnly={submission.status === "REVIEWED"}
-                    id={`feedback-${submission.id}`}
-                  />
-                  <div className="popup-buttons">
-                    <button
-                      className="save-btn"
-                      disabled={submission.status === "REVIEWED"}
-                      onClick={() => {
-                        const marks = document.getElementById(
-                          `marks-${submission.id}`
-                        ).value;
-                        const feedback = document.getElementById(
-                          `feedback-${submission.id}`
-                        ).value;
-                        reviewSubmission(
-                          submission.id,
-                          marks,
-                          feedback
-                        );
-                      }}
-                    >
-                      {submission.status === "REVIEWED"
-                        ? "Reviewed"
-                        : "Save Review"}
-                    </button>
-                  </div>
+
                 </div>
-              ))
-            ) : (
-              <div className="empty-box">
-                <h3>No Submissions Yet</h3>
-                <p>Students haven't submitted this assignment yet.</p>
+
               </div>
-            )}
-        
-            <div className="popup-buttons">
-              <button
-                className="close-btn"
-                onClick={() => setShowSubmissions(false)}
-              >
-                Close
-              </button>
+
+              <label>Submissions</label>
+
+              <input
+                type="text"
+                disabled
+                value={selectedAssignment.submissions?.length || 0}
+              />
+
+              <div className="popup-buttons">
+
+                {!isEditing ? (
+
+                  <>
+
+                    <button
+                      type="button"
+                      className="edit-btn"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      onClick={() =>
+                        deleteAssignment(selectedAssignment.id)
+                      }
+                    >
+                      Delete
+                    </button>
+
+                  </>
+
+                ) : (
+
+                  <button
+                    type="button"
+                    className="save-btn"
+                    onClick={updateAssignment}
+                  >
+                    Save Changes
+                  </button>
+
+                )}
+
+              </div>
+
             </div>
+
           </div>
+
         </div>
+
       )}
+
     </div>
+
   );
+
 }
 
-export default MentorAssignments;
+export default Assignments;

@@ -17,21 +17,17 @@ import {
   Clock,
   AlertCircle,
   Save,
-  Library,
-  Layers,
   Calendar,
+  Layers,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminCourses.css";
 
-// ─── FIX: Use the API base URL from your api service ──────────────
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'%3E%3Crect width='300' height='200' fill='%23667eea'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20' font-family='sans-serif'%3ECourse%3C/text%3E%3C/svg%3E";
 
-// ─── Get base URL from api or use default ─────────────────────────
 const getImageUrl = (path) => {
   if (!path) return FALLBACK_IMAGE;
   if (path.startsWith('http')) return path;
-  // Use the same base URL as your API
   const baseUrl = api.defaults?.baseURL || 'http://localhost:5000';
   return `${baseUrl}${path}`;
 };
@@ -40,7 +36,6 @@ function AdminCourses() {
   // ─── STATE ──────────────────────────────────────────────────────────
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [availableModules, setAvailableModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -49,7 +44,6 @@ function AdminCourses() {
   // ─── MODAL STATES ──────────────────────────────────────────────────
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [showModuleLibraryModal, setShowModuleLibraryModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // ─── EDITING STATES ────────────────────────────────────────────────
@@ -59,6 +53,13 @@ function AdminCourses() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+
+  // ─── MODULE ATTACHMENT STATE (course view) ─────────────────────────
+  const [courseModules, setCourseModules] = useState([]);
+  const [availableModules, setAvailableModules] = useState([]);
+  const [modulesLoading, setModulesLoading] = useState(false);
+  const [moduleActionId, setModuleActionId] = useState(null); // module id or "attach"
+  const [selectedModuleToAdd, setSelectedModuleToAdd] = useState("");
 
   // ─── FORM STATE ────────────────────────────────────────────────────
   const [formData, setFormData] = useState({
@@ -105,19 +106,16 @@ function AdminCourses() {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [coursesRes, categoriesRes, modulesRes] = await Promise.all([
+      const [coursesRes, categoriesRes] = await Promise.all([
         api.get("/courses"),
         api.get("/categories"),
-        api.get("/modules"),
       ]);
 
       const coursesData = coursesRes.data?.data || coursesRes.data || [];
       const categoriesData = categoriesRes.data?.data || categoriesRes.data || [];
-      const modulesData = modulesRes.data?.data || modulesRes.data || [];
 
       setCourses(coursesData);
       setCategories(categoriesData);
-      setAvailableModules(modulesData);
       calculateStats(coursesData);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -245,7 +243,77 @@ function AdminCourses() {
     setViewingCourse(course);
     setIsEditMode(false);
     setShowViewModal(true);
+    setSelectedModuleToAdd("");
+    setCourseModules([]);
+    setAvailableModules([]);
+    loadCourseModules(course.id);
   };
+
+  // ─── MODULE ATTACH / DETACH ────────────────────────────────────────
+  const loadCourseModules = async (courseId) => {
+    setModulesLoading(true);
+    try {
+      const [courseRes, availRes] = await Promise.all([
+        api.get(`/courses/${courseId}`),
+        api.get(`/courses/${courseId}/available-modules`),
+      ]);
+      setCourseModules(courseRes.data?.data?.modules || []);
+      setAvailableModules(availRes.data?.data || []);
+    } catch (error) {
+      console.error("Error loading course modules:", error);
+      setCourseModules([]);
+      setAvailableModules([]);
+    } finally {
+      setModulesLoading(false);
+    }
+  };
+
+  const loadAvailableModules = async (courseId) => {
+    try {
+      const availRes = await api.get(`/courses/${courseId}/available-modules`);
+      setAvailableModules(availRes.data?.data || []);
+    } catch (error) {
+      console.error("Error loading available modules:", error);
+      setAvailableModules([]);
+    }
+  };
+
+  const handleAttachModule = async () => {
+    if (!selectedModuleToAdd || !viewingCourse) return;
+    setModuleActionId("attach");
+    try {
+      const res = await api.post(`/courses/${viewingCourse.id}/modules`, {
+        moduleId: parseInt(selectedModuleToAdd),
+      });
+      // Attach/detach responses return modules WITH _count.lessons, so the
+      // count shown right after an action is always authoritative.
+      if (res.data?.data) setCourseModules(res.data.data);
+      setSelectedModuleToAdd("");
+      await loadAvailableModules(viewingCourse.id);
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to attach module");
+    } finally {
+      setModuleActionId(null);
+    }
+  };
+
+  const handleDetachModule = async (moduleId) => {
+    if (!viewingCourse) return;
+    setModuleActionId(moduleId);
+    try {
+      const res = await api.delete(`/courses/${viewingCourse.id}/modules/${moduleId}`);
+      if (res.data?.data) setCourseModules(res.data.data);
+      await loadAvailableModules(viewingCourse.id);
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to detach module");
+    } finally {
+      setModuleActionId(null);
+    }
+  };
+
+  // Lesson count that works whether the API sends _count.lessons (preferred)
+  // or the raw lessons array — so it's correct regardless of response shape.
+  const lessonCount = (m) => m?._count?.lessons ?? m?.lessons?.length ?? 0;
 
   const handleSaveCourse = async () => {
     const errors = {};
@@ -275,8 +343,6 @@ function AdminCourses() {
         isPublished: formData.isPublished,
         isFeatured: formData.isFeatured,
         status: formData.isPublished ? "PUBLISHED" : "DRAFT",
-        price: 0,
-        duration: 0,
       };
 
       if (editingCourse) {
@@ -357,74 +423,6 @@ function AdminCourses() {
     }
   };
 
-  // ─── MODULE MANAGEMENT ─────────────────────────────────────────────
-  const openModuleLibrary = () => {
-    setShowModuleLibraryModal(true);
-  };
-
-  const addModuleToCourse = async (moduleId) => {
-    if (!viewingCourse?.id) {
-      alert("Please save the course first.");
-      return;
-    }
-
-    // Check if already added
-    const moduleToAdd = availableModules.find(m => m.id === moduleId);
-    if (!moduleToAdd) {
-      alert("Module not found.");
-      return;
-    }
-
-    const alreadyAdded = viewingCourse.modules?.some((m) => m.moduleSlug === moduleToAdd.moduleSlug);
-    if (alreadyAdded) {
-      alert("Module already added to this course.");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      
-      const response = await api.post(
-        `/modules/add-to-course/${viewingCourse.id}/${moduleId}`
-      );
-
-      if (response.data.success) {
-        alert(`✅ Module added to course successfully!`);
-        setViewingCourse(response.data.data);
-        await fetchAllData();
-        setShowModuleLibraryModal(false);
-      }
-    } catch (error) {
-      console.error("Error adding module:", error);
-      alert(error.response?.data?.message || "Failed to add module");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const removeModuleFromCourse = async (moduleId) => {
-    if (!confirm("Remove this module from the course?")) return;
-    
-    try {
-      setIsSubmitting(true);
-      
-      const response = await api.delete(
-        `/modules/remove-from-course/${viewingCourse.id}/${moduleId}`
-      );
-
-      if (response.data.success) {
-        alert(`✅ Module removed from course!`);
-        setViewingCourse(response.data.data);
-        await fetchAllData();
-      }
-    } catch (error) {
-      console.error("Error removing module:", error);
-      alert(error.response?.data?.message || "Failed to remove module");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   // ─── FILTERING ──────────────────────────────────────────────────────
   const filteredCourses = courses.filter((course) => {
     const matchSearch = course.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -452,7 +450,7 @@ function AdminCourses() {
       <div className="page-header">
         <div>
           <h1>Course Management</h1>
-          <p className="subtitle">Manage your courses and organize modules</p>
+          <p className="subtitle">Manage your courses</p>
         </div>
         <button className="add-btn" onClick={openCreateModal}>
           <Plus size={18} /> New Course
@@ -533,12 +531,12 @@ function AdminCourses() {
         <table className="course-table">
           <thead>
             <tr>
-              <th style={{ width: "35%" }}>Course</th>
+              <th style={{ width: "40%" }}>Course</th>
               <th>Category</th>
               <th>Level</th>
               <th>Status</th>
               <th>Students</th>
-              <th style={{ width: "180px" }}>Actions</th>
+              <th style={{ width: "140px" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -572,7 +570,7 @@ function AdminCourses() {
                         <strong>{course.title}</strong>
                         <br />
                         <small className="text-muted">
-                          {course._count?.modules || 0} Modules • {formatDate(course.createdAt)}
+                          Created: {formatDate(course.createdAt)}
                         </small>
                         {course.isFeatured && <span className="featured-badge">★ Featured</span>}
                       </div>
@@ -644,6 +642,7 @@ function AdminCourses() {
             </div>
 
             <div className="modal-body">
+              {/* Basic Information */}
               <div className="form-section">
                 <h3>Basic Information</h3>
                 <div className="form-row">
@@ -716,6 +715,7 @@ function AdminCourses() {
                 </div>
               </div>
 
+              {/* Course Content */}
               <div className="form-section">
                 <h3>Course Content</h3>
                 <div className="form-group">
@@ -732,6 +732,7 @@ function AdminCourses() {
                 </div>
               </div>
 
+              {/* Media */}
               <div className="form-section">
                 <h3>Media</h3>
                 <div className="form-group">
@@ -771,6 +772,7 @@ function AdminCourses() {
                 </div>
               </div>
 
+              {/* Settings */}
               <div className="form-section">
                 <h3>Settings</h3>
                 <div className="form-row">
@@ -1007,10 +1009,6 @@ function AdminCourses() {
 
                     <div className="view-stats">
                       <div className="view-stat">
-                        <BookOpen size={18} />
-                        <span>{viewingCourse._count?.modules || 0} Modules</span>
-                      </div>
-                      <div className="view-stat">
                         <Users size={18} />
                         <span>{viewingCourse._count?.enrollments || 0} Students</span>
                       </div>
@@ -1043,54 +1041,6 @@ function AdminCourses() {
                       )}
                     </div>
 
-                    {/* ─── MODULES SECTION ────────────────────────── */}
-                    <div className="view-section">
-                      <div className="section-header-with-actions">
-                        <h4>
-                          <Layers size={16} /> Course Modules
-                        </h4>
-                        <button className="btn-add-module" onClick={openModuleLibrary}>
-                          <Plus size={16} /> Add from Library
-                        </button>
-                      </div>
-
-                      {viewingCourse.modules?.length > 0 ? (
-                        <div className="view-modules">
-                          {viewingCourse.modules.map((module, idx) => (
-                            <div key={module.id} className="view-module">
-                              <div className="view-module-header">
-                                <span className="module-number">{idx + 1}.</span>
-                                <span className="module-title">{module.title}</span>
-                                <span className="module-lessons">{module.lessons?.length || 0} lessons</span>
-                                <span className="shared-badge">
-                                  <Library size={12} /> Shared
-                                </span>
-                                <button
-                                  className="btn-remove-module"
-                                  onClick={() => removeModuleFromCourse(module.id)}
-                                  disabled={isSubmitting}
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                              {module.lessons?.length > 0 && (
-                                <div className="view-lessons">
-                                  {module.lessons.map((lesson, li) => (
-                                    <div key={lesson.id} className="view-lesson">
-                                      <span className="lesson-number">{li + 1}.</span>
-                                      <span className="lesson-title">{lesson.title}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="no-modules">No modules added yet. Click "Add from Library".</p>
-                      )}
-                    </div>
-
                     {viewingCourse.description && (
                       <div className="view-section">
                         <h4>Description</h4>
@@ -1101,6 +1051,86 @@ function AdminCourses() {
                     <div className="view-meta">
                       <span>Created: {formatDate(viewingCourse.createdAt)}</span>
                       {viewingCourse.updatedAt && <span>Updated: {formatDate(viewingCourse.updatedAt)}</span>}
+                    </div>
+
+                    {/* ─── MODULES: attach existing modules to this course ─── */}
+                    <div className="view-section">
+                      <h4 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Layers size={18} /> Modules ({courseModules.length})
+                      </h4>
+
+                      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                        <select
+                          value={selectedModuleToAdd}
+                          onChange={(e) => setSelectedModuleToAdd(e.target.value)}
+                          disabled={modulesLoading || moduleActionId === "attach" || availableModules.length === 0}
+                          style={{ flex: 1, minWidth: 200, padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db" }}
+                        >
+                          <option value="">
+                            {availableModules.length ? "Select a module to add…" : "No unattached modules available"}
+                          </option>
+                          {availableModules.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.title} ({lessonCount(m)} lessons)
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="btn-save"
+                          onClick={handleAttachModule}
+                          disabled={!selectedModuleToAdd || moduleActionId === "attach"}
+                          style={{ whiteSpace: "nowrap" }}
+                        >
+                          {moduleActionId === "attach" ? <span className="spinner-small" /> : <Plus size={16} />} Add
+                        </button>
+                      </div>
+
+                      {modulesLoading ? (
+                        <p style={{ color: "#6b7280" }}>Loading modules…</p>
+                      ) : courseModules.length === 0 ? (
+                        <p style={{ color: "#6b7280" }}>No modules attached yet. Add one above.</p>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {courseModules.map((m, index) => (
+                            <div
+                              key={m.id}
+                              style={{
+                                display: "flex", alignItems: "center", justifyContent: "space-between",
+                                gap: 12, padding: "10px 12px", border: "1px solid #e5e7eb",
+                                borderRadius: 8, background: "#f9fafb",
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                                <span style={{
+                                  flexShrink: 0, width: 24, height: 24, borderRadius: "50%",
+                                  background: "#667eea", color: "#fff", fontSize: 12,
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                }}>{index + 1}</span>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {m.title}
+                                  </div>
+                                  <div style={{ fontSize: 12, color: "#6b7280" }}>
+                                    {lessonCount(m)} lesson{lessonCount(m) === 1 ? "" : "s"}
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleDetachModule(m.id)}
+                                disabled={moduleActionId === m.id}
+                                title="Remove from course"
+                                style={{
+                                  flexShrink: 0, display: "flex", alignItems: "center", gap: 4,
+                                  padding: "6px 10px", borderRadius: 8, border: "1px solid #fecaca",
+                                  background: "#fef2f2", color: "#dc2626", cursor: "pointer",
+                                }}
+                              >
+                                {moduleActionId === m.id ? <span className="spinner-small" /> : <X size={14} />} Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -1161,76 +1191,6 @@ function AdminCourses() {
         </div>
       )}
 
-      {/* ─── MODULE LIBRARY MODAL ──────────────────────────────────── */}
-      {showModuleLibraryModal && (
-        <div className="modal library-modal" onClick={() => setShowModuleLibraryModal(false)}>
-          <div className="modal-content library-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>
-                <Library size={20} /> Module Library
-              </h2>
-              <button className="modal-close" onClick={() => setShowModuleLibraryModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <p className="library-subtitle">Browse modules and add them to your course</p>
-
-              {availableModules.length === 0 ? (
-                <div className="empty-library">
-                  <Library size={48} />
-                  <h3>No modules available</h3>
-                  <p>Create modules first in Module Management.</p>
-                </div>
-              ) : (
-                <div className="library-grid">
-                  {availableModules.map((module) => {
-                    const isAdded = viewingCourse?.modules?.some((m) => m.moduleSlug === module.moduleSlug);
-                    return (
-                      <div key={module.id} className="library-item">
-                        <div className="library-item-header">
-                          <h4>{module.title}</h4>
-                          <span className="module-lessons-count">{module.lessons?.length || 0} lessons</span>
-                        </div>
-                        <p className="library-item-desc">{module.description || "No description"}</p>
-                        <div className="library-item-actions">
-                          {isAdded ? (
-                            <button className="btn-already-added" disabled>
-                              <CheckCircle size={16} /> Already Added
-                            </button>
-                          ) : (
-                            <button 
-                              className="btn-add-to-course" 
-                              onClick={() => addModuleToCourse(module.id)}
-                              disabled={isSubmitting}
-                            >
-                              {isSubmitting ? (
-                                <span className="spinner-small" />
-                              ) : (
-                                <>
-                                  <Plus size={16} /> Add to Course
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setShowModuleLibraryModal(false)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ─── DELETE CONFIRMATION MODAL ─────────────────────────────── */}
       {showDeleteModal && (
         <div className="modal confirm-modal" onClick={() => {
@@ -1264,12 +1224,6 @@ function AdminCourses() {
                 This will permanently remove the course and all its related data.
               </p>
 
-              {viewingCourse && viewingCourse.modules?.length > 0 && (
-                <div className="confirm-warning">
-                  <AlertCircle size={16} />
-                  <span>This course has {viewingCourse.modules.length} module(s) attached.</span>
-                </div>
-              )}
               {viewingCourse && viewingCourse._count?.enrollments > 0 && (
                 <div className="confirm-warning">
                   <AlertCircle size={16} />

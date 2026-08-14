@@ -99,7 +99,7 @@ class UserService {
         role: true,
         emailVerified: true,
         isActive: true,
-        invitationToken: true,
+        // invitationToken intentionally NOT returned — delivered via email only.
         invitationExpiry: true,
         createdAt: true,
         updatedAt: true
@@ -358,6 +358,12 @@ class UserService {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
+    // Whitelist sort inputs: passing an unknown field or a non asc/desc order
+    // straight to Prisma.orderBy throws and returns a 500.
+    const allowedSortFields = ["createdAt", "updatedAt", "name", "email", "role"];
+    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";
+    const safeSortOrder = sortOrder === "asc" ? "asc" : "desc";
+
     const where = {};
 
     if (search) {
@@ -388,7 +394,7 @@ class UserService {
         skip,
         take,
         orderBy: {
-          [sortBy]: sortOrder
+          [safeSortBy]: safeSortOrder
         },
         select: {
           id: true,
@@ -397,7 +403,8 @@ class UserService {
           role: true,
           emailVerified: true,
           isActive: true,
-          invitationToken: true,
+          // invitationToken intentionally NOT selected — it is a secret that
+          // can be used to set the account password and must never leave the DB.
           invitationExpiry: true,
           invitedBy: true,
           createdAt: true,
@@ -447,7 +454,7 @@ class UserService {
         role: true,
         emailVerified: true,
         isActive: true,
-        invitationToken: true,
+        // invitationToken intentionally NOT selected (secret).
         invitationExpiry: true,
         invitedBy: true,
         createdAt: true,
@@ -478,9 +485,39 @@ class UserService {
   }
 
   /**
-   * Update user
+   * Guard: would acting on this user remove the last remaining active admin?
+   * Used before delete / deactivate / demote so the platform can't be locked out.
    */
-  async updateUser(userId, updateData) {
+  async _wouldOrphanAdmins(targetUserId) {
+    const target = await prisma.user.findUnique({
+      where: { id: parseInt(targetUserId) },
+      select: { role: true, isActive: true }
+    });
+
+    if (!target || target.role !== "ADMIN" || !target.isActive) {
+      return false;
+    }
+
+    const activeAdmins = await prisma.user.count({
+      where: { role: "ADMIN", isActive: true }
+    });
+
+    return activeAdmins <= 1;
+  }
+
+  /**
+   * Update user
+   *
+   * @param {number|string} userId
+   * @param {object} updateData
+   * @param {object} [options]
+   * @param {boolean} [options.allowRole=false] Whether a role change may be
+   *        applied. This MUST only be true when an admin is editing another
+   *        user. Self-profile updates pass false, otherwise any authenticated
+   *        user could promote themselves to ADMIN by sending role in the body.
+   */
+  async updateUser(userId, updateData, options = {}) {
+    const { allowRole = false } = options;
     const { name, email, role, expertise, bio, socialLink, profileImage } = updateData;
 
     const existingUser = await prisma.user.findUnique({
@@ -493,7 +530,7 @@ class UserService {
       throw error;
     }
 
-    if (email && email !== existingUser.email) {
+    if (email && email.toLowerCase() !== existingUser.email.toLowerCase()) {
       const emailExists = await prisma.user.findUnique({
         where: { email: email.toLowerCase() }
       });
@@ -505,7 +542,8 @@ class UserService {
       }
     }
 
-    if (role) {
+    // Role may only be validated/applied on a privileged (admin) update.
+    if (role && allowRole) {
       const validRoles = ["ADMIN", "MENTOR", "STUDENT"];
       if (!validRoles.includes(role)) {
         const error = new Error("Invalid role");
@@ -517,7 +555,9 @@ class UserService {
     const data = {};
     if (name) data.name = name.trim();
     if (email) data.email = email.toLowerCase().trim();
-    if (role) data.role = role;
+    // SECURITY: only apply role when explicitly permitted. A self-profile
+    // update (allowRole=false) silently ignores any role in the payload.
+    if (role && allowRole) data.role = role;
     if (expertise !== undefined) data.expertise = expertise;
     if (bio !== undefined) data.bio = bio;
     if (socialLink !== undefined) data.social_links = socialLink;
@@ -592,7 +632,7 @@ class UserService {
   /**
    * Delete user - Database CASCADE handles all related records automatically
    */
-  async deleteUser(userId) {
+  async deleteUser(userId, actingUserId = null) {
     const user = await prisma.user.findUnique({
       where: { id: parseInt(userId) },
       select: {
@@ -606,6 +646,18 @@ class UserService {
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;
+      throw error;
+    }
+
+    if (actingUserId && parseInt(userId) === parseInt(actingUserId)) {
+      const error = new Error("You cannot delete your own account");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (await this._wouldOrphanAdmins(userId)) {
+      const error = new Error("Cannot delete the last active admin account");
+      error.statusCode = 400;
       throw error;
     }
 
@@ -637,7 +689,7 @@ class UserService {
   /**
    * Toggle user active status
    */
-  async toggleUserStatus(userId) {
+  async toggleUserStatus(userId, actingUserId = null) {
     const user = await prisma.user.findUnique({
       where: { id: parseInt(userId) }
     });
@@ -648,9 +700,22 @@ class UserService {
       throw error;
     }
 
+    if (actingUserId && parseInt(userId) === parseInt(actingUserId)) {
+      const error = new Error("You cannot change your own account status");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Only block when we are about to DEACTIVATE the last active admin.
+    if (user.isActive && (await this._wouldOrphanAdmins(userId))) {
+      const error = new Error("Cannot deactivate the last active admin account");
+      error.statusCode = 400;
+      throw error;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: parseInt(userId) },
-      data: { 
+      data: {
         isActive: !user.isActive,
         emailVerified: user.isActive ? user.emailVerified : false
       },
@@ -667,14 +732,15 @@ class UserService {
 
     return {
       ...updatedUser,
-      status: updatedUser.isActive ? "ACTIVE" : "INACTIVE"
+      // Match the vocabulary used elsewhere (getAllUsers/getUserById): PENDING.
+      status: updatedUser.isActive ? "ACTIVE" : "PENDING"
     };
   }
 
   /**
    * Change user role
    */
-  async changeUserRole(userId, newRole) {
+  async changeUserRole(userId, newRole, actingUserId = null) {
     const user = await prisma.user.findUnique({
       where: { id: parseInt(userId) }
     });
@@ -688,6 +754,19 @@ class UserService {
     const validRoles = ["ADMIN", "MENTOR", "STUDENT"];
     if (!validRoles.includes(newRole)) {
       const error = new Error("Invalid role");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (actingUserId && parseInt(userId) === parseInt(actingUserId)) {
+      const error = new Error("You cannot change your own role");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Block demoting the last active admin out of the ADMIN role.
+    if (newRole !== "ADMIN" && (await this._wouldOrphanAdmins(userId))) {
+      const error = new Error("Cannot change the role of the last active admin");
       error.statusCode = 400;
       throw error;
     }

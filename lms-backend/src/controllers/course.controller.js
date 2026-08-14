@@ -240,6 +240,69 @@ exports.toggleFeatured = async (req, res) => {
 };
 
 // ==========================================
+// GET MODULES AVAILABLE TO ATTACH
+// ==========================================
+exports.getAvailableModules = async (req, res) => {
+    try {
+        const result = await courseService.getAvailableModules(req.params.id);
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// ==========================================
+// ATTACH EXISTING MODULE(S) TO COURSE
+// Body: { moduleId } or { moduleIds: [...] }
+// ==========================================
+exports.attachModules = async (req, res) => {
+    try {
+        const { moduleId, moduleIds } = req.body;
+        const input = moduleIds !== undefined ? moduleIds : moduleId;
+
+        const result = await courseService.attachModules(req.params.id, input);
+        res.json({
+            success: true,
+            data: result,
+            message: "Module(s) attached successfully."
+        });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// ==========================================
+// DETACH A MODULE FROM COURSE
+// ==========================================
+exports.detachModule = async (req, res) => {
+    try {
+        const result = await courseService.detachModule(
+            req.params.id,
+            req.params.moduleId
+        );
+        res.json({
+            success: true,
+            data: result,
+            message: "Module detached successfully."
+        });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// ==========================================
 // SEARCH COURSES
 // ==========================================
 exports.search = async (req, res) => {

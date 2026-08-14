@@ -264,10 +264,7 @@ function Dashboard() {
               <PlusCircle size={18} />
               Create New Course
             </button>
-            <button className="welcome-btn secondary" onClick={() => navigate("/mentor/analytics")}>
-              <BarChart3 size={18} />
-              View Analytics
-            </button>
+            
           </div>
         </div>
         <div className="welcome-date">

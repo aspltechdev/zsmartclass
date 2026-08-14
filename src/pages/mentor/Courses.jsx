@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import "./Courses.css";
 import {
   Eye,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 
 function MentorCourses() {
+  const [categories, setCategories] = useState([]);
   const [courses, setCourses] = useState([]);
   const [modules, setModules] = useState({});
   const [loading, setLoading] = useState(true);
@@ -20,6 +22,7 @@ function MentorCourses() {
   const [editCourse, setEditCourse] = useState({});
   const [showAddModule, setShowAddModule] = useState(false);
   const [showEditModule, setShowEditModule] = useState(false);
+  const navigate = useNavigate();
   const [newModule, setNewModule] = useState({
     title: "",
     description: "",
@@ -33,11 +36,10 @@ function MentorCourses() {
     position: ""
   });
   const [showAddCourse, setShowAddCourse] = useState(false);
-  const [newCourse, setNewCourse] = useState({
+const [newCourse, setNewCourse] = useState({
     title: "",
     subtitle: "",
     description: "",
-    trailer: "",
     language: "",
     level: "",
     duration: "",
@@ -46,21 +48,14 @@ function MentorCourses() {
     requirements: "",
     outcomes: "",
     audience: "",
-    status: "DRAFT"
-  });
+    status: "DRAFT",
+    categoryId: ""
+});
 
   // Language options
   const languages = [
     "English",
-    "Hindi",
-    "Spanish",
-    "French",
-    "German",
-    "Chinese",
-    "Japanese",
-    "Arabic",
-    "Portuguese",
-    "Russian"
+  "Tamil"
   ];
 
   // Level options
@@ -71,9 +66,30 @@ function MentorCourses() {
     "All Levels"
   ];
 
-  useEffect(() => {
+ useEffect(() => {
     fetchCourses();
-  }, []);
+    fetchCategories();
+}, []);
+
+const fetchCategories = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await axios.get(
+      "http://localhost:5000/api/categories",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setCategories(res.data.data || res.data || []);
+  } catch (err) {
+    console.log(err);
+    setCategories([]);
+  }
+};
 
   const fetchCourses = async () => {
     try {
@@ -413,7 +429,10 @@ function MentorCourses() {
   };
 
   const handleEdit = (course) => {
-    setEditCourse({ ...course });
+    setEditCourse({
+    ...course,
+    categoryId: course.categoryId || ""
+});
     setShowEdit(true);
   };
 
@@ -443,7 +462,7 @@ function MentorCourses() {
         outcomes: editCourse.outcomes,
         audience: editCourse.audience,
         status: editCourse.status,
-        categoryId: 1
+        categoryId: Number(editCourse.categoryId)
       };
 
       await axios.put(
@@ -497,7 +516,6 @@ function MentorCourses() {
         title: newCourse.title.trim(),
         subtitle: newCourse.subtitle?.trim() || "",
         description: newCourse.description?.trim() || "",
-        trailer: newCourse.trailer?.trim() || "",
         language: newCourse.language,
         level: newCourse.level,
         duration: Number(newCourse.duration),
@@ -507,7 +525,7 @@ function MentorCourses() {
         outcomes: newCourse.outcomes?.trim() || "",
         audience: newCourse.audience?.trim() || "",
         status: newCourse.status || "DRAFT",
-        categoryId: 1
+        categoryId: Number(newCourse.categoryId) || 1
       };
 
       await axios.post(
@@ -526,7 +544,6 @@ function MentorCourses() {
         title: "",
         subtitle: "",
         description: "",
-        trailer: "",
         language: "",
         level: "",
         duration: "",
@@ -558,20 +575,32 @@ function MentorCourses() {
   return (
     <div className="mentor-courses">
       {/* Header */}
-      <div className="courses-header">
-        <div>
-          <h1>My Courses</h1>
-          <p>Create, manage and organize your courses.</p>
-        </div>
-        <button
-          className="add-course-btn"
-          onClick={() => setShowAddCourse(true)}
-        >
-          <Plus size={18} />
-          Add Course
-        </button>
-      </div>
+    <div className="courses-header">
+  <div>
+    <h1>My Courses</h1>
+    <p>Create, manage and organize your courses.</p>
+  </div>
 
+  <div className="header-buttons">
+
+    <button
+      className="add-course-btn"
+      onClick={() => setShowAddCourse(true)}
+    >
+      <Plus size={18} />
+      Add Course
+    </button>
+
+    <button
+      className="add-quiz-btn"
+      onClick={() => navigate("/mentor/quiz?create=true")}
+    >
+      <Plus size={18} />
+      Add Quiz
+    </button>
+
+  </div>
+</div>
       {/* Course Cards */}
       <div className="courses-container">
         {courses.length > 0 ? (
@@ -583,6 +612,9 @@ function MentorCourses() {
                   <h2 className="course-title">{course.title}</h2>
                   <p className="course-subtitle">{course.subtitle || "No subtitle"}</p>
                 </div>
+                <div className="course-category">
+  {course.category?.name || "Uncategorized"}
+</div>
                 <div className="course-meta">
                   <span className={`status-badge ${course.status?.toLowerCase()}`}>
                     {course.status || "DRAFT"}
@@ -884,18 +916,31 @@ function MentorCourses() {
                 })
               }
             />
+<h3 className="section-title">Category</h3>
 
+<select
+    className="category-select"
+    value={newCourse.categoryId}
+    onChange={(e)=>
+        setNewCourse({
+            ...newCourse,
+            categoryId: Number(e.target.value)
+        })
+    }
+>
+    <option value="">Select Category</option>
+
+    {categories.map(category=>(
+        <option
+            key={category.id}
+            value={category.id}
+        >
+            {category.name}
+        </option>
+    ))}
+</select>
             <h3 className="section-title">Course Details</h3>
-            <input
-              placeholder="Trailer URL (Optional)"
-              value={editCourse.trailer || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  trailer: e.target.value
-                })
-              }
-            />
+           
 
             <select
               value={editCourse.language || ""}
@@ -1062,18 +1107,30 @@ function MentorCourses() {
                 })
               }
             />
+            <h3 className="section-title">Category</h3>
 
+<select
+    className="category-select"
+    value={editCourse.categoryId || ""}
+    onChange={(e)=>
+        setEditCourse({
+            ...editCourse,
+            categoryId:Number(e.target.value)
+        })
+    }
+>
+    <option value="">Select Category</option>
+
+    {categories.map(category=>(
+        <option
+            key={category.id}
+            value={category.id}
+        >
+            {category.name}
+        </option>
+    ))}
+</select>
             <h3 className="section-title">Course Details</h3>
-            <input
-              placeholder="Trailer URL (Optional)"
-              value={newCourse.trailer}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  trailer: e.target.value
-                })
-              }
-            />
 
             <select
               value={newCourse.language}

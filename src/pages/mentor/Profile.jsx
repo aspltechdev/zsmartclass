@@ -1,465 +1,363 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import api from "../../services/api";
+// src/pages/admin/AdminProfile.jsx
+import { useState, useEffect, useRef } from "react";
+import {
+  User,
+  Mail,
+  Shield,
+  Camera,
+  Trash2,
+  Save,
+  X,
+  AlertCircle,
+  CheckCircle,
+  Loader,
+  Edit,
+  Lock,
+  Eye,
+  EyeOff,
+  Globe,
+  Award,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { Pencil, X, Save } from "lucide-react";
+import api from "../../services/api";
 import "./Profile.css";
 
 function Profile() {
-  const [loading, setLoading] = useState(true);
+  const { user: authUser, updateUser: updateAuthUser } = useAuth();
+
   const [saving, setSaving] = useState(false);
-  const [showEditPopup, setShowEditPopup] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
-  const [profile, setProfile] = useState({
+  const [form, setForm] = useState({
     name: "",
     email: "",
     role: "",
+    expertise: "",
     bio: "",
-    expertise: [],
-    linkedin: "",
-    github: "",
-    portfolio: "",
-    website: "",
-    profilePhoto: "",
+    socialLink: "",
   });
 
-  const [editProfile, setEditProfile] = useState({
-    name: "",
-    email: "",
-    role: "",
-    bio: "",
-    expertise: [],
-    linkedin: "",
-    github: "",
-    portfolio: "",
-    website: "",
-    profilePhoto: "",
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
-
-  const [expertiseInput, setExpertiseInput] = useState("");
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-
-      const res = await api.get("/profile");
-
-      const data = res.data.data;
-
-      setProfile({
-        name: data.name || "",
-        email: data.email || "",
-        role: data.role || "",
-        bio: data.bio || "",
-        expertise: data.expertise || [],
-        linkedin: data.linkedin || "",
-        github: data.github || "",
-        portfolio: data.portfolio || "",
-        website: data.website || "",
-        profilePhoto: data.profilePhoto || "",
+    if (authUser) {
+      setForm({
+        name: authUser.name || "",
+        email: authUser.email || "",
+        role: authUser.role || "ADMIN",
+        expertise: authUser.expertise || "",   
+        bio: authUser.bio || "",
+        socialLink: authUser.social_links || authUser.socialLink || "", 
       });
-
-      setExpertiseInput((data.expertise || []).join(", "));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to load profile.");
-    } finally {
-      setLoading(false);
+      setProfileImage(authUser.profileImage || null);
+      setImagePreview(authUser.profileImage || null);
     }
+  }, [authUser]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const { updateUser } = useAuth();
-
-  const handleProfileUpload = async (e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      const formData = new FormData();
-      formData.append("thumbnail", file);
-
-      const res = await api.post("/upload/thumbnail", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      const imageUrl = res.data.url;
-
-      const payload = {
-        ...editProfile,
-        profilePhoto: imageUrl,
-        expertise: expertiseInput
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        setError("Please upload a valid image file.");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size should be less than 5MB.");
+        return;
+      }
+      setProfileImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
       };
-
-      const response = await api.put("/profile", payload);
-      setEditProfile(response.data.data);
-      setProfile(response.data.data);
-      updateUser(response.data.data);
-      alert("Profile photo updated successfully.");
-    } catch (err) {
-      console.error("Upload Error:", err.response?.data || err);
-      alert(err.response?.data?.message || "Image upload failed.");
+      reader.readAsDataURL(file);
+      setError("");
     }
   };
 
-  const handleEditClick = () => {
-    setEditProfile({
-      name: profile.name || "",
-      email: profile.email || "",
-      role: profile.role || "",
-      bio: profile.bio || "",
-      expertise: profile.expertise || [],
-      linkedin: profile.linkedin || "",
-      github: profile.github || "",
-      portfolio: profile.portfolio || "",
-      website: profile.website || "",
-      profilePhoto: profile.profilePhoto || "",
-    });
-    setExpertiseInput((profile.expertise || []).join(", "));
-    setShowEditPopup(true);
+  const handleRemoveImage = () => {
+    setProfileImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
-  const handleEditChange = (e) => {
-    setEditProfile({
-      ...editProfile,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSave = async () => {
+  const handleSaveProfile = async () => {
     try {
       setSaving(true);
+      setError("");
+      setSuccess("");
 
-      const payload = {
-        ...editProfile,
-        expertise: expertiseInput
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-      };
+      if (!form.email) {
+        setError("Email is required to update profile.");
+        setSaving(false);
+        return;
+      }
 
-      const res = await api.put("/profile", payload);
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("email", form.email);
+      formData.append("role", form.role);
+      formData.append("expertise", form.expertise || "");    
+      formData.append("bio", form.bio || "");
+      formData.append("socialLink", form.socialLink || "");
 
-      setProfile(res.data.data);
-      setEditProfile(res.data.data);
-      updateUser(res.data.data);
-      setShowEditPopup(false);
-      alert("Profile updated successfully.");
+      // Only append the file if the user actually picked a new one.
+      // (profileImage is a File object when freshly selected; when it's
+      // still the original string URL from the server, there's nothing
+      // new to upload.)
+      if (profileImage instanceof File) {
+        formData.append("profileImage", profileImage);
+      }
+
+      // 🔥 IMPORTANT: The backend route we just added
+      const response = await api.put(`/users/update-profile`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        const returnedData = response.data;
+        let updatedUser = returnedData.data || returnedData.user || returnedData;
+
+        if (Array.isArray(updatedUser)) updatedUser = updatedUser[0];
+
+        if (updatedUser && typeof updatedUser === 'object') {
+          // Update screen UI
+          setForm({
+            name: updatedUser.name || "",
+            email: updatedUser.email || "",
+            role: updatedUser.role || "ADMIN",
+            expertise: updatedUser.expertise || "",
+            bio: updatedUser.bio || "",
+            socialLink: updatedUser.social_links || updatedUser.socialLink || "",
+          });
+          if (updatedUser.profileImage) setImagePreview(updatedUser.profileImage);
+
+          // Also sync into AuthContext (and localStorage/sessionStorage)
+          // so the change survives a page refresh instead of only living
+          // in this component's local state.
+          updateAuthUser(updatedUser);
+
+          setSuccess("Profile updated successfully!");
+          setIsEditing(false);
+        } else {
+          setSuccess("Profile saved successfully.");
+          setIsEditing(false);
+        }
+      }
+
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "Unable to update profile.");
+      console.error("Profile update error:", err);
+      // 🛡️ Shows the REAL error without crashing the page
+      const errorMessage = err.response?.data?.message || err.message || "Failed to update profile.";
+      setError(`Backend Error: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return <div className="profile-loading">Loading Profile...</div>;
-  }
+  const handleChangePassword = async () => {
+    try {
+      const errors = {};
+      if (!passwordForm.currentPassword) errors.currentPassword = "Current password is required";
+      if (!passwordForm.newPassword) errors.newPassword = "New password is required";
+      if (passwordForm.newPassword.length < 6) errors.newPassword = "Password must be at least 6 characters";
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) errors.confirmPassword = "Passwords do not match";
+
+      if (Object.keys(errors).length > 0) {
+        setPasswordErrors(errors);
+        return;
+      }
+
+      setSaving(true);
+      const response = await api.put("/users/change-password", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+
+      if (response.data.success) {
+        setSuccess("Password changed successfully!");
+        setShowPasswordModal(false);
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        setPasswordErrors({});
+      }
+    } catch (err) {
+      console.error("Password change error:", err);
+      setError(err.response?.data?.message || "Failed to change password.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "A";
+    return name.split(" ").map((word) => word[0]).join("").toUpperCase().slice(0, 2);
+  };
 
   return (
     <div className="profile-page">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="profile-card"
-      >
-        {/* Profile Header */}
+      <div className="profile-container">
         <div className="profile-header">
-          <div className="profile-avatar-wrapper">
-            <div className="profile-avatar">
-              {profile.profilePhoto ? (
-                <img
-                  src={`http://localhost:5000${profile.profilePhoto}`}
-                  alt="Profile"
-                />
-              ) : (
-                <div className="avatar-placeholder">
-                  {profile.name?.charAt(0)}
-                </div>
-              )}
-            </div>
+          <div>
+            <h1>Profile Settings</h1>
+            <p className="subtitle">Manage your personal details</p>
           </div>
-
-          <div className="profile-header-info">
-            <h2>{profile.name}</h2>
-            <p>{profile.email}</p>
-            <span className="role-badge">{profile.role}</span>
-          </div>
-        </div>
-
-        {/* Profile Information Display */}
-        <div className="profile-display">
-          <div className="profile-info-grid">
-            <div className="info-item">
-              <label>Full Name</label>
-              <p>{profile.name}</p>
-            </div>
-
-            <div className="info-item">
-              <label>Email</label>
-              <p>{profile.email}</p>
-            </div>
-
-            <div className="info-item full-width">
-              <label>Bio</label>
-              <p className="bio-text">{profile.bio || "No bio added yet."}</p>
-            </div>
-
-            <div className="info-item full-width">
-              <label>Expertise</label>
-              <div className="expertise-tags">
-                {profile.expertise && profile.expertise.length > 0 ? (
-                  profile.expertise.map((skill, index) => (
-                    <span key={index} className="expertise-tag">
-                      {skill}
-                    </span>
-                  ))
-                ) : (
-                  <p className="no-data">No expertise added yet.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="info-item">
-              <label>LinkedIn</label>
-              <p>
-                {profile.linkedin ? (
-                  <a
-                    href={profile.linkedin}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="profile-link"
-                  >
-                    {profile.linkedin}
-                  </a>
-                ) : (
-                  <span className="no-data">Not added</span>
-                )}
-              </p>
-            </div>
-
-            <div className="info-item">
-              <label>GitHub</label>
-              <p>
-                {profile.github ? (
-                  <a
-                    href={profile.github}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="profile-link"
-                  >
-                    {profile.github}
-                  </a>
-                ) : (
-                  <span className="no-data">Not added</span>
-                )}
-              </p>
-            </div>
-
-            <div className="info-item">
-              <label>Portfolio</label>
-              <p>
-                {profile.portfolio ? (
-                  <a
-                    href={profile.portfolio}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="profile-link"
-                  >
-                    {profile.portfolio}
-                  </a>
-                ) : (
-                  <span className="no-data">Not added</span>
-                )}
-              </p>
-            </div>
-
-            <div className="info-item">
-              <label>Website</label>
-              <p>
-                {profile.website ? (
-                  <a
-                    href={profile.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="profile-link"
-                  >
-                    {profile.website}
-                  </a>
-                ) : (
-                  <span className="no-data">Not added</span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          {/* Edit Button at Bottom */}
           <div className="profile-actions">
-            <button className="edit-profile-btn" onClick={handleEditClick}>
-              <Pencil size={18} />
-              Edit Profile
-            </button>
+            {!isEditing ? (
+              <button className="btn-primary" onClick={() => setIsEditing(true)}>
+                <Edit size={18} /> Edit Profile
+              </button>
+            ) : (
+              <>
+                <button 
+                  className="btn-secondary" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setImagePreview(authUser?.profileImage || null);
+                    setProfileImage(authUser?.profileImage || null);
+                    setForm({
+                      name: authUser?.name || "",
+                      email: authUser?.email || "",
+                      role: authUser?.role || "ADMIN",
+                      expertise: authUser?.expertise || "",
+                      bio: authUser?.bio || "",
+                      socialLink: authUser?.social_links || authUser?.socialLink || "",
+                    });
+                    setError("");
+                  }}
+                >
+                  <X size={18} /> Cancel
+                </button>
+                <button className="btn-primary" onClick={handleSaveProfile} disabled={saving}>
+                  {saving ? <><Loader size={18} className="spinning" /> Saving...</> : <><Save size={18} /> Save Changes</>}
+                </button>
+              </>
+            )}
           </div>
         </div>
-      </motion.div>
 
-      {/* Edit Profile Popup */}
-      {showEditPopup && (
-        <div className="popup-overlay" onClick={() => setShowEditPopup(false)}>
-          <div className="popup" onClick={(e) => e.stopPropagation()}>
-            <div className="popup-header">
-              <h2>Edit Profile</h2>
-              <button
-                className="popup-close-btn"
-                onClick={() => setShowEditPopup(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
+        {success && <div className="alert alert-success"><CheckCircle size={18} /> {success}</div>}
+        {error && <div className="alert alert-error"><AlertCircle size={18} /> {error}</div>}
 
-            <div className="popup-body">
-              {/* Avatar Upload in Popup */}
-              <div className="popup-avatar-section">
-                <div
-                  className="popup-avatar"
-                  onClick={() => document.getElementById("popup-profile-upload").click()}
-                >
-                  {editProfile.profilePhoto ? (
-                    <img
-                      src={`http://localhost:5000${editProfile.profilePhoto}`}
-                      alt="Profile"
-                    />
-                  ) : (
-                    <div className="popup-avatar-placeholder">
-                      {editProfile.name?.charAt(0)}
-                    </div>
-                  )}
-                  <div className="popup-avatar-overlay">
-                    <Pencil size={16} />
-                    Change Photo
+        <div className="profile-grid">
+          <div className="profile-image-section">
+            <div className="profile-image-container">
+              <div className="profile-image-wrapper">
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Profile" />
+                ) : (
+                  <div className="profile-image-placeholder"><span className="initials">{getInitials(form.name)}</span></div>
+                )}
+                {isEditing && (
+                  <div className="profile-image-overlay">
+                    <label className="upload-btn" htmlFor="profile-image-upload">
+                      <Camera size={20} /> <span>Change Photo</span>
+                    </label>
+                    <input id="profile-image-upload" type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: "none" }} />
+                    {imagePreview && <button className="remove-image-btn" onClick={handleRemoveImage}><Trash2 size={16} /></button>}
                   </div>
-                </div>
-                <input
-                  id="popup-profile-upload"
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={handleProfileUpload}
-                />
-              </div>
-
-              <div className="popup-form">
-                <div className="form-group">
-                  <label>Full Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={editProfile.name}
-                    onChange={handleEditChange}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={editProfile.email}
-                    onChange={handleEditChange}
-                  />
-                </div>
-
-                <div className="form-group full-width">
-                  <label>Bio</label>
-                  <textarea
-                    rows={4}
-                    name="bio"
-                    value={editProfile.bio}
-                    onChange={handleEditChange}
-                    placeholder="Tell us about yourself..."
-                  />
-                </div>
-
-                <div className="form-group full-width">
-                  <label>Expertise</label>
-                  <input
-                    type="text"
-                    placeholder="React, Node.js, MongoDB"
-                    value={expertiseInput}
-                    onChange={(e) => setExpertiseInput(e.target.value)}
-                  />
-                  <small>Separate multiple skills with commas.</small>
-                </div>
-
-                <div className="form-group">
-                  <label>LinkedIn</label>
-                  <input
-                    type="text"
-                    name="linkedin"
-                    value={editProfile.linkedin}
-                    onChange={handleEditChange}
-                    placeholder="https://linkedin.com/in/username"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>GitHub</label>
-                  <input
-                    type="text"
-                    name="github"
-                    value={editProfile.github}
-                    onChange={handleEditChange}
-                    placeholder="https://github.com/username"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Portfolio</label>
-                  <input
-                    type="text"
-                    name="portfolio"
-                    value={editProfile.portfolio}
-                    onChange={handleEditChange}
-                    placeholder="https://yourportfolio.com"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Website</label>
-                  <input
-                    type="text"
-                    name="website"
-                    value={editProfile.website}
-                    onChange={handleEditChange}
-                    placeholder="https://yourwebsite.com"
-                  />
-                </div>
+                )}
               </div>
             </div>
 
-            <div className="popup-footer">
-              <button
-                className="popup-cancel-btn"
-                onClick={() => setShowEditPopup(false)}
-              >
-                Cancel
+            <div className="profile-quick-actions" style={{ marginTop: "1.5rem", width: "100%" }}>
+              <button className="quick-action-btn" onClick={() => setShowPasswordModal(true)}>
+                <Lock size={16} /> Change Password
               </button>
-              <button
-                className="popup-save-btn"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                <Save size={18} />
-                {saving ? "Saving..." : "Save Changes"}
+            </div>
+          </div>
+
+          <div className="profile-details-section">
+            <div className="details-card">
+              <h3>Personal Information</h3>
+              <div className="details-grid">
+                <div className="detail-field">
+                  <label><User size={16} /> Full Name</label>
+                  {isEditing ? <input type="text" name="name" value={form.name} onChange={handleInputChange} placeholder="Enter full name" /> : <p className="field-value">{form.name || "Not set"}</p>}
+                </div>
+                <div className="detail-field">
+                  <label><Mail size={16} /> Email Address</label>
+                  {isEditing ? <input type="email" name="email" value={form.email} onChange={handleInputChange} placeholder="Enter email" /> : <p className="field-value">{form.email || "Not set"}</p>}
+                </div>
+                <div className="detail-field">
+                  <label><Shield size={16} /> Role</label>
+                  {isEditing ? <input type="text" name="role" value={form.role} onChange={handleInputChange} placeholder="Role" /> : <p className="field-value">{form.role || "Not set"}</p>}
+                </div>
+                <div className="detail-field">
+                  <label><Award size={16} /> Expertise</label>
+                  {isEditing ? <input type="text" name="expertise" value={form.expertise} onChange={handleInputChange} placeholder="e.g. React, Node.js" /> : <p className="field-value">{form.expertise || "Not set"}</p>}
+                </div>
+                <div className="detail-field">
+                  <label><Globe size={16} /> Social Link</label>
+                  {isEditing ? <input type="url" name="socialLink" value={form.socialLink} onChange={handleInputChange} placeholder="https://linkedin.com/in/..." /> : <p className="field-value">{form.socialLink ? <a href={form.socialLink} target="_blank" rel="noopener noreferrer">{form.socialLink}</a> : "Not set"}</p>}
+                </div>
+                <div className="detail-field full-width">
+                  <label><User size={16} /> Bio</label>
+                  {isEditing ? <textarea name="bio" value={form.bio} onChange={handleInputChange} placeholder="Tell us a little about yourself" rows={3} /> : <p className="field-value">{form.bio || "No bio provided"}</p>}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showPasswordModal && (
+        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Change Password</h2>
+              <button className="modal-close" onClick={() => setShowPasswordModal(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Current Password *</label>
+                <div className="password-input-wrapper">
+                  <input type={showCurrentPassword ? "text" : "password"} placeholder="Enter current password" value={passwordForm.currentPassword} onChange={(e) => { setPasswordForm({...passwordForm, currentPassword: e.target.value}); setPasswordErrors({...passwordErrors, currentPassword: ""}); }} className={passwordErrors.currentPassword ? "error" : ""} />
+                  <button type="button" className="password-toggle" onClick={() => setShowCurrentPassword(!showCurrentPassword)}>{showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                </div>
+                {passwordErrors.currentPassword && <span className="error-text">{passwordErrors.currentPassword}</span>}
+              </div>
+              <div className="form-group">
+                <label>New Password *</label>
+                <div className="password-input-wrapper">
+                  <input type={showNewPassword ? "text" : "password"} placeholder="Enter new password (min 6 characters)" value={passwordForm.newPassword} onChange={(e) => { setPasswordForm({...passwordForm, newPassword: e.target.value}); setPasswordErrors({...passwordErrors, newPassword: ""}); }} className={passwordErrors.newPassword ? "error" : ""} />
+                  <button type="button" className="password-toggle" onClick={() => setShowNewPassword(!showNewPassword)}>{showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                </div>
+                {passwordErrors.newPassword && <span className="error-text">{passwordErrors.newPassword}</span>}
+              </div>
+              <div className="form-group">
+                <label>Confirm New Password *</label>
+                <div className="password-input-wrapper">
+                  <input type={showConfirmPassword ? "text" : "password"} placeholder="Confirm new password" value={passwordForm.confirmPassword} onChange={(e) => { setPasswordForm({...passwordForm, confirmPassword: e.target.value}); setPasswordErrors({...passwordErrors, confirmPassword: ""}); }} className={passwordErrors.confirmPassword ? "error" : ""} />
+                  <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                </div>
+                {passwordErrors.confirmPassword && <span className="error-text">{passwordErrors.confirmPassword}</span>}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowPasswordModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={handleChangePassword} disabled={saving}>
+                {saving ? <><Loader size={18} className="spinning" /> Changing...</> : <><Lock size={18} /> Change Password</>}
               </button>
             </div>
           </div>

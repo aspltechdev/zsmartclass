@@ -1,260 +1,131 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import {
+  Bell,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  XCircle,
+} from "lucide-react";
 import "./Notification.css";
 
-function MentorNotification() {
+function MentorNotifications() {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    const [students, setStudents] = useState([]);
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
 
-    const [notification, setNotification] = useState({
-        studentId: "",
-        title: "",
-        message: "",
-        type: "INFO"
-    });
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-    useEffect(() => {
-        fetchStudents();
-    }, []);
-
-    // ===========================
-    // Fetch Students
-    // ===========================
-
-    const fetchStudents = async () => {
-
-        try {
-
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                "http://localhost:5000/api/users",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
-
-            const users = response.data.data || [];
-
-            const studentUsers = users.filter(
-                (user) => user.role === "STUDENT"
-            );
-
-            setStudents(studentUsers);
-
+      const res = await axios.get(
+        "http://localhost:5000/api/notifications",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
+      );
 
-        catch (err) {
+      setNotifications(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            console.log(err);
+  const markAsRead = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
 
-            alert("Unable to fetch students.");
-
+      await axios.put(
+        `http://localhost:5000/api/notifications/${id}/read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
+      );
 
-    };
+      fetchNotifications();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-    // ===========================
-    // Send Notification
-    // ===========================
+  const getIcon = (type) => {
+    switch (type) {
+      case "SUCCESS":
+        return <CheckCircle className="success" />;
+      case "WARNING":
+        return <AlertTriangle className="warning" />;
+      case "ERROR":
+        return <XCircle className="error" />;
+      default:
+        return <Info className="info" />;
+    }
+  };
 
-    const sendNotification = async () => {
+  if (loading) {
+    return <h3>Loading notifications...</h3>;
+  }
 
-        if (
-            !notification.studentId ||
-            !notification.title.trim() ||
-            !notification.message.trim()
-        ) {
+  return (
+    <div className="mentor-notifications">
 
-            alert("Please fill all fields.");
+      <div className="page-header">
+        <h1>
+          <Bell size={28} />
+          Notifications
+        </h1>
+      </div>
 
-            return;
-
-        }
-
-        try {
-
-            const token = localStorage.getItem("token");
-
-            await axios.post(
-
-                "http://localhost:5000/api/notifications",
-
-                {
-                    studentId: notification.studentId,
-                    title: notification.title,
-                    message: notification.message,
-                    type: notification.type
-                },
-
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-
-            );
-
-            alert("Notification sent successfully.");
-
-            setNotification({
-                studentId: "",
-                title: "",
-                message: "",
-                type: "INFO"
-            });
-
-        }
-
-        catch (err) {
-
-            console.log(err);
-
-            alert(
-                err.response?.data?.message ||
-                "Unable to send notification."
-            );
-
-        }
-
-    };
-
-    return (
-
-        <div className="mentor-notification">
-
-            <div className="notification-header">
-
-                <h1>
-                    Send Notification
-                </h1>
-
-                <p>
-                    Send notifications to students.
-                </p>
-
-            </div>
-
-            <div className="notification-card">
-
-                <label>
-                    Select Student
-                </label>
-
-                <select
-                    value={notification.studentId}
-                    onChange={(e) =>
-                        setNotification({
-                            ...notification,
-                            studentId: Number(e.target.value)
-                        })
-                    }
-                >
-
-                    <option value="">
-                        Select Student
-                    </option>
-
-                    {
-
-                        students.map((student) => (
-
-                            <option
-                                key={student.id}
-                                value={student.id}
-                            >
-
-                                {student.id} - {student.name}
-
-                            </option>
-
-                        ))
-
-                    }
-
-                </select>
-
-                <label>
-                    Title
-                </label>
-
-                <input
-                    type="text"
-                    placeholder="Enter notification title"
-                    value={notification.title}
-                    onChange={(e) =>
-                        setNotification({
-                            ...notification,
-                            title: e.target.value
-                        })
-                    }
-                />
-
-                <label>
-                    Message
-                </label>
-
-                <textarea
-                    rows="6"
-                    placeholder="Write your message..."
-                    value={notification.message}
-                    onChange={(e) =>
-                        setNotification({
-                            ...notification,
-                            message: e.target.value
-                        })
-                    }
-                />
-
-                <label>
-                    Type
-                </label>
-
-                <select
-                    value={notification.type}
-                    onChange={(e) =>
-                        setNotification({
-                            ...notification,
-                            type: e.target.value
-                        })
-                    }
-                >
-
-                    <option value="INFO">
-                        INFO
-                    </option>
-
-                    <option value="SUCCESS">
-                        SUCCESS
-                    </option>
-
-                    <option value="WARNING">
-                        WARNING
-                    </option>
-
-                    <option value="REMINDER">
-                        REMINDER
-                    </option>
-
-                </select>
-
-                <button
-                    className="send-btn"
-                    onClick={sendNotification}
-                >
-
-                    📤 Send Notification
-
-                </button>
-
-            </div>
-
+      {notifications.length === 0 ? (
+        <div className="empty-state">
+          <Bell size={55} />
+          <h3>No Notifications</h3>
+          <p>You don't have any notifications.</p>
         </div>
+      ) : (
+        notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className={`notification-card ${
+              notification.isRead ? "read" : "unread"
+            }`}
+          >
+            <div className="notification-icon">
+              {getIcon(notification.type)}
+            </div>
 
-    );
+            <div className="notification-content">
+              <h3>{notification.title}</h3>
 
+              <p>{notification.message}</p>
+
+              <small>
+                {new Date(notification.createdAt).toLocaleString()}
+              </small>
+            </div>
+
+            {!notification.isRead && (
+              <button
+                className="read-btn"
+                onClick={() => markAsRead(notification.id)}
+              >
+                Mark Read
+              </button>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
 }
 
-export default MentorNotification;
+export default MentorNotifications;

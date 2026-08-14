@@ -28,10 +28,13 @@ model User {
   AssignmentSubmission AssignmentSubmission[]
   certificates         Certificate[]
   coursesCreated       Course[]               @relation("CourseCreator")
+  CourseModule         CourseModule[]
   enrollments          Enrollment[]
   lessonProgress       LessonProgress[]
   notifications        Notification[]
   payments             Payment[]
+  Quiz                 Quiz[]
+  QuizMark             QuizMark[]
   reviews              Review[]
   User                 User?                  @relation("UserToUser", fields: [invitedBy], references: [id], onUpdate: NoAction)
   other_User           User[]                 @relation("UserToUser")
@@ -82,58 +85,57 @@ model Category {
 }
 
 model Course {
-  id                  Int                  @id @default(autoincrement())
-  title               String
-  slug                String               @unique
-  subtitle            String?
-  description         String?
-  thumbnail           String?
-  trailer             String?
-  price               Float
-  discountPrice       Float?
-  duration            Int
-  level               String
-  language            String
-  categoryId          Int
-  createdById         Int
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  audience            String?
-  isFeatured          Boolean              @default(false)
-  isPublished         Boolean              @default(false)
-  outcomes            String?
-  requirements        String?
-  status              CourseStatus         @default(DRAFT)
-  Assignment          Assignment[]
-  certificates        Certificate[]
-  certificateTemplate CertificateTemplate?
-  category            Category             @relation(fields: [categoryId], references: [id])
-  createdBy           User                 @relation("CourseCreator", fields: [createdById], references: [id])
-  modules             CourseModule[]
-  enrollments         Enrollment[]
-  payments            Payment[]
-  reviews             Review[]
+  id                     Int                      @id @default(autoincrement())
+  title                  String
+  slug                   String                   @unique
+  subtitle               String?
+  description            String?
+  thumbnail              String?
+  trailer                String?
+  level                  String
+  language               String
+  categoryId             Int
+  createdById            Int
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  audience               String?
+  isFeatured             Boolean                  @default(false)
+  isPublished            Boolean                  @default(false)
+  outcomes               String?
+  requirements           String?
+  status                 CourseStatus             @default(DRAFT)
+  Assignment             Assignment[]
+  certificates           Certificate[]
+  certificateTemplate    CertificateTemplate?
+  category               Category                 @relation(fields: [categoryId], references: [id])
+  createdBy              User                     @relation("CourseCreator", fields: [createdById], references: [id])
+  CourseModule           CourseModule[]
+  CourseModuleAssignment CourseModuleAssignment[]
+  enrollments            Enrollment[]
+  payments               Payment[]
+  Quiz                   Quiz[]
+  reviews                Review[]
 }
 
 model CourseModule {
-  id          Int      @id @default(autoincrement())
-  title       String
-  position    Int
-  courseId    Int?
-  createdAt   DateTime @default(now())
-  description String?
-  updatedAt   DateTime @updatedAt
-  isShared    Boolean? @default(false)
-  moduleSlug  String?  @unique
-  isPublished Boolean? @default(true)
-  thumbnail   String?
-  category    String?
-  tags        String[] @default([])
-  course      Course?  @relation(fields: [courseId], references: [id], onUpdate: NoAction)
-  lessons     Lesson[]
+  id                     Int                      @id @default(autoincrement())
+  title                  String
+  position               Int
+  createdAt              DateTime                 @default(now())
+  description            String?
+  updatedAt              DateTime                 @updatedAt
+  thumbnail              String?
+  category               String?
+  tags                   String[]                 @default([])
+  createdBy              Int
+  courseId               Int?
+  Course                 Course?                  @relation(fields: [courseId], references: [id], onUpdate: NoAction)
+  User                   User                     @relation(fields: [createdBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  CourseModuleAssignment CourseModuleAssignment[]
+  lessons                Lesson[]
+  Quiz                   Quiz[]
 
-  @@index([isShared], map: "idx_coursemodule_isShared")
-  @@index([moduleSlug], map: "idx_coursemodule_moduleSlug")
+  @@index([createdBy], map: "idx_coursemodule_createdby")
 }
 
 model Lesson {
@@ -308,6 +310,51 @@ model AssignmentSubmission {
   submittedAt    DateTime   @default(now())
   Assignment     Assignment @relation(fields: [assignmentId], references: [id])
   User           User       @relation(fields: [studentId], references: [id])
+}
+
+model Quiz {
+  id            Int          @id @default(autoincrement())
+  title         String
+  description   String?
+  googleFormUrl String
+  totalMarks    Int
+  courseId      Int
+  moduleId      Int
+  mentorId      Int
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime
+  Course        Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  User          User         @relation(fields: [mentorId], references: [id])
+  CourseModule  CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  QuizMark      QuizMark[]
+}
+
+model QuizMark {
+  id            Int      @id @default(autoincrement())
+  quizId        Int
+  studentId     Int
+  obtainedMarks Float
+  totalMarks    Float
+  percentage    Float
+  submittedAt   DateTime @default(now())
+  Quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  User          User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, studentId])
+}
+
+model CourseModuleAssignment {
+  id           Int          @id @default(autoincrement())
+  courseId     Int
+  moduleId     Int
+  position     Int          @default(0)
+  createdAt    DateTime     @default(now())
+  Course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade, map: "CourseModuleAssignment_course_fkey")
+  CourseModule CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade, map: "CourseModuleAssignment_module_fkey")
+
+  @@unique([courseId, moduleId])
+  @@index([courseId])
+  @@index([moduleId])
 }
 
 enum UserRole {

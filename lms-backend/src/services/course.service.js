@@ -16,16 +16,12 @@ class CourseService {
             trailer,
             language,
             level,
-            duration,
-            price,
-            discountPrice,
             requirements,
             outcomes,
             audience,
             categoryId,
             createdById,
             isFeatured,
-            isFree,
             isPublished,
             status
         } = data;
@@ -72,8 +68,6 @@ class CourseService {
             trailer: trailer || null,
             language: language || "English",
             level: level || "BEGINNER",
-            duration: Number(duration) || 0,
-            price: Number(price) || 0,
             requirements: requirements || null,
             outcomes: outcomes || null,
             audience: audience || null,
@@ -87,13 +81,6 @@ class CourseService {
                 connect: { id: Number(createdById) }
             }
         };
-
-        if (discountPrice !== undefined && discountPrice !== null && discountPrice !== "") {
-            const discountValue = Number(discountPrice);
-            if (!isNaN(discountValue) && discountValue > 0) {
-                courseData.discountPrice = discountValue;
-            }
-        }
 
         const course = await prisma.course.create({
             data: courseData,
@@ -114,7 +101,7 @@ class CourseService {
     }
 
     // ==========================================
-    // GET ALL COURSES - WITH LESSONS
+    // GET ALL COURSES
     // ==========================================
     async getAll() {
         return await prisma.course.findMany({
@@ -127,18 +114,9 @@ class CourseService {
                         email: true
                     }
                 },
-                modules: {
-                    include: {
-                        lessons: {
-                            orderBy: { position: "asc" }
-                        }
-                    },
-                    orderBy: { position: "asc" }
-                },
                 _count: {
                     select: {
-                        enrollments: true,
-                        modules: true
+                        enrollments: true
                     }
                 }
             },
@@ -149,7 +127,7 @@ class CourseService {
     }
 
     // ==========================================
-    // GET COURSE BY ID - WITH LESSONS
+    // GET COURSE BY ID
     // ==========================================
     async getById(id) {
         const course = await prisma.course.findUnique({
@@ -163,14 +141,6 @@ class CourseService {
                         email: true
                     }
                 },
-                modules: {
-                    include: {
-                        lessons: {
-                            orderBy: { position: "asc" }
-                        }
-                    },
-                    orderBy: { position: "asc" }
-                },
                 _count: {
                     select: {
                         enrollments: true
@@ -183,7 +153,177 @@ class CourseService {
             throw new Error("Course not found.");
         }
 
-        return course;
+        // Modules linked to this course via the join table (shared, not copied).
+        // Built from the same helper as attach/detach so the shape is identical.
+        const modules = await this._courseModules(Number(id));
+        return { ...course, modules };
+    }
+
+    // ==========================================
+    // MODULE ATTACHMENT HELPERS (many-to-many)
+    // ==========================================
+
+    /**
+     * Modules linked to a course, in this course's order, each with a lesson
+     * count. Reads through CourseModuleAssignment so a single module can belong
+     * to many courses without being duplicated.
+     */
+    async _courseModules(courseId) {
+        const cId = Number(courseId);
+
+        // Read link rows using ONLY column names (courseId/moduleId/position),
+        // never relation navigation — those names depend on how `prisma db pull`
+        // introspected the table and can differ, which would break the query.
+        const assignments = await prisma.courseModuleAssignment.findMany({
+            where: { courseId: cId },
+            orderBy: { position: "asc" },
+            select: { id: true, moduleId: true, position: true }
+        });
+
+        if (assignments.length === 0) return [];
+
+        const moduleIds = assignments.map((a) => a.moduleId);
+
+        const modules = await prisma.courseModule.findMany({
+            where: { id: { in: moduleIds } },
+            include: { _count: { select: { lessons: true } } }
+        });
+        const moduleById = new Map(modules.map((m) => [m.id, m]));
+
+        // Preserve this course's ordering from the link rows.
+        return assignments
+            .map((a) => {
+                const m = moduleById.get(a.moduleId);
+                if (!m) return null;
+                return { ...m, position: a.position, assignmentId: a.id };
+            })
+            .filter(Boolean);
+    }
+
+    /** Ensure a course exists or throw a 404. Returns the course id as Number. */
+    async _requireCourse(courseId) {
+        const id = Number(courseId);
+        const course = await prisma.course.findUnique({
+            where: { id },
+            select: { id: true }
+        });
+        if (!course) {
+            const error = new Error("Course not found.");
+            error.statusCode = 404;
+            throw error;
+        }
+        return id;
+    }
+
+    // ==========================================
+    // GET MODULES AVAILABLE TO ATTACH
+    // Any module NOT already linked to THIS course (it may be used by others).
+    // ==========================================
+    async getAvailableModules(courseId) {
+        const cId = await this._requireCourse(courseId);
+
+        // Module ids already linked to THIS course (scalar-only query).
+        const linked = await prisma.courseModuleAssignment.findMany({
+            where: { courseId: cId },
+            select: { moduleId: true }
+        });
+        const linkedIds = linked.map((l) => l.moduleId);
+
+        // Every other module is available — even if it's used by other courses.
+        return await prisma.courseModule.findMany({
+            where: linkedIds.length ? { id: { notIn: linkedIds } } : {},
+            orderBy: { createdAt: "desc" },
+            include: {
+                _count: { select: { lessons: true } }
+            }
+        });
+    }
+
+    // ==========================================
+    // ATTACH EXISTING MODULE(S) TO A COURSE
+    // Creates link rows — the module/lessons are shared, never copied.
+    // ==========================================
+    async attachModules(courseId, moduleInput) {
+        const cId = await this._requireCourse(courseId);
+
+        const ids = (Array.isArray(moduleInput) ? moduleInput : [moduleInput])
+            .map(Number)
+            .filter((n) => Number.isInteger(n));
+
+        if (ids.length === 0) {
+            const error = new Error("At least one valid moduleId is required.");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const modules = await prisma.courseModule.findMany({
+            where: { id: { in: ids } },
+            select: { id: true }
+        });
+
+        if (modules.length !== ids.length) {
+            const found = new Set(modules.map((m) => m.id));
+            const missing = ids.filter((i) => !found.has(i));
+            const error = new Error(`Module(s) not found: ${missing.join(", ")}`);
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // Skip modules already linked to THIS course (idempotent). A module
+        // linked to OTHER courses is fine — that's the whole point of sharing.
+        const existing = await prisma.courseModuleAssignment.findMany({
+            where: { courseId: cId, moduleId: { in: ids } },
+            select: { moduleId: true }
+        });
+        const alreadyLinked = new Set(existing.map((e) => e.moduleId));
+        const toAttach = ids.filter((id) => !alreadyLinked.has(id));
+
+        if (toAttach.length > 0) {
+            const agg = await prisma.courseModuleAssignment.aggregate({
+                where: { courseId: cId },
+                _max: { position: true }
+            });
+            let nextPosition = (agg._max.position ?? -1) + 1;
+
+            await prisma.$transaction(
+                toAttach.map((moduleId) =>
+                    prisma.courseModuleAssignment.create({
+                        data: { courseId: cId, moduleId, position: nextPosition++ }
+                    })
+                )
+            );
+        }
+
+        return await this._courseModules(cId);
+    }
+
+    // ==========================================
+    // DETACH A MODULE FROM A COURSE
+    // Removes only the link for THIS course — the module stays in the library
+    // and remains linked to any other courses using it.
+    // ==========================================
+    async detachModule(courseId, moduleId) {
+        const cId = await this._requireCourse(courseId);
+        const mId = Number(moduleId);
+
+        // Use scalar where + deleteMany so we don't depend on the compound
+        // unique accessor name that db pull may or may not have generated.
+        const existing = await prisma.courseModuleAssignment.findFirst({
+            where: { courseId: cId, moduleId: mId },
+            select: { id: true }
+        });
+
+        if (!existing) {
+            const error = new Error("This module is not linked to this course.");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        await prisma.courseModuleAssignment.deleteMany({
+            where: { courseId: cId, moduleId: mId }
+        });
+
+        return await this._courseModules(cId);
     }
 
     // ==========================================
@@ -191,8 +331,6 @@ class CourseService {
     // ==========================================
     async update(id, data) {
         try {
-            console.log("🔍 Update called with ID:", id);
-
             const existingCourse = await prisma.course.findUnique({
                 where: { id: Number(id) }
             });
@@ -247,31 +385,6 @@ class CourseService {
                 updateData.audience = data.audience || null;
             }
 
-            if (data.duration !== undefined) {
-                updateData.duration = Number(data.duration) || 0;
-            }
-
-            if (data.price !== undefined) {
-                updateData.price = Number(data.price) || 0;
-            }
-
-            if (data.discountPrice !== undefined) {
-                if (data.discountPrice === "" || 
-                    data.discountPrice === null || 
-                    data.discountPrice === undefined || 
-                    data.discountPrice === "0" ||
-                    Number(data.discountPrice) === 0) {
-                    updateData.discountPrice = null;
-                } else {
-                    const discountValue = Number(data.discountPrice);
-                    if (!isNaN(discountValue) && discountValue > 0) {
-                        updateData.discountPrice = discountValue;
-                    } else {
-                        updateData.discountPrice = null;
-                    }
-                }
-            }
-
             if (data.isFeatured !== undefined) {
                 updateData.isFeatured = data.isFeatured === true || data.isFeatured === "true";
             }
@@ -318,21 +431,13 @@ class CourseService {
                             name: true,
                             email: true
                         }
-                    },
-                    modules: {
-                        include: {
-                            lessons: {
-                                orderBy: { position: "asc" }
-                            }
-                        },
-                        orderBy: { position: "asc" }
                     }
                 }
             });
 
             return updatedCourse;
         } catch (error) {
-            console.error("❌ Update error:", error);
+            console.error("Update error:", error);
             throw error;
         }
     }
@@ -344,7 +449,6 @@ class CourseService {
         const course = await prisma.course.findUnique({
             where: { id: Number(id) },
             include: {
-                modules: true,
                 enrollments: true,
                 payments: true,
                 certificates: true,
@@ -357,10 +461,6 @@ class CourseService {
         }
 
         const relatedRecords = [];
-
-        if (course.modules.length > 0) {
-            relatedRecords.push(`${course.modules.length} module(s)`);
-        }
 
         if (course.enrollments.length > 0) {
             relatedRecords.push(`${course.enrollments.length} enrollment(s)`);
@@ -439,14 +539,6 @@ class CourseService {
                         name: true,
                         email: true
                     }
-                },
-                modules: {
-                    include: {
-                        lessons: {
-                            orderBy: { position: "asc" }
-                        }
-                    },
-                    orderBy: { position: "asc" }
                 }
             }
         });
@@ -477,14 +569,6 @@ class CourseService {
                         name: true,
                         email: true
                     }
-                },
-                modules: {
-                    include: {
-                        lessons: {
-                            orderBy: { position: "asc" }
-                        }
-                    },
-                    orderBy: { position: "asc" }
                 }
             }
         });
@@ -512,50 +596,6 @@ class CourseService {
             featured,
             enrollments
         };
-    }
-
-    // ==========================================
-    // FORCE DELETE COURSE - WITH CASCADE
-    // ==========================================
-    async forceDelete(id) {
-        const course = await prisma.course.findUnique({
-            where: { id: Number(id) }
-        });
-
-        if (!course) {
-            throw new Error("Course not found.");
-        }
-
-        try {
-            await prisma.$transaction([
-                prisma.courseModule.deleteMany({
-                    where: { courseId: Number(id) }
-                }),
-                prisma.enrollment.deleteMany({
-                    where: { courseId: Number(id) }
-                }),
-                prisma.payment.deleteMany({
-                    where: { courseId: Number(id) }
-                }),
-                prisma.certificate.deleteMany({
-                    where: { courseId: Number(id) }
-                }),
-                prisma.review.deleteMany({
-                    where: { courseId: Number(id) }
-                }),
-                prisma.course.delete({
-                    where: { id: Number(id) }
-                })
-            ]);
-
-            return {
-                success: true,
-                message: `Course "${course.title}" and all related data deleted successfully.`
-            };
-        } catch (error) {
-            console.error("Force delete error:", error);
-            throw new Error("Failed to delete course: " + error.message);
-        }
     }
 }
 

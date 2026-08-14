@@ -162,11 +162,14 @@ exports.getUserById = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     let userId;
+    let isSelfUpdate;
 
     if (req.path === '/update-profile' || !req.params.id) {
       userId = req.user.id;
+      isSelfUpdate = true;
     } else {
       userId = parseInt(req.params.id);
+      isSelfUpdate = false;
     }
 
     const updateData = { ...(req.body || {}) };
@@ -175,7 +178,12 @@ exports.updateUser = async (req, res) => {
       updateData.profileImage = `${req.protocol}://${req.get("host")}/uploads/profile-images/${req.file.filename}`;
     }
 
-    const user = await userService.updateUser(userId, updateData);
+    // SECURITY: only the admin-only PUT /:id route (role-gated by middleware)
+    // may change a user's role. Self-profile updates must not, or any user
+    // could promote themselves to ADMIN via the profile form.
+    const user = await userService.updateUser(userId, updateData, {
+      allowRole: !isSelfUpdate,
+    });
 
     res.status(200).json({
       success: true,
@@ -195,7 +203,7 @@ exports.updateUser = async (req, res) => {
 // ==========================================
 exports.deleteUser = async (req, res) => {
   try {
-    const result = await userService.deleteUser(req.params.id);
+    const result = await userService.deleteUser(req.params.id, req.user.id);
 
     res.status(200).json({
       success: true,
@@ -271,7 +279,7 @@ exports.changePassword = async (req, res) => {
 // ==========================================
 exports.toggleUserStatus = async (req, res) => {
   try {
-    const user = await userService.toggleUserStatus(req.params.id);
+    const user = await userService.toggleUserStatus(req.params.id, req.user.id);
 
     res.status(200).json({
       success: true,
@@ -300,7 +308,7 @@ exports.changeUserRole = async (req, res) => {
       });
     }
 
-    const user = await userService.changeUserRole(req.params.id, role);
+    const user = await userService.changeUserRole(req.params.id, role, req.user.id);
 
     res.status(200).json({
       success: true,

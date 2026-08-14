@@ -1,124 +1,109 @@
-.mentor-notification {
-    width: 100%;
-    padding: 10px;
+.mentor-notifications{
+    padding:32px;
 }
 
-/* ================= HEADER ================= */
-
-.notification-header {
-    margin-bottom: 30px;
+.page-header{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:30px;
 }
 
-.notification-header h1 {
-    font-size: 34px;
-    color: #111827;
-    margin-bottom: 8px;
+.page-header h1{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:#1e293b;
 }
 
-.notification-header p {
-    color: #6b7280;
-    font-size: 15px;
+.notification-card{
+    display:flex;
+    align-items:flex-start;
+    gap:18px;
+
+    padding:20px;
+    margin-bottom:18px;
+
+    background:#fff;
+    border-radius:16px;
+
+    box-shadow:0 8px 20px rgba(0,0,0,.08);
+
+    transition:.25s;
 }
 
-/* ================= CARD ================= */
-
-.notification-card {
-    background: #ffffff;
-    border-radius: 18px;
-    padding: 35px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-    max-width: 700px;
+.notification-card:hover{
+    transform:translateY(-2px);
 }
 
-/* ================= LABEL ================= */
-
-.notification-card label {
-    display: block;
-    font-size: 15px;
-    font-weight: 600;
-    color: #374151;
-    margin-top: 18px;
-    margin-bottom: 8px;
+.notification-card.unread{
+    border-left:5px solid #2563eb;
 }
 
-/* ================= INPUTS ================= */
-
-.notification-card input,
-.notification-card select,
-.notification-card textarea {
-    width: 100%;
-    padding: 13px 15px;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    font-size: 15px;
-    outline: none;
-    transition: 0.3s;
-    box-sizing: border-box;
-    font-family: inherit;
+.notification-card.read{
+    opacity:.75;
 }
 
-.notification-card textarea {
-    resize: vertical;
-    min-height: 140px;
+.notification-icon svg{
+    width:28px;
+    height:28px;
 }
 
-.notification-card input:focus,
-.notification-card select:focus,
-.notification-card textarea:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+.notification-content{
+    flex:1;
 }
 
-/* ================= SEND BUTTON ================= */
-
-.send-btn {
-    width: 100%;
-    margin-top: 30px;
-    padding: 15px;
-    border: none;
-    border-radius: 10px;
-    background: #2563eb;
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
+.notification-content h3{
+    margin:0 0 8px;
+    color:#1e293b;
 }
 
-.send-btn:hover {
-    background: #1d4ed8;
-    transform: translateY(-2px);
+.notification-content p{
+    margin-bottom:8px;
+    color:#475569;
 }
 
-.send-btn:active {
-    transform: scale(0.98);
+.notification-content small{
+    color:#94a3b8;
 }
 
-/* ================= SUCCESS MESSAGE ================= */
-
-.success-message {
-    margin-top: 20px;
-    padding: 14px;
-    background: #dcfce7;
-    color: #166534;
-    border-radius: 10px;
-    border: 1px solid #86efac;
-    font-weight: 600;
+.read-btn{
+    border:none;
+    padding:10px 18px;
+    border-radius:10px;
+    background:#2563eb;
+    color:#fff;
+    cursor:pointer;
+    font-weight:600;
 }
 
-/* ================= RESPONSIVE ================= */
+.read-btn:hover{
+    background:#1d4ed8;
+}
 
-@media (max-width: 768px) {
+.success{
+    color:#16a34a;
+}
 
-    .notification-card {
-        padding: 22px;
-    }
+.warning{
+    color:#f59e0b;
+}
 
-    .notification-header h1 {
-        font-size: 28px;
-    }
+.error{
+    color:#ef4444;
+}
 
-    .send-btn {
-        font-size: 15px;
-    }
+.info{
+    color:#2563eb;
+}
+
+.empty-state{
+    margin-top:70px;
+    text-align:center;
+    color:#64748b;
+}
+
+.empty-state svg{
+    color:#2563eb;
+    margin-bottom:15px;
 }

@@ -19,7 +19,6 @@ import {
   ChevronRight,
   Minus,
   Play,
-  ExternalLink,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminModules.css";
@@ -49,7 +48,7 @@ function AdminModules() {
     description: "",
   });
 
-  // Form state for Lesson - NO duration
+  // Form state for Lesson
   const [lessonForm, setLessonForm] = useState({
     title: "",
     description: "",
@@ -109,9 +108,13 @@ function AdminModules() {
 
       setIsSubmitting(true);
 
+      // ─── FIX: Get user from localStorage ──────────────────────────
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
       const data = {
         title: form.title.trim(),
         description: form.description || "",
+        createdBy: user.id || 1,
       };
 
       let response;
@@ -318,7 +321,6 @@ function AdminModules() {
       return url;
     }
     
-    // Otherwise return original URL
     return url;
   };
 
@@ -936,7 +938,7 @@ function AdminModules() {
       )}
 
       {/* ========================================== */}
-      {/* LESSON PREVIEW MODAL - NEW */}
+      {/* LESSON PREVIEW MODAL */}
       {/* ========================================== */}
       {showPreviewModal && previewingLesson && (
         <div className="modal preview-modal" onClick={() => setShowPreviewModal(false)}>
@@ -969,7 +971,6 @@ function AdminModules() {
                       <LinkIcon size={32} />
                       <a href={previewingLesson.videoUrl} target="_blank" rel="noopener noreferrer">
                         {previewingLesson.videoUrl}
-                        <ExternalLink size={16} />
                       </a>
                     </div>
                   )}
@@ -987,7 +988,6 @@ function AdminModules() {
                       <File size={48} />
                       <a href={previewingLesson.attachment} target="_blank" rel="noopener noreferrer">
                         View File
-                        <ExternalLink size={16} />
                       </a>
                     </div>
                   )}

@@ -1,5 +1,8 @@
 // src/controllers/payment.controller.js
 const prisma = require("../config/prisma");
+const notificationService = require("../services/notification.service");
+const emailService = require("../services/email.service");
+const enrollmentService = require("../services/enrollment.service");
 
 // ==========================================
 // STUDENT ROUTES
@@ -268,9 +271,45 @@ exports.getAllPayments = async (req, res) => {
             }
         });
 
+        // Attach the full course list for multi-course (manual/bulk) payments.
+        // Scalar-only + defensive: if the PaymentCourse table isn't present yet,
+        // fall back to the single `course` relation.
+        const coursesByPayment = new Map();
+        try {
+            const paymentIds = payments.map((p) => p.id);
+            if (paymentIds.length) {
+                const links = await prisma.paymentCourse.findMany({
+                    where: { paymentId: { in: paymentIds } },
+                    select: { paymentId: true, courseId: true }
+                });
+                const courseIds = [...new Set(links.map((l) => l.courseId))];
+                const courses = courseIds.length
+                    ? await prisma.course.findMany({
+                          where: { id: { in: courseIds } },
+                          select: { id: true, title: true }
+                      })
+                    : [];
+                const courseById = new Map(courses.map((c) => [c.id, c]));
+                for (const l of links) {
+                    if (!coursesByPayment.has(l.paymentId)) {
+                        coursesByPayment.set(l.paymentId, []);
+                    }
+                    const c = courseById.get(l.courseId);
+                    if (c) coursesByPayment.get(l.paymentId).push(c);
+                }
+            }
+        } catch (e) {
+            // PaymentCourse table not migrated yet — single-course fallback below.
+        }
+
+        const data = payments.map((p) => ({
+            ...p,
+            courses: coursesByPayment.get(p.id) || (p.course ? [p.course] : [])
+        }));
+
         res.json({
             success: true,
-            data: payments
+            data
         });
     } catch (err) {
         console.error("Error fetching payments:", err);
@@ -634,5 +673,171 @@ exports.downloadInvoice = async (req, res) => {
             success: false,
             message: err.message
         });
+    }
+};
+
+// ==========================================
+// ADMIN: RECORD A MANUAL (OFFLINE) PAYMENT
+// Cash / UPI, one bulk amount covering one or more courses.
+// Creates the payment, links the covered courses, grants access,
+// and notifies the student (dashboard + email).
+// ==========================================
+exports.createManualPayment = async (req, res) => {
+    try {
+        const { studentId, courseIds, amount, method, utr, durationDays } = req.body;
+
+        // ---- Validation ----
+        const sId = parseInt(studentId);
+        if (!sId) {
+            return res.status(400).json({ success: false, message: "Student is required." });
+        }
+
+        const amt = parseFloat(amount);
+        if (!amt || amt <= 0) {
+            return res.status(400).json({ success: false, message: "A valid amount is required." });
+        }
+
+        const pm = String(method || "").toUpperCase();
+        if (!["CASH", "UPI"].includes(pm)) {
+            return res.status(400).json({ success: false, message: "Method must be CASH or UPI." });
+        }
+
+        const ids = Array.isArray(courseIds)
+            ? [...new Set(courseIds.map(Number).filter((n) => Number.isInteger(n)))]
+            : [];
+        if (ids.length === 0) {
+            return res.status(400).json({ success: false, message: "Select at least one course." });
+        }
+
+        let reference = null;
+        if (pm === "UPI") {
+            reference = String(utr || "").trim();
+            if (!reference) {
+                return res.status(400).json({ success: false, message: "UTR / reference is required for UPI payments." });
+            }
+        }
+
+        // ---- Verify student + courses exist ----
+        const student = await prisma.user.findUnique({
+            where: { id: sId },
+            select: { id: true, name: true, email: true, role: true }
+        });
+        if (!student) {
+            return res.status(404).json({ success: false, message: "Student not found." });
+        }
+
+        const courses = await prisma.course.findMany({
+            where: { id: { in: ids } },
+            select: { id: true, title: true }
+        });
+        if (courses.length !== ids.length) {
+            return res.status(404).json({ success: false, message: "One or more courses not found." });
+        }
+
+        // ---- Duplicate UTR guard (paymentId is unique) ----
+        if (reference) {
+            const dup = await prisma.payment.findFirst({
+                where: { paymentId: reference },
+                select: { id: true }
+            });
+            if (dup) {
+                return res.status(409).json({ success: false, message: "A payment with this UTR/reference already exists." });
+            }
+        }
+
+        // ---- Create payment (temp orderId, then format PAY-000123 from the id) ----
+        const tempOrder = `TMP-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+        let payment = await prisma.payment.create({
+            data: {
+                orderId: tempOrder,
+                paymentId: reference,        // UPI UTR (null for cash)
+                studentId: sId,
+                courseId: ids[0],            // primary course (schema requires one)
+                amount: amt,
+                currency: "INR",
+                status: "COMPLETED",
+                method: pm
+            }
+        });
+
+        const orderId = `PAY-${String(payment.id).padStart(6, "0")}`;
+        payment = await prisma.payment.update({
+            where: { id: payment.id },
+            data: { orderId }
+        });
+
+        // ---- Grant access FIRST (critical); skip already-active ones ----
+        // Done before the optional course-linking so nothing can block access.
+        const duration = durationDays ? parseInt(durationDays) : null;
+        for (const courseId of ids) {
+            try {
+                await enrollmentService.grantAccess(sId, courseId, duration, req.user.id);
+            } catch (e) {
+                // Already-active or non-fatal — the payment is still recorded.
+            }
+        }
+
+        const courseTitles = courses.map((c) => c.title).join(", ");
+
+        // ---- Link covered courses (OPTIONAL: only if the PaymentCourse model
+        // exists in the generated client). Never blocks access/notify. ----
+        if (prisma.paymentCourse) {
+            try {
+                await prisma.$transaction(
+                    ids.map((courseId) =>
+                        prisma.paymentCourse.create({
+                            data: { paymentId: payment.id, courseId }
+                        })
+                    )
+                );
+            } catch (e) {
+                console.error("PaymentCourse link skipped:", e.message);
+            }
+        }
+
+        // ---- Dashboard notification ----
+        try {
+            await notificationService.create({
+                studentId: sId,
+                title: "Payment Received",
+                message: `Your payment of ₹${amt} (${pm}) was recorded. Access granted to: ${courseTitles}.`,
+                type: "PAYMENT"
+            });
+        } catch (e) {
+            console.error("Notification failed for manual payment:", e.message);
+        }
+
+        // ---- Email receipt ----
+        try {
+            await emailService.sendMail(
+                student.email,
+                `Payment Receipt ${orderId} - ZsmartClass`,
+                `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">
+                    <h2 style="color:#4f46e5">Payment Receipt</h2>
+                    <p>Hi ${student.name},</p>
+                    <p>We have recorded your payment. Here are the details:</p>
+                    <table cellpadding="8" style="border-collapse:collapse;width:100%">
+                        <tr><td style="border:1px solid #eee"><b>Receipt No</b></td><td style="border:1px solid #eee">${orderId}</td></tr>
+                        <tr><td style="border:1px solid #eee"><b>Amount</b></td><td style="border:1px solid #eee">₹${amt}</td></tr>
+                        <tr><td style="border:1px solid #eee"><b>Method</b></td><td style="border:1px solid #eee">${pm}${reference ? ` (UTR: ${reference})` : ""}</td></tr>
+                        <tr><td style="border:1px solid #eee"><b>Course(s)</b></td><td style="border:1px solid #eee">${courseTitles}</td></tr>
+                        <tr><td style="border:1px solid #eee"><b>Date</b></td><td style="border:1px solid #eee">${new Date(payment.createdAt).toLocaleString("en-IN")}</td></tr>
+                    </table>
+                    <p style="margin-top:16px">You can now access your course(s) from your dashboard.</p>
+                    <p style="color:#888;font-size:12px">ZsmartClass LMS</p>
+                </div>`
+            );
+        } catch (e) {
+            console.error("Email failed for manual payment:", e.message);
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: "Payment recorded and access granted.",
+            data: { ...payment, courses }
+        });
+    } catch (err) {
+        console.error("Error creating manual payment:", err);
+        res.status(err.statusCode || 400).json({ success: false, message: err.message });
     }
 };

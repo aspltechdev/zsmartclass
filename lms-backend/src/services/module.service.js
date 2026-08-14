@@ -1,46 +1,30 @@
 // src/services/module.service.js
 const prisma = require("../config/prisma");
-const slugify = require("slugify");
 
 class ModuleService {
 
     // ==========================================
-    // CREATE MODULE
+    // CREATE MODULE - WITH FORCED DEFAULT
     // ==========================================
     async create(data) {
-        const { title, description } = data;
+        const { title, description, createdBy } = data;
 
         if (!title) {
             throw new Error("Module title is required.");
         }
 
-        const slug = slugify(title, { 
-            lower: true, 
-            strict: true,
-            remove: /[*+~.()'"!:@]/g
-        });
-
-        const existing = await prisma.courseModule.findFirst({
-            where: {
-                moduleSlug: slug,
-                isShared: true,
-            }
-        });
-
-        let finalSlug = slug;
-        if (existing) {
-            finalSlug = `${slug}-${Date.now()}`;
+        if (!createdBy) {
+            const error = new Error("Creator is required.");
+            error.statusCode = 400;
+            throw error;
         }
 
         const module = await prisma.courseModule.create({
             data: {
-                title,
+                title: title,
                 description: description || null,
                 position: 0,
-                courseId: null,
-                isShared: true,
-                isPublished: true,
-                moduleSlug: finalSlug,
+                createdBy: Number(createdBy), // real creator (controller passes req.user.id)
                 category: null,
                 tags: [],
                 thumbnail: null,
@@ -62,16 +46,8 @@ class ModuleService {
     // ==========================================
     async getAll() {
         return await prisma.courseModule.findMany({
-            where: {
-                courseId: null,
-                isShared: true,
-                isPublished: true,
-            },
             include: {
                 lessons: {
-                    where: {
-                        isShared: true,
-                    },
                     orderBy: {
                         position: "asc"
                     }
@@ -93,9 +69,6 @@ class ModuleService {
             },
             include: {
                 lessons: {
-                    where: {
-                        isShared: true,
-                    },
                     orderBy: {
                         position: "asc"
                     }
@@ -126,30 +99,16 @@ class ModuleService {
             throw new Error("Module not found.");
         }
 
-        const updateData = {
-            title: title || module.title,
-            description: description !== undefined ? description : module.description,
-        };
-
-        if (title && title !== module.title) {
-            const newSlug = slugify(title, { 
-                lower: true, 
-                strict: true,
-                remove: /[*+~.()'"!:@]/g
-            });
-            updateData.moduleSlug = newSlug;
-        }
-
         return await prisma.courseModule.update({
             where: {
                 id: Number(id)
             },
-            data: updateData,
+            data: {
+                title: title || module.title,
+                description: description !== undefined ? description : module.description,
+            },
             include: {
                 lessons: {
-                    where: {
-                        isShared: true,
-                    },
                     orderBy: {
                         position: "asc"
                     }
@@ -160,14 +119,20 @@ class ModuleService {
 
     // ==========================================
     // DELETE MODULE
+    // Atomic bottom-up delete: LessonProgress -> Lessons -> Module.
+    // (LessonProgress and Lessons have no DB cascade, so a module whose
+    //  lessons have student progress would otherwise fail to delete.
+    //  Quizzes cascade automatically.)
     // ==========================================
     async delete(id) {
+        const moduleId = Number(id);
+
         const module = await prisma.courseModule.findUnique({
             where: {
-                id: Number(id)
+                id: moduleId
             },
             include: {
-                lessons: true
+                lessons: { select: { id: true } }
             }
         });
 
@@ -175,19 +140,23 @@ class ModuleService {
             throw new Error("Module not found.");
         }
 
-        if (module.lessons.length > 0) {
-            await prisma.lesson.deleteMany({
-                where: {
-                    moduleId: Number(id)
-                }
-            });
-        }
+        const lessonIds = module.lessons.map((l) => l.id);
 
-        await prisma.courseModule.delete({
-            where: {
-                id: Number(id)
-            }
-        });
+        await prisma.$transaction([
+            ...(lessonIds.length
+                ? [
+                      prisma.lessonProgress.deleteMany({
+                          where: { lessonId: { in: lessonIds } }
+                      }),
+                      prisma.lesson.deleteMany({
+                          where: { moduleId: moduleId }
+                      })
+                  ]
+                : []),
+            prisma.courseModule.delete({
+                where: { id: moduleId }
+            })
+        ]);
 
         return {
             success: true,
@@ -200,17 +169,8 @@ class ModuleService {
     // ==========================================
     async getStats() {
         const [totalModules, totalLessons] = await Promise.all([
-            prisma.courseModule.count({
-                where: {
-                    courseId: null,
-                    isShared: true,
-                }
-            }),
-            prisma.lesson.count({
-                where: {
-                    isShared: true,
-                }
-            })
+            prisma.courseModule.count(),
+            prisma.lesson.count()
         ]);
 
         return {

@@ -1,54 +1,48 @@
 ﻿// src/pages/admin/AdminPayments.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   CreditCard,
   Search,
-  Eye,
-  Download,
-  Mail,
+  Plus,
+  Printer,
   RefreshCw,
   X,
-  DollarSign,
-  TrendingUp,
-  Clock,
+  IndianRupee,
   CheckCircle,
-  XCircle,
-  AlertCircle,
   Calendar,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
+  Eye,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminPayments.css";
+
+const BRAND = "ZsmartClass";
+
+const emptyForm = {
+  studentId: "",
+  courseIds: [],
+  amount: "",
+  method: "CASH",
+  utr: "",
+  durationDays: "",
+};
 
 function AdminPayments() {
   const [payments, setPayments] = useState([]);
   const [users, setUsers] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
   const [apiError, setApiError] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [itemsPerPage] = useState(10);
-  const [dateRange, setDateRange] = useState({
-    start: "",
-    end: "",
-  });
 
-  const [stats, setStats] = useState({
-    total: 0,
-    completed: 0,
-    pending: 0,
-    failed: 0,
-    refunded: 0,
-    totalRevenue: 0,
-  });
+  const [search, setSearch] = useState("");
+  const [methodFilter, setMethodFilter] = useState("all");
+
+  const [showRecord, setShowRecord] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const [detail, setDetail] = useState(null);
 
   useEffect(() => {
     fetchAllData();
@@ -58,627 +52,602 @@ function AdminPayments() {
     try {
       setLoading(true);
       setApiError("");
-      
-      // Fetch users and courses
+
       const [usersRes, coursesRes] = await Promise.all([
         api.get("/users").catch(() => ({ data: { data: [] } })),
         api.get("/courses").catch(() => ({ data: { data: [] } })),
       ]);
 
-      const usersData = usersRes.data?.data || usersRes.data || [];
-      const coursesData = coursesRes.data?.data || coursesRes.data || [];
-      
-      setUsers(usersData);
-      setCourses(coursesData);
+      setUsers(usersRes.data?.data || usersRes.data || []);
+      setCourses(coursesRes.data?.data || coursesRes.data || []);
 
-      // Fetch payments using admin endpoint
-      let paymentsData = [];
-      
       try {
-        console.log("🔍 Fetching payments from /payments/admin/all");
         const res = await api.get("/payments/admin/all");
-        paymentsData = res.data?.data || res.data || [];
-        console.log(`✅ Found ${paymentsData.length} payments`);
-      } catch (err) {
-        console.log("❌ /payments/admin/all failed");
+        setPayments(res.data?.data || res.data || []);
+      } catch {
         setApiError("Could not fetch payments. Please check your backend.");
-        paymentsData = [];
+        setPayments([]);
       }
-
-      setPayments(paymentsData);
-      calculateStats(paymentsData);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      setApiError("Failed to load data. Please refresh.");
-      setPayments([]);
+    } catch {
+      setApiError("Something went wrong while loading the page.");
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateStats = (data) => {
-    const completed = data.filter(p => p.status === "COMPLETED" || p.status === "PAID").length;
-    const pending = data.filter(p => p.status === "PENDING").length;
-    const failed = data.filter(p => p.status === "FAILED").length;
-    const refunded = data.filter(p => p.status === "REFUNDED").length;
-    const totalRevenue = data
-      .filter(p => p.status === "COMPLETED" || p.status === "PAID")
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
-
-    setStats({
-      total: data.length,
-      completed,
-      pending,
-      failed,
-      refunded,
-      totalRevenue,
-    });
-  };
-
-  // Send payment receipt
-  const sendReceipt = async (paymentId) => {
-    try {
-      await api.post(`/payments/admin/${paymentId}/send-receipt`);
-      alert("Receipt sent successfully!");
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to send receipt");
-    }
-  };
-
-  // Download invoice
-  const downloadInvoice = async (paymentId) => {
-    try {
-      const res = await api.get(`/payments/admin/${paymentId}/invoice`);
-      const data = res.data?.data || res.data;
-      
-      alert(`Invoice data for payment #${paymentId}:\n\n` + 
-        `Order ID: ${data.orderId}\n` +
-        `Amount: ₹${data.amount}\n` +
-        `Status: ${data.status}\n` +
-        `Student: ${data.studentName}\n` +
-        `Course: ${data.courseTitle}\n` +
-        `Date: ${new Date(data.date).toLocaleDateString()}`);
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to download invoice");
-    }
-  };
-
-  // Open detail modal
-  const openDetailModal = (payment) => {
-    setSelectedPayment(payment);
-    setShowDetailModal(true);
-  };
-
-  // Get user name by ID
-  const getUserName = (userId) => {
-    const user = users.find(u => u.id === userId);
-    return user ? user.name : "Unknown User";
-  };
-
-  // Get user email by ID
-  const getUserEmail = (userId) => {
-    const user = users.find(u => u.id === userId);
-    return user ? user.email : "";
-  };
-
-  // Get course title by ID
-  const getCourseTitle = (courseId) => {
-    const course = courses.find(c => c.id === courseId);
-    return course ? course.title : "Unknown Course";
-  };
-
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount || 0);
-  };
-
-  // Format date
-  const formatDate = (date) => {
-    if (!date) return "—";
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  // Format time
-  const formatTime = (date) => {
-    if (!date) return "";
-    return new Date(date).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  // Get status badge
-  const getStatusBadge = (status) => {
-    const classes = {
-      COMPLETED: "status-completed",
-      PAID: "status-completed",
-      PENDING: "status-pending",
-      FAILED: "status-failed",
-      REFUNDED: "status-refunded",
-      CANCELLED: "status-cancelled",
-    };
-    return classes[status] || "status-pending";
-  };
-
-  const getStatusLabel = (status) => {
-    const labels = {
-      COMPLETED: "Completed",
-      PAID: "Paid",
-      PENDING: "Pending",
-      FAILED: "Failed",
-      REFUNDED: "Refunded",
-      CANCELLED: "Cancelled",
-    };
-    return labels[status] || status;
-  };
-
-  // Get payment method label
-  const getMethodLabel = (method) => {
-    const methods = {
-      CARD: "Card",
-      UPI: "UPI",
-      NETBANKING: "Net Banking",
-      WALLET: "Wallet",
-      COD: "Cash on Delivery",
-      RAZORPAY: "Razorpay",
-      STRIPE: "Stripe",
-      PAYPAL: "PayPal",
-    };
-    return methods[method] || method || "N/A";
-  };
-
-  // Pagination
-  const goToPage = (page) => setCurrentPage(page);
-  const goToPreviousPage = () => currentPage > 1 && setCurrentPage(currentPage - 1);
-  const goToNextPage = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
-
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
-    if (endPage - startPage < maxVisible - 1) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-    return pages;
-  };
-
-  // Filter payments
-  const filteredPayments = payments.filter((payment) => {
-    const matchesSearch = 
-      payment.orderId?.toLowerCase().includes(search.toLowerCase()) ||
-      getUserName(payment.studentId).toLowerCase().includes(search.toLowerCase()) ||
-      getCourseTitle(payment.courseId).toLowerCase().includes(search.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
-    const matchesType = typeFilter === "all" || payment.method === typeFilter;
-    
-    const matchesDate = 
-      (!dateRange.start || new Date(payment.createdAt) >= new Date(dateRange.start)) &&
-      (!dateRange.end || new Date(payment.createdAt) <= new Date(dateRange.end));
-    
-    return matchesSearch && matchesStatus && matchesType && matchesDate;
-  });
-
-  // Paginate filtered data
-  const paginatedData = filteredPayments.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+  const students = useMemo(
+    () => users.filter((u) => (u.role || "").toUpperCase() === "STUDENT"),
+    [users]
   );
 
-  useEffect(() => {
-    const total = filteredPayments.length;
-    setTotalPages(Math.ceil(total / itemsPerPage) || 1);
-    if (currentPage > Math.ceil(total / itemsPerPage)) {
-      setCurrentPage(1);
-    }
-  }, [filteredPayments.length, currentPage, itemsPerPage]);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return payments.filter((p) => {
+      const name = p.student?.name?.toLowerCase() || "";
+      const email = p.student?.email?.toLowerCase() || "";
+      const order = (p.orderId || "").toLowerCase();
+      const matchesSearch =
+        !q || name.includes(q) || email.includes(q) || order.includes(q);
+      const matchesMethod =
+        methodFilter === "all" ||
+        (p.method || "").toUpperCase() === methodFilter.toUpperCase();
+      return matchesSearch && matchesMethod;
+    });
+  }, [payments, search, methodFilter]);
 
-  if (loading) {
-    return (
-      <div className="payments-page">
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading payments...</p>
-        </div>
-      </div>
+  const stats = useMemo(() => {
+    const completed = payments.filter(
+      (p) => (p.status || "").toUpperCase() === "COMPLETED"
     );
-  }
+    const revenue = completed.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const now = new Date();
+    const thisMonth = completed
+      .filter((p) => {
+        const d = new Date(p.createdAt);
+        return (
+          d.getMonth() === now.getMonth() &&
+          d.getFullYear() === now.getFullYear()
+        );
+      })
+      .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    return {
+      total: payments.length,
+      completed: completed.length,
+      revenue,
+      thisMonth,
+    };
+  }, [payments]);
+
+  const money = (n) =>
+    `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+
+  const fmtDate = (d) =>
+    d
+      ? new Date(d).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "—";
+
+  const fmtDateTime = (d) =>
+    d ? new Date(d).toLocaleString("en-IN") : "—";
+
+  const coursesOf = (p) =>
+    p.courses && p.courses.length ? p.courses : p.course ? [p.course] : [];
+
+  // ---- Record payment ----
+  const toggleCourse = (id) => {
+    setForm((f) => {
+      const has = f.courseIds.includes(id);
+      return {
+        ...f,
+        courseIds: has
+          ? f.courseIds.filter((c) => c !== id)
+          : [...f.courseIds, id],
+      };
+    });
+  };
+
+  const openRecord = () => {
+    setForm(emptyForm);
+    setFormError("");
+    setShowRecord(true);
+  };
+
+  const submitRecord = async () => {
+    setFormError("");
+
+    if (!form.studentId) return setFormError("Please select a student.");
+    if (!form.courseIds.length)
+      return setFormError("Select at least one course.");
+    const amt = parseFloat(form.amount);
+    if (!amt || amt <= 0) return setFormError("Enter a valid amount.");
+    if (form.method === "UPI" && !form.utr.trim())
+      return setFormError("UTR / reference is required for UPI payments.");
+
+    try {
+      setSubmitting(true);
+      await api.post("/payments/admin/manual", {
+        studentId: parseInt(form.studentId),
+        courseIds: form.courseIds,
+        amount: amt,
+        method: form.method,
+        utr: form.method === "UPI" ? form.utr.trim() : undefined,
+        durationDays: form.durationDays ? parseInt(form.durationDays) : undefined,
+      });
+      setShowRecord(false);
+      setForm(emptyForm);
+      await fetchAllData();
+    } catch (err) {
+      setFormError(
+        err.response?.data?.message || "Failed to record payment. Try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ---- Printing ----
+  const printHTML = (title, bodyHtml) => {
+    const win = window.open("", "_blank", "width=900,height=1000");
+    if (!win) {
+      alert("Please allow pop-ups to print.");
+      return;
+    }
+    win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+      <style>
+        *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;margin:32px}
+        h1{font-size:20px;margin:0 0 4px} .muted{color:#6b7280;font-size:12px}
+        .brand{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #4f46e5;padding-bottom:12px;margin-bottom:20px}
+        table{width:100%;border-collapse:collapse;margin-top:12px}
+        th,td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left;font-size:13px}
+        th{background:#f3f4f6}
+        .row{display:flex;justify-content:space-between;margin:6px 0;font-size:14px}
+        .k{color:#6b7280} .total{font-size:16px;font-weight:700;color:#4f46e5}
+        .stamp{display:inline-block;margin-top:16px;border:2px solid #16a34a;color:#16a34a;padding:4px 14px;border-radius:6px;font-weight:700;transform:rotate(-4deg)}
+        @media print{body{margin:12mm}}
+      </style></head><body>${bodyHtml}
+      <script>window.onload=function(){setTimeout(function(){window.print()},250)}</script>
+      </body></html>`);
+    win.document.close();
+  };
+
+  const printReceipt = (p) => {
+    const list = coursesOf(p)
+      .map((c) => `<li>${c.title}</li>`)
+      .join("");
+    printHTML(
+      `Receipt ${p.orderId}`,
+      `
+      <div class="brand">
+        <div><h1>${BRAND}</h1><div class="muted">Payment Receipt</div></div>
+        <div class="muted"><b>${p.orderId || "—"}</b><br/>${fmtDateTime(p.createdAt)}</div>
+      </div>
+      <div class="row"><span class="k">Student</span><span>${p.student?.name || "—"} (${p.student?.email || "—"})</span></div>
+      <div class="row"><span class="k">Method</span><span>${(p.method || "—").toUpperCase()}${p.paymentId ? ` · UTR: ${p.paymentId}` : ""}</span></div>
+      <div class="row"><span class="k">Status</span><span>${(p.status || "—").toUpperCase()}</span></div>
+      <div><b>Course(s)</b><ul>${list || "<li>—</li>"}</ul></div>
+      <div class="row total"><span>Total Paid</span><span>${money(p.amount)}</span></div>
+      <div class="stamp">PAID</div>
+      <p class="muted" style="margin-top:24px">This is a system-generated receipt.</p>
+    `
+    );
+  };
+
+  const printAll = () => {
+    const rows = filtered
+      .map(
+        (p, i) => `<tr>
+        <td>${i + 1}</td>
+        <td>${p.orderId || "—"}</td>
+        <td>${p.student?.name || "—"}</td>
+        <td>${coursesOf(p).map((c) => c.title).join(", ") || "—"}</td>
+        <td>${(p.method || "—").toUpperCase()}</td>
+        <td>${p.paymentId || "—"}</td>
+        <td>${fmtDate(p.createdAt)}</td>
+        <td style="text-align:right">${money(p.amount)}</td>
+      </tr>`
+      )
+      .join("");
+    const total = filtered.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    printHTML(
+      "Payment Records",
+      `
+      <div class="brand">
+        <div><h1>${BRAND}</h1><div class="muted">Payment Records</div></div>
+        <div class="muted">Generated ${fmtDateTime(new Date())}<br/>${filtered.length} record(s)</div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>#</th><th>Receipt</th><th>Student</th><th>Course(s)</th>
+          <th>Method</th><th>UTR / Ref</th><th>Date</th><th style="text-align:right">Amount</th>
+        </tr></thead>
+        <tbody>${rows || `<tr><td colspan="8">No records</td></tr>`}</tbody>
+        <tfoot><tr><td colspan="7" style="text-align:right;font-weight:700">Total</td>
+        <td style="text-align:right" class="total">${money(total)}</td></tr></tfoot>
+      </table>
+    `
+    );
+  };
 
   return (
-    <div className="payments-page">
-      {/* Header */}
-      <div className="page-header">
+    <div className="pay-page">
+      <div className="pay-header">
         <div>
-          <h1>Payment Management</h1>
-          <p className="subtitle">View and track all financial transactions</p>
+          <h1 className="pay-title">
+            <CreditCard size={26} /> Payments
+          </h1>
+          <p className="pay-subtitle">
+            Record offline (cash / UPI) payments and grant course access.
+          </p>
         </div>
-        <div className="header-actions">
-          <button className="refresh-btn" onClick={fetchAllData}>
+        <div className="pay-actions">
+          <button className="pay-btn pay-btn-ghost" onClick={printAll}>
+            <Printer size={18} /> Print records
+          </button>
+          <button className="pay-btn pay-btn-ghost" onClick={fetchAllData}>
             <RefreshCw size={18} />
+          </button>
+          <button className="pay-btn pay-btn-primary" onClick={openRecord}>
+            <Plus size={18} /> Record payment
           </button>
         </div>
       </div>
 
-      {/* API Error */}
-      {apiError && (
-        <div className="error-banner">
-          <AlertCircle size={20} />
-          <p>{apiError}</p>
-        </div>
-      )}
-
-      {/* Stats Cards */}
-      <div className="payment-stats">
-        <div className="stat-card">
-          <DollarSign size={24} />
+      {/* Stats */}
+      <div className="pay-stats">
+        <div className="pay-stat-card">
+          <div className="pay-stat-icon indigo">
+            <CreditCard size={22} />
+          </div>
           <div>
-            <h3>{formatCurrency(stats.totalRevenue)}</h3>
-            <p>Total Revenue</p>
+            <div className="pay-stat-value">{stats.total}</div>
+            <div className="pay-stat-label">Total Payments</div>
           </div>
         </div>
-        <div className="stat-card">
-          <CheckCircle size={24} />
+        <div className="pay-stat-card">
+          <div className="pay-stat-icon green">
+            <IndianRupee size={22} />
+          </div>
           <div>
-            <h3>{stats.completed}</h3>
-            <p>Completed</p>
+            <div className="pay-stat-value">{money(stats.revenue)}</div>
+            <div className="pay-stat-label">Total Revenue</div>
           </div>
         </div>
-        <div className="stat-card">
-          <Clock size={24} />
+        <div className="pay-stat-card">
+          <div className="pay-stat-icon amber">
+            <Calendar size={22} />
+          </div>
           <div>
-            <h3>{stats.pending}</h3>
-            <p>Pending</p>
+            <div className="pay-stat-value">{money(stats.thisMonth)}</div>
+            <div className="pay-stat-label">This Month</div>
           </div>
         </div>
-        <div className="stat-card">
-          <XCircle size={24} />
-          <div>
-            <h3>{stats.failed}</h3>
-            <p>Failed</p>
+        <div className="pay-stat-card">
+          <div className="pay-stat-icon teal">
+            <CheckCircle size={22} />
           </div>
-        </div>
-        <div className="stat-card">
-          <TrendingUp size={24} />
           <div>
-            <h3>{stats.total}</h3>
-            <p>Total Transactions</p>
+            <div className="pay-stat-value">{stats.completed}</div>
+            <div className="pay-stat-label">Completed</div>
           </div>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="toolbar">
-        <div className="search-box">
+      <div className="pay-toolbar">
+        <div className="pay-search">
           <Search size={18} />
           <input
-            placeholder="Search by order ID, user, or course..."
+            placeholder="Search by student, email, or receipt no…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-
         <select
-          className="filter-select"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Status</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="PAID">Paid</option>
-          <option value="PENDING">Pending</option>
-          <option value="FAILED">Failed</option>
-          <option value="REFUNDED">Refunded</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
-
-        <select
-          className="filter-select"
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
+          className="pay-select"
+          value={methodFilter}
+          onChange={(e) => setMethodFilter(e.target.value)}
         >
           <option value="all">All Methods</option>
-          <option value="CARD">Card</option>
+          <option value="CASH">Cash</option>
           <option value="UPI">UPI</option>
-          <option value="NETBANKING">Net Banking</option>
-          <option value="WALLET">Wallet</option>
-          <option value="RAZORPAY">Razorpay</option>
-          <option value="STRIPE">Stripe</option>
-          <option value="PAYPAL">PayPal</option>
         </select>
-
-        <div className="date-range">
-          <input
-            type="date"
-            value={dateRange.start}
-            onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-            placeholder="Start"
-          />
-          <span>to</span>
-          <input
-            type="date"
-            value={dateRange.end}
-            onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-            placeholder="End"
-          />
-        </div>
-
-        <button className="refresh-btn" onClick={fetchAllData}>
-          <RefreshCw size={18} />
-        </button>
       </div>
 
-      {/* Payments Table */}
-      <div className="table-wrapper">
-        <table className="payment-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Student</th>
-              <th>Course</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Method</th>
-              <th>Status</th>
-              <th style={{ width: "120px" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedData.length === 0 ? (
+      {apiError && <div className="pay-alert">{apiError}</div>}
+
+      {/* Table */}
+      <div className="pay-table-wrap">
+        {loading ? (
+          <div className="pay-empty">Loading payments…</div>
+        ) : filtered.length === 0 ? (
+          <div className="pay-empty">
+            No payments found. Click “Record payment” to add one.
+          </div>
+        ) : (
+          <table className="pay-table">
+            <thead>
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: "40px" }}>
-                  <div className="empty-state">
-                    <CreditCard size={48} />
-                    <h3>No payments found</h3>
-                    <p>
-                      {apiError 
-                        ? apiError
-                        : "Payments will appear here once students make purchases"}
-                    </p>
-                    <button 
-                      onClick={fetchAllData}
-                      className="retry-btn"
-                    >
-                      <RefreshCw size={16} />
-                      Retry
-                    </button>
-                  </div>
-                </td>
+                <th>Receipt</th>
+                <th>Student</th>
+                <th>Course(s)</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th></th>
               </tr>
-            ) : (
-              paginatedData.map((payment) => (
-                <tr key={payment.id}>
+            </thead>
+            <tbody>
+              {filtered.map((p) => (
+                <tr key={p.id}>
+                  <td className="mono">{p.orderId || "—"}</td>
                   <td>
-                    <span className="transaction-id">
-                      {payment.orderId || `PAY-${String(payment.id).padStart(6, '0')}`}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="user-info">
-                      <span className="user-name">{getUserName(payment.studentId)}</span>
-                      <span className="user-email">{getUserEmail(payment.studentId)}</span>
+                    <div className="pay-student">
+                      <span className="pay-student-name">
+                        {p.student?.name || "—"}
+                      </span>
+                      <span className="pay-student-email">
+                        {p.student?.email || ""}
+                      </span>
                     </div>
                   </td>
                   <td>
-                    <span className="course-title">{getCourseTitle(payment.courseId)}</span>
+                    {coursesOf(p)
+                      .map((c) => c.title)
+                      .join(", ") || "—"}
                   </td>
+                  <td className="pay-amount">{money(p.amount)}</td>
                   <td>
-                    <span className="amount-text">{formatCurrency(payment.amount)}</span>
+                    <span
+                      className={`pay-badge ${
+                        (p.method || "").toUpperCase() === "UPI"
+                          ? "badge-upi"
+                          : "badge-cash"
+                      }`}
+                    >
+                      {(p.method || "—").toUpperCase()}
+                    </span>
                   </td>
+                  <td>{fmtDate(p.createdAt)}</td>
                   <td>
-                    <div className="date-info">
-                      <span>{formatDate(payment.createdAt)}</span>
-                      <span className="time-text">{formatTime(payment.createdAt)}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="method-badge">
-                      {getMethodLabel(payment.method)}
+                    <span
+                      className={`pay-badge status-${(
+                        p.status || "pending"
+                      ).toLowerCase()}`}
+                    >
+                      {(p.status || "—").toUpperCase()}
                     </span>
                   </td>
                   <td>
-                    <span className={`status-badge ${getStatusBadge(payment.status)}`}>
-                      {getStatusLabel(payment.status)}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="action-buttons">
+                    <div className="pay-row-actions">
                       <button
-                        title="View Details"
-                        className="view-btn"
-                        onClick={() => openDetailModal(payment)}
+                        className="pay-icon-btn"
+                        title="View"
+                        onClick={() => setDetail(p)}
                       >
                         <Eye size={16} />
                       </button>
                       <button
-                        title="Send Receipt"
-                        className="mail-btn"
-                        onClick={() => sendReceipt(payment.id)}
+                        className="pay-icon-btn"
+                        title="Print receipt"
+                        onClick={() => printReceipt(p)}
                       >
-                        <Mail size={16} />
-                      </button>
-                      <button
-                        title="Download Invoice"
-                        className="download-btn"
-                        onClick={() => downloadInvoice(payment.id)}
-                      >
-                        <Download size={16} />
+                        <Printer size={16} />
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="pagination">
-            <button
-              className="page-btn"
-              onClick={goToPreviousPage}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft size={16} />
-              Previous
-            </button>
-
-            <div className="page-numbers">
-              {getPageNumbers().map((page) => (
-                <button
-                  key={page}
-                  className={`page-number ${currentPage === page ? 'active' : ''}`}
-                  onClick={() => goToPage(page)}
-                >
-                  {page}
-                </button>
               ))}
-            </div>
-
-            <button
-              className="page-btn"
-              onClick={goToNextPage}
-              disabled={currentPage === totalPages}
-            >
-              Next
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
-
-        {/* Table Footer */}
-        {filteredPayments.length > 0 && (
-          <div className="table-footer">
-            <span className="total-count">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
-              {Math.min(currentPage * itemsPerPage, filteredPayments.length)} of {filteredPayments.length} payments
-            </span>
-          </div>
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* Payment Detail Modal */}
-      {showDetailModal && selectedPayment && (
-        <div className="modal detail-modal" onClick={() => setShowDetailModal(false)}>
-          <div className="modal-content detail-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Payment Details</h2>
-              <button className="modal-close" onClick={() => setShowDetailModal(false)}>
-                <X size={20} />
+      {/* Record Payment Modal */}
+      {showRecord &&
+        createPortal(
+          <div className="pay-modal-overlay" onClick={() => setShowRecord(false)}>
+          <div className="pay-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pay-modal-header">
+              <h3>Record Payment</h3>
+              <button
+                className="pay-icon-btn"
+                onClick={() => setShowRecord(false)}
+              >
+                <X size={18} />
               </button>
             </div>
 
-            <div className="detail-body">
-              <div className="detail-summary">
-                <div className="summary-amount">
-                  <span className="amount-label">Total Amount</span>
-                  <span className="amount-value">{formatCurrency(selectedPayment.amount)}</span>
-                </div>
-                <div className="summary-status">
-                  <span className={`status-badge ${getStatusBadge(selectedPayment.status)}`}>
-                    {getStatusLabel(selectedPayment.status)}
-                  </span>
-                </div>
+            <div className="pay-modal-body">
+              {formError && <div className="pay-form-error">{formError}</div>}
+
+              <div className="pay-field">
+                <label className="pay-label">Student</label>
+                <select
+                  className="pay-input"
+                  value={form.studentId}
+                  onChange={(e) =>
+                    setForm({ ...form, studentId: e.target.value })
+                  }
+                >
+                  <option value="">Select a student…</option>
+                  {students.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.email})
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="detail-section">
-                <h3>Transaction Information</h3>
-                <div className="detail-grid">
-                  <div className="detail-item">
-                    <label>Order ID</label>
-                    <p>{selectedPayment.orderId || `PAY-${String(selectedPayment.id).padStart(6, '0')}`}</p>
-                  </div>
-                  <div className="detail-item">
-                    <label>Payment Method</label>
-                    <p>{getMethodLabel(selectedPayment.method)}</p>
-                  </div>
-                  <div className="detail-item">
-                    <label>Payment Date</label>
-                    <p>{formatDate(selectedPayment.createdAt)}</p>
-                  </div>
-                  <div className="detail-item">
-                    <label>Payment Time</label>
-                    <p>{formatTime(selectedPayment.createdAt)}</p>
-                  </div>
-                  <div className="detail-item">
-                    <label>Currency</label>
-                    <p>{selectedPayment.currency || "INR"}</p>
-                  </div>
-                  {selectedPayment.paymentId && (
-                    <div className="detail-item">
-                      <label>Payment ID</label>
-                      <p>{selectedPayment.paymentId}</p>
-                    </div>
+              <div className="pay-field">
+                <label className="pay-label">
+                  Courses to grant ({form.courseIds.length} selected)
+                </label>
+                <div className="pay-course-list">
+                  {courses.length === 0 && (
+                    <div className="pay-muted">No courses available.</div>
                   )}
-                  {selectedPayment.signature && (
-                    <div className="detail-item">
-                      <label>Signature</label>
-                      <p>{selectedPayment.signature}</p>
-                    </div>
-                  )}
+                  {courses.map((c) => (
+                    <label key={c.id} className="pay-course-item">
+                      <input
+                        type="checkbox"
+                        checked={form.courseIds.includes(c.id)}
+                        onChange={() => toggleCourse(c.id)}
+                      />
+                      <span>{c.title}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
-              <div className="detail-section">
-                <h3>User & Course Information</h3>
-                <div className="detail-grid">
-                  <div className="detail-item">
-                    <label>Student</label>
-                    <p>{getUserName(selectedPayment.studentId)}</p>
-                  </div>
-                  <div className="detail-item">
-                    <label>Email</label>
-                    <p>{getUserEmail(selectedPayment.studentId)}</p>
-                  </div>
-                  <div className="detail-item">
-                    <label>Course</label>
-                    <p>{getCourseTitle(selectedPayment.courseId)}</p>
-                  </div>
+              <div className="pay-grid-2">
+                <div className="pay-field">
+                  <label className="pay-label">Amount (₹)</label>
+                  <input
+                    className="pay-input"
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 5000"
+                    value={form.amount}
+                    onChange={(e) =>
+                      setForm({ ...form, amount: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="pay-field">
+                  <label className="pay-label">Access duration (days)</label>
+                  <input
+                    className="pay-input"
+                    type="number"
+                    min="1"
+                    placeholder="Leave empty = unlimited"
+                    value={form.durationDays}
+                    onChange={(e) =>
+                      setForm({ ...form, durationDays: e.target.value })
+                    }
+                  />
                 </div>
               </div>
 
-              <div className="detail-actions">
-                <button
-                  className="btn-save"
-                  onClick={() => sendReceipt(selectedPayment.id)}
-                >
-                  <Mail size={18} />
-                  Send Receipt
-                </button>
-                <button
-                  className="btn-save"
-                  onClick={() => downloadInvoice(selectedPayment.id)}
-                  style={{ background: '#667eea' }}
-                >
-                  <Download size={18} />
-                  Download Invoice
-                </button>
-                <button
-                  className="btn-cancel"
-                  onClick={() => setShowDetailModal(false)}
-                >
-                  Close
-                </button>
+              <div className="pay-field">
+                <label className="pay-label">Payment method</label>
+                <div className="pay-method-toggle">
+                  <button
+                    type="button"
+                    className={form.method === "CASH" ? "active" : ""}
+                    onClick={() => setForm({ ...form, method: "CASH", utr: "" })}
+                  >
+                    Cash
+                  </button>
+                  <button
+                    type="button"
+                    className={form.method === "UPI" ? "active" : ""}
+                    onClick={() => setForm({ ...form, method: "UPI" })}
+                  >
+                    UPI
+                  </button>
+                </div>
               </div>
+
+              {form.method === "UPI" && (
+                <div className="pay-field">
+                  <label className="pay-label">UTR / Reference ID</label>
+                  <input
+                    className="pay-input"
+                    placeholder="12-digit UTR or transaction reference"
+                    value={form.utr}
+                    onChange={(e) => setForm({ ...form, utr: e.target.value })}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="pay-modal-footer">
+              <button
+                className="pay-btn pay-btn-ghost"
+                onClick={() => setShowRecord(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="pay-btn pay-btn-primary"
+                onClick={submitRecord}
+                disabled={submitting}
+              >
+                {submitting ? "Recording…" : "Record & Grant Access"}
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
+
+      {/* Detail Modal */}
+      {detail &&
+        createPortal(
+          <div className="pay-modal-overlay" onClick={() => setDetail(null)}>
+          <div className="pay-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pay-modal-header">
+              <h3>Payment {detail.orderId}</h3>
+              <button className="pay-icon-btn" onClick={() => setDetail(null)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="pay-modal-body">
+              <div className="pay-detail-row">
+                <span>Student</span>
+                <b>{detail.student?.name}</b>
+              </div>
+              <div className="pay-detail-row">
+                <span>Email</span>
+                <b>{detail.student?.email}</b>
+              </div>
+              <div className="pay-detail-row">
+                <span>Amount</span>
+                <b>{money(detail.amount)}</b>
+              </div>
+              <div className="pay-detail-row">
+                <span>Method</span>
+                <b>
+                  {(detail.method || "—").toUpperCase()}
+                  {detail.paymentId ? ` · UTR ${detail.paymentId}` : ""}
+                </b>
+              </div>
+              <div className="pay-detail-row">
+                <span>Status</span>
+                <b>{(detail.status || "—").toUpperCase()}</b>
+              </div>
+              <div className="pay-detail-row">
+                <span>Date</span>
+                <b>{fmtDateTime(detail.createdAt)}</b>
+              </div>
+              <div className="pay-detail-row">
+                <span>Course(s)</span>
+                <b>{coursesOf(detail).map((c) => c.title).join(", ") || "—"}</b>
+              </div>
+            </div>
+            <div className="pay-modal-footer">
+              <button
+                className="pay-btn pay-btn-ghost"
+                onClick={() => setDetail(null)}
+              >
+                Close
+              </button>
+              <button
+                className="pay-btn pay-btn-primary"
+                onClick={() => printReceipt(detail)}
+              >
+                <Printer size={16} /> Print receipt
+              </button>
+            </div>
+          </div>
+        </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -34,24 +34,13 @@ function CertificateManagement() {
     active: 0,
     rejected: 0,
     total: 0,
-    templates: 0
   });
   const [selectedCertificate, setSelectedCertificate] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [expandedRows, setExpandedRows] = useState({});
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [selectedCourseId, setSelectedCourseId] = useState(null);
-  const [templateData, setTemplateData] = useState({
-    header: "Certificate of Completion",
-    footer: "Issued by ZSmartClass",
-    textColor: "#1a1a2e",
-    backgroundColor: "#ffffff",
-    borderColor: "#667eea",
-    fontFamily: "Helvetica",
-    isActive: true
-  });
+
 
 useEffect(() => {
     fetchCertificates();
@@ -390,10 +379,6 @@ useEffect(() => {
           <span className="dot rejected"></span>
           <span className="stat-label">{stats.rejected} Rejected</span>
         </div>
-        <div className="secondary-stat">
-          <span className="dot template"></span>
-          <span className="stat-label">{stats.templates} Templates</span>
-        </div>
       </div>
 
       {/* SEARCH & FILTER */}
@@ -488,16 +473,6 @@ useEffect(() => {
                               >
                                 <CheckCircle size={16} />
                               </button>
-                              <button
-                                className="btn-reject"
-                                onClick={() => {
-                                  setSelectedCertificate(cert);
-                                  setShowRejectModal(true);
-                                }}
-                                title="Reject"
-                              >
-                                <XCircle size={16} />
-                              </button>
                             </>
                           )}
                           
@@ -518,14 +493,7 @@ useEffect(() => {
                           >
                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
-                          
-                          <button
-                            className="btn-delete"
-                            onClick={() => deleteCertificate(cert.id)}
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                        
                         </div>
                       </td>
                     </tr>

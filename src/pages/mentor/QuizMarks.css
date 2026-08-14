@@ -1,0 +1,343 @@
+/* ==========================================
+   Quiz Marks Page
+========================================== */
+
+.quiz-marks {
+  padding: 30px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+/* ==========================================
+   Header
+========================================== */
+
+.quiz-marks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.quiz-marks-header h1 {
+  font-size: 30px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+
+.quiz-marks-header p {
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* ==========================================
+   Toolbar
+========================================== */
+
+.marks-toolbar {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================
+   Quiz Dropdown
+========================================== */
+
+.quiz-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #dbe3ef;
+  min-width: 260px;
+  height: 48px;
+}
+
+.quiz-select svg {
+  color: #2563eb;
+}
+
+.quiz-select select {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  font-family: inherit;
+  color: #334155;
+}
+
+/* ==========================================
+   Search Box
+========================================== */
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 0 14px;
+  min-width: 300px;
+  height: 48px;
+}
+
+.search-box svg {
+  color: #64748b;
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+/* ==========================================
+   Refresh Button
+========================================== */
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.25s ease;
+}
+
+.refresh-btn:hover {
+  background: #1d4ed8;
+}
+
+/* ==========================================
+   Statistics
+========================================== */
+
+.marks-stats {
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  width: 260px;
+  background: white;
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+
+.stat-card svg {
+  color: #2563eb;
+}
+
+.stat-card h3 {
+  font-size: 30px;
+  color: #1e293b;
+}
+
+.stat-card p {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 14px;
+}
+/* ==========================================
+   Marks Table
+========================================== */
+
+.marks-table {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+
+.marks-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.marks-table thead {
+  background: #eff6ff;
+}
+
+.marks-table th {
+  padding: 18px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e3a8a;
+}
+
+.marks-table td {
+  padding: 18px;
+  font-size: 14px;
+  color: #334155;
+  border-top: 1px solid #e5e7eb;
+}
+
+.marks-table tbody tr {
+  transition: .25s;
+}
+
+.marks-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.marks-table td[colspan] {
+  text-align: center;
+  padding: 45px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ==========================================
+   Pass / Fail Badge
+========================================== */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 75px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status.pass {
+  background: rgba(22,163,74,.12);
+  color: #15803d;
+}
+
+.status.fail {
+  background: rgba(239,68,68,.12);
+  color: #dc2626;
+}
+
+/* ==========================================
+   Percentage
+========================================== */
+
+.marks-table td:nth-child(8) {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+/* ==========================================
+   Loading State
+========================================== */
+
+.loading-text {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ==========================================
+   Empty State
+========================================== */
+
+.empty-text {
+  padding: 40px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 15px;
+}
+
+/* ==========================================
+   Responsive
+========================================== */
+
+@media (max-width: 992px) {
+
+  .marks-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quiz-select,
+  .search-box,
+  .refresh-btn {
+    width: 100%;
+  }
+
+  .stat-card {
+    width: 100%;
+  }
+
+  .marks-table {
+    overflow-x: auto;
+  }
+
+  .marks-table table {
+    min-width: 1100px;
+  }
+
+}
+
+@media (max-width: 768px) {
+
+  .quiz-marks {
+    padding: 18px;
+  }
+
+  .quiz-marks-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .quiz-marks-header h1 {
+    font-size: 24px;
+  }
+
+  .marks-toolbar {
+    gap: 14px;
+  }
+
+  .stat-card {
+    padding: 18px;
+  }
+
+  .stat-card h3 {
+    font-size: 24px;
+  }
+
+}
+
+@media (max-width: 480px) {
+
+  .quiz-select,
+  .search-box,
+  .refresh-btn {
+    height: 44px;
+  }
+
+  .marks-table th,
+  .marks-table td {
+    padding: 14px;
+    font-size: 13px;
+  }
+
+}

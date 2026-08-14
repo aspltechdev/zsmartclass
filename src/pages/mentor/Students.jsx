@@ -17,8 +17,8 @@ function MentorStudents() {
 
       const token = localStorage.getItem("token");
 
-     const response = await axios.get(
-  "http://localhost:5000/api/assignments",
+    const response = await axios.get(
+  "http://localhost:5000/api/enrollments/admin/all",
   {
     headers: {
       Authorization: `Bearer ${token}`
@@ -28,45 +28,16 @@ function MentorStudents() {
 
       console.log("Users API Response:", response.data);
       console.log(JSON.stringify(response.data.data, null, 2));
-  
-const assignments = response.data.data || [];
+  const enrollments = response.data.data || [];
 
-const studentMap = new Map();
-const students = [];
-
-assignments.forEach((assignment) => {
-
-  assignment.course.enrollments.forEach((enrollment) => {
-
-    const student = enrollment.student;
-
-    if (!studentMap.has(student.id)) {
-
-      studentMap.set(student.id, true);
-
-      students.push({
-
-        id: student.id,
-
-        name: student.name,
-
-        email: student.email,
-
-        course: assignment.course.title,
-
-        progress: enrollment.progress,
-
-        status: enrollment.completed
-          ? "Completed"
-          : "Active"
-
-      });
-
-    }
-
-  });
-
-});
+const students = enrollments.map((enrollment) => ({
+  id: enrollment.user.id,
+  name: enrollment.user.name,
+  email: enrollment.user.email,
+  course: enrollment.course.title,
+  progress: enrollment.progress,
+  status: enrollment.completed ? "Completed" : "Active",
+}));
 
 setStudents(students);
 

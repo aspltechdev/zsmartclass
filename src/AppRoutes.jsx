@@ -41,13 +41,16 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminProfile from "./pages/admin/AdminProfile";
 
 // Mentor Pages
+//import QuizMarks from "./pages/mentor/QuizMarks";
+//import MentorModules from "./pages/mentor/Modules";
+//import MentorCategories from "./pages/mentor/Category";
 //import MentorAssignments from "./pages/mentor/Assignments";
 //import MentorQuiz from "./pages/mentor/Quiz";
 //import MentorLessons from "./pages/mentor/Lessons";
 //import MentorCertificates from "./pages/mentor/Certificates";
 //import MentorReviews from "./pages/mentor/Review";
 //import MentorProfile from "./pages/mentor/Profile";
-//import MentorDashboard from "./pages/mentor/Dashboard";
+import MentorDashboard from "./pages/mentor/Dashboard";
 //import MentorCourses from "./pages/mentor/Courses";
 //import MentorStudents from "./pages/mentor/Students";
 //import MentorEarnings from "./pages/mentor/Earnings";
@@ -122,7 +125,7 @@ function AppRoutes() {
         {/* ========================================== */}
         {/* Mentor Routes */}
         {/* ========================================== */}
-        {/*<Route
+        <Route
           path="/mentor"
           element={
             <ProtectedRoute roles={["MENTOR"]}>
@@ -130,9 +133,10 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="dashboard" />} />
+          {/*<Route index element={<Navigate to="dashboard" />} />*/}
           <Route path="dashboard" element={<MentorDashboard />} />
-          <Route path="courses" element={<MentorCourses />} />
+          {/*<Route path="courses" element={<MentorCourses />} />
+          <Route path="category" element={<MentorCategories />} />
           <Route path="students" element={<MentorStudents />} />
           <Route path="earnings" element={<MentorEarnings />} />
           <Route path="lessons" element={<MentorLessons />} />
@@ -142,7 +146,8 @@ function AppRoutes() {
           <Route path="quiz" element={<MentorQuiz />} />
           <Route path="notifications" element={<MentorNotification />} />
           <Route path="profile" element={<MentorProfile />} />
-        </Route>*/}
+          <Route path="quizmarks" element={<QuizMarks />} />*/}
+        </Route>
 
         {/* ========================================== */}
         {/* Legacy Route (Backward Compatibility) */}

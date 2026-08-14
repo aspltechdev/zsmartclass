@@ -45,6 +45,14 @@ router.put(
 // ADMIN ROUTES
 // ==========================================
 
+// Record a manual (offline) payment — cash/UPI, one or more courses (Admin)
+router.post(
+    "/admin/manual",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    paymentController.createManualPayment
+);
+
 // Get all payments (Admin)
 router.get(
     "/admin/all",
