@@ -107,12 +107,6 @@ const menu = [
     icon: BarChart3,
     category: "Analytics",
   },
-  {
-    title: "Settings",
-    path: "/admin/settings",
-    icon: Settings,
-    category: "System",
-  },
 ];
 
 // Get unique categories for grouping

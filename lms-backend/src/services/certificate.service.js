@@ -735,6 +735,57 @@ class CertificateService {
   /**
    * Generate Unique Certificate Number
    */
+  /**
+   * AUTO-VERIFY JOB
+   * Finds every PENDING certificate application, re-confirms the student has
+   * genuinely completed the course (enrollment.progress >= 100), and issues it
+   * by reusing approveCertificate (final PDF + QR + notification + email).
+   * Runs on a timer (see scheduler at the bottom of this file) and can also be
+   * triggered on demand by an admin.
+   */
+  async autoVerifyPendingCertificates() {
+    const pending = await prisma.certificate.findMany({
+      where: { status: "PENDING" },
+      select: { id: true, studentId: true, courseId: true, certificateNo: true }
+    });
+
+    let issued = 0;
+    let skipped = 0;
+
+    for (const cert of pending) {
+      try {
+        // Re-verify real completion (Enrollment keyed by userId).
+        const enrollment = await prisma.enrollment.findFirst({
+          where: { userId: cert.studentId, courseId: cert.courseId },
+          select: { progress: true, completed: true }
+        });
+
+        const done =
+          enrollment && (enrollment.progress >= 100 || enrollment.completed);
+
+        if (done) {
+          await this.approveCertificate(cert.id);
+          issued++;
+        } else {
+          skipped++;
+        }
+      } catch (e) {
+        console.error(
+          `Auto-verify failed for ${cert.certificateNo}:`,
+          e.message
+        );
+      }
+    }
+
+    if (issued || skipped) {
+      console.log(
+        `🎓 Certificate auto-verify: issued ${issued}, pending/incomplete ${skipped}.`
+      );
+    }
+
+    return { issued, skipped, checked: pending.length };
+  }
+
   async generateCertificateNumber() {
     const timestamp = Date.now().toString().slice(-6);
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
@@ -753,3 +804,26 @@ class CertificateService {
 }
 
 module.exports = new CertificateService();
+
+// ============================================================
+// AUTO-VERIFY SCHEDULER
+// Runs in-process. This module is loaded at app startup (certificate routes ->
+// controller -> this service), so the timer starts on boot without touching
+// server.js/app.js. The global guard prevents a double-start if re-required.
+// ============================================================
+const AUTO_VERIFY_INTERVAL_MS = 10 * 60 * 1000; // ~10 minutes
+
+if (!global.__certAutoVerifyStarted) {
+  global.__certAutoVerifyStarted = true;
+
+  const tick = () =>
+    module.exports
+      .autoVerifyPendingCertificates()
+      .catch((e) => console.error("Certificate auto-verify tick error:", e.message));
+
+  // First pass shortly after boot, then every interval.
+  setTimeout(tick, 30 * 1000);
+  setInterval(tick, AUTO_VERIFY_INTERVAL_MS);
+
+  console.log("🎓 Certificate auto-verify scheduler started (every 10 min).");
+}

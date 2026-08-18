@@ -313,32 +313,34 @@ model AssignmentSubmission {
 }
 
 model Quiz {
-  id            Int          @id @default(autoincrement())
+  id            Int            @id @default(autoincrement())
   title         String
   description   String?
-  googleFormUrl String
+  googleFormUrl String?
   totalMarks    Int
   courseId      Int
   moduleId      Int
   mentorId      Int
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime
-  Course        Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  User          User         @relation(fields: [mentorId], references: [id])
-  CourseModule  CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now())
+  Course        Course         @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User          User           @relation(fields: [mentorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  CourseModule  CourseModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   QuizMark      QuizMark[]
+  QuizQuestion  QuizQuestion[]
 }
 
 model QuizMark {
-  id            Int      @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   quizId        Int
   studentId     Int
   obtainedMarks Float
   totalMarks    Float
   percentage    Float
-  submittedAt   DateTime @default(now())
-  Quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  User          User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  submittedAt   DateTime     @default(now())
+  QuizAnswer    QuizAnswer[]
+  Quiz          Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User          User         @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([quizId, studentId])
 }
@@ -355,6 +357,42 @@ model CourseModuleAssignment {
   @@unique([courseId, moduleId])
   @@index([courseId])
   @@index([moduleId])
+}
+
+model QuizAnswer {
+  id           Int          @id @default(autoincrement())
+  quizMarkId   Int
+  questionId   Int
+  optionId     Int
+  isCorrect    Boolean
+  QuizOption   QuizOption   @relation(fields: [optionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  QuizQuestion QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  QuizMark     QuizMark     @relation(fields: [quizMarkId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([quizMarkId, questionId])
+}
+
+model QuizOption {
+  id           Int          @id @default(autoincrement())
+  questionId   Int
+  text         String
+  isCorrect    Boolean      @default(false)
+  QuizAnswer   QuizAnswer[]
+  QuizQuestion QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([questionId])
+}
+
+model QuizQuestion {
+  id         Int          @id @default(autoincrement())
+  quizId     Int
+  question   String
+  position   Int
+  QuizAnswer QuizAnswer[]
+  QuizOption QuizOption[]
+  Quiz       Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([quizId])
 }
 
 enum UserRole {

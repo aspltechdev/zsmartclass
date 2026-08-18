@@ -20,6 +20,8 @@ import {
   Clock as ClockIcon,
   Trash2,
   Plus,
+  Zap,
+  Printer,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminCertificates.css";
@@ -273,6 +275,68 @@ function AdminCertificates() {
   // ==========================================
   // CERTIFICATE ACTION FUNCTIONS
   // ==========================================
+  // Trigger the auto-verify job immediately (no waiting for the 10-min timer)
+  const handleVerifyNow = async () => {
+    try {
+      setActionLoading("verify-now");
+      const res = await api.post("/certificates/admin/verify-now");
+      await fetchAll();
+      showSuccessMessage(res.data?.message || "Verification run complete.");
+    } catch (err) {
+      alert(err.response?.data?.message || "Verify-now failed. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Open the certificate PDF in a new tab and print it
+  const handlePrintCertificate = async (certNo) => {
+    if (!certNo || certNo === "N/A") {
+      alert("Certificate number not available");
+      return;
+    }
+    try {
+      setDownloadingCertNo(certNo);
+      const res = await api.get(`/certificates/download/${certNo}`);
+      const payload = res.data?.data || res.data;
+      const { pdfBuffer } = payload;
+      if (!pdfBuffer) throw new Error("No PDF data returned");
+
+      const byteCharacters = atob(pdfBuffer);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], {
+        type: "application/pdf",
+      });
+      const url = window.URL.createObjectURL(blob);
+
+      const win = window.open(url, "_blank");
+      if (!win) {
+        alert("Please allow pop-ups to print the certificate.");
+        return;
+      }
+      // Best-effort auto-print; the PDF is open either way for manual print.
+      setTimeout(() => {
+        try {
+          win.focus();
+          win.print();
+        } catch (e) {
+          /* user can print from the PDF viewer */
+        }
+      }, 700);
+    } catch (err) {
+      console.error("Print error:", err);
+      alert(
+        err.response?.data?.message ||
+          "Couldn't open this certificate for printing."
+      );
+    } finally {
+      setDownloadingCertNo(null);
+    }
+  };
+
   const handleApprove = async (certificateId) => {
     if (!certificateId) {
       alert("Invalid certificate ID");
@@ -536,6 +600,15 @@ function AdminCertificates() {
           </p>
         </div>
         <div className="header-actions">
+          <button
+            className="add-btn"
+            onClick={handleVerifyNow}
+            disabled={actionLoading === "verify-now"}
+            title="Verify all pending applications now"
+          >
+            <Zap size={18} />
+            {actionLoading === "verify-now" ? "Verifying…" : "Verify Now"}
+          </button>
           <button className="add-btn" onClick={() => openVerifyModal()}>
             <ShieldCheck size={18} />
             Verify Certificate
@@ -741,6 +814,14 @@ function AdminCertificates() {
                                   disabled={downloadingCertNo === certificateNo || certificateNo === 'N/A'}
                                 >
                                   <Download size={16} />
+                                </button>
+                                <button
+                                  className="action-btn view-btn"
+                                  title="Print certificate"
+                                  onClick={() => handlePrintCertificate(certificateNo)}
+                                  disabled={downloadingCertNo === certificateNo || certificateNo === 'N/A'}
+                                >
+                                  <Printer size={16} />
                                 </button>
                                 <button
                                   className="action-btn view-btn"
@@ -1141,63 +1222,152 @@ function AdminCertificates() {
                     <small>Inactive templates won't be used for new certificates</small>
                   </div>
 
-                  {/* Template Preview Section */}
+                  {/* Template Preview Section — faithful replica of the PDF */}
                   <div className="template-preview-section">
                     <h4>Design Preview</h4>
                     <div
-                      className="template-preview-full"
                       style={{
-                        backgroundColor: templateForm.backgroundColor || "#ffffff",
-                        borderColor: templateForm.borderColor || "#667eea",
-                        color: templateForm.textColor || "#1a1a2e",
-                        fontFamily: templateForm.fontFamily || "Helvetica",
+                        containerType: "inline-size",
+                        position: "relative",
+                        width: "100%",
+                        aspectRatio: "842 / 595",
+                        background: templateForm.backgroundColor || "#ffffff",
+                        borderRadius: "6px",
+                        overflow: "hidden",
+                        fontFamily: templateForm.fontFamily || "Helvetica, Arial, sans-serif",
+                        boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
                       }}
                     >
-                      <div className="preview-header">
-                        <span className="cert-badge">CERTIFICATE OF</span>
-                        <h2 className="cert-title">COMPLETION</h2>
+                      {/* Border frame (PDF: rect inset 30px) */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: "3.56%",
+                          top: "5.04%",
+                          right: "3.56%",
+                          bottom: "5.04%",
+                          border: `0.24cqw solid ${templateForm.borderColor || "#667eea"}`,
+                          pointerEvents: "none",
+                        }}
+                      />
+
+                      {/* Top-left logo */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: "5.94%",
+                          top: "7.5%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "1.2cqw",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "5.94cqw",
+                            height: "5.94cqw",
+                            borderRadius: "1.3cqw",
+                            background: "linear-gradient(135deg,#7A8BF5,#7048C6)",
+                            color: "#fff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: "Georgia, 'Times New Roman', serif",
+                            fontSize: "3.4cqw",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Z
+                        </div>
+                        <span style={{ fontSize: "1.7cqw", fontWeight: 700, color: templateForm.textColor || "#1a1a2e" }}>
+                          ZSmartClass
+                        </span>
                       </div>
 
-                      <div className="preview-body">
-                        <p className="preview-subtitle">
-                          This Certificate is proudly Presented to
-                        </p>
-                        <h2 className="preview-student-name">
-                          [Student Name]
-                        </h2>
-                        <p className="preview-completion-text">
-                          has successfully completed the online Course:
-                        </p>
-                        <h3 className="preview-course-name">
-                          {selectedCourseTitle || "Course Name"}
-                        </h3>
-                        <p className="preview-description">
-                          This professional has demonstrated initiative<br />
-                          and a commitment to deepening their skills<br />
-                          and advancing their career. Well done!
-                        </p>
+                      {/* Top-right badge slot */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          right: "8.3%",
+                          top: "6%",
+                          width: "7cqw",
+                          height: "7cqw",
+                          borderRadius: "50%",
+                          border: `0.3cqw solid ${templateForm.borderColor || "#667eea"}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: templateForm.borderColor || "#667eea",
+                        }}
+                      >
+                        <Award style={{ width: "3.4cqw", height: "3.4cqw" }} />
                       </div>
 
-                      <div className="preview-footer">
-                        <div className="preview-footer-left">
-                          <p>Date of issue: <span className="preview-value">[Issue Date]</span></p>
-                          <p>Certificate id: <span className="preview-value">[Certificate ID]</span></p>
-                        </div>
-                        <div className="preview-footer-right">
-                          <div className="preview-seal">
-                            <div className="seal-circle">
-                              <Award size={28} />
-                              <span>ZSMARTCLASS</span>
-                              <span className="seal-badge">COMPLETED</span>
-                            </div>
-                          </div>
-                        </div>
+                      {/* CERTIFICATE OF */}
+                      <div style={{ position: "absolute", left: 0, right: 0, top: "10.9%", textAlign: "center", color: templateForm.borderColor || "#667eea", fontWeight: 700, fontSize: "2.14cqw", letterSpacing: "0.36cqw" }}>
+                        CERTIFICATE OF
+                      </div>
+                      {/* COMPLETION */}
+                      <div style={{ position: "absolute", left: 0, right: 0, top: "15.1%", textAlign: "center", color: templateForm.textColor || "#1a1a2e", fontWeight: 800, fontSize: "4.99cqw", letterSpacing: "0.24cqw" }}>
+                        COMPLETION
+                      </div>
+
+                      {/* Subtitle */}
+                      <div style={{ position: "absolute", left: 0, right: 0, top: "25.2%", textAlign: "center", color: "#64748b", fontSize: "2.14cqw" }}>
+                        This Certificate is proudly Presented to
+                      </div>
+                      {/* Student name */}
+                      <div style={{ position: "absolute", left: 0, right: 0, top: "31.1%", textAlign: "center", color: templateForm.textColor || "#1a1a2e", fontWeight: 700, fontSize: "3.8cqw" }}>
+                        [Student Name]
+                      </div>
+                      {/* Completed course line */}
+                      <div style={{ position: "absolute", left: 0, right: 0, top: "39.5%", textAlign: "center", color: "#64748b", fontSize: "2.14cqw" }}>
+                        has successfully completed the online Course:
+                      </div>
+                      {/* Course name */}
+                      <div style={{ position: "absolute", left: 0, right: 0, top: "44.5%", textAlign: "center", color: templateForm.borderColor || "#667eea", fontWeight: 700, fontSize: "3.09cqw" }}>
+                        {selectedCourseTitle || "Course Name"}
+                      </div>
+                      {/* Description */}
+                      <div style={{ position: "absolute", left: 0, right: 0, top: "52.1%", textAlign: "center", color: "#94a3b8", fontSize: "1.66cqw", lineHeight: 1.5 }}>
+                        This professional has demonstrated initiative and a commitment to<br />
+                        deepening their skills and advancing their career. Well done!
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ position: "absolute", left: "11.9%", width: "76.3%", top: "66.4%", height: "1px", background: "#e2e8f0" }} />
+
+                      {/* Date + Certificate id (left aligned) */}
+                      <div style={{ position: "absolute", left: "11.9%", top: "69.7%", fontSize: "1.31cqw", color: "#64748b" }}>
+                        Date of issue: <span style={{ color: templateForm.textColor || "#1a1a2e", fontWeight: 700 }}>[Issue Date]</span>
+                      </div>
+                      <div style={{ position: "absolute", left: "11.9%", top: "73.1%", fontSize: "1.31cqw", color: "#64748b" }}>
+                        Certificate id: <span style={{ color: templateForm.textColor || "#1a1a2e", fontWeight: 700 }}>[Certificate ID]</span>
+                      </div>
+
+                      {/* Seal (PDF circle at 550,450 r40) */}
+                      <div style={{ position: "absolute", left: "60.6%", top: "68.9%", width: "9.5cqw", height: "9.5cqw", borderRadius: "50%", border: `0.24cqw solid ${templateForm.borderColor || "#667eea"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ position: "absolute", inset: "0.6cqw", borderRadius: "50%", border: `0.12cqw solid ${templateForm.borderColor || "#667eea"}` }} />
+                        <span style={{ fontSize: "0.85cqw", fontWeight: 700, color: templateForm.textColor || "#1a1a2e", letterSpacing: "0.1cqw" }}>ZSMARTCLASS</span>
+                        <span style={{ fontSize: "0.72cqw", fontWeight: 700, color: "#020202", marginTop: "0.3cqw" }}>COMPLETED</span>
+                      </div>
+
+                      {/* QR slot (PDF at 630,410 80x80) */}
+                      <div style={{ position: "absolute", left: "74.8%", top: "68.9%", width: "9.5cqw", height: "9.5cqw", border: "0.12cqw solid #e2e8f0", background: "repeating-conic-gradient(#111 0% 25%, #fff 0% 50%) 50% / 1.6cqw 1.6cqw", opacity: 0.85 }} />
+                      <div style={{ position: "absolute", left: "74.8%", top: "83.2%", width: "9.5cqw", textAlign: "center", fontSize: "0.83cqw", color: "#94a3b8" }}>Scan to verify</div>
+
+                      {/* Footer */}
+                      <div style={{ position: "absolute", left: 0, right: 0, top: "90.8%", textAlign: "center", color: "#94a3b8", fontSize: "1.07cqw" }}>
+                        {templateForm.footer || "Issued by ZSmartClass"}
+                      </div>
+                      <div style={{ position: "absolute", left: 0, right: 0, top: "93.8%", textAlign: "center", color: "#cbd5e1", fontSize: "0.83cqw" }}>
+                        Verify at: your-site.com/verify-certificate/[Certificate ID]
                       </div>
                     </div>
-                    
+
                     <div className="template-preview-note">
                       <Info size={14} />
-                      <span>This preview shows how the certificate will look. Student names, dates, and IDs will be automatically filled from your data.</span>
+                      <span>This preview mirrors the actual downloaded certificate. Student name, date, ID, and QR code are filled in automatically when issued.</span>
                     </div>
                   </div>
                 </>

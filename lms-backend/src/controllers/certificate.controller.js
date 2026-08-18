@@ -271,3 +271,22 @@ exports.upsertTemplate = async (req, res) => {
         });
     }
 };
+
+// ==========================================
+// ADMIN: Trigger auto-verify immediately (no waiting for the 10-min timer)
+// ==========================================
+exports.verifyPendingNow = async (req, res) => {
+    try {
+        const result = await certificateService.autoVerifyPendingCertificates();
+        res.json({
+            success: true,
+            message: `Verified now: issued ${result.issued}, still pending ${result.skipped}.`,
+            data: result
+        });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message
+        });
+    }
+};

@@ -25,6 +25,14 @@ router.get(
     certificateController.getPendingCertificatesAdmin
 );
 
+// Trigger the auto-verify job immediately (Admin)
+router.post(
+    "/admin/verify-now",
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    certificateController.verifyPendingNow
+);
+
 router.put(
     "/admin/:id/approve",
     authMiddleware,

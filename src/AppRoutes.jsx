@@ -37,7 +37,7 @@ import AdminNotifications from "./pages/admin/AdminNotifications";
 //import AdminReviews from "./pages/admin/AdminReviews";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminCoupons from "./pages/admin/AdminCoupons";
-import AdminSettings from "./pages/admin/AdminSettings";
+//import AdminSettings from "./pages/admin/AdminSettings";
 import AdminProfile from "./pages/admin/AdminProfile";
 
 // Mentor Pages
@@ -118,7 +118,7 @@ function AppRoutes() {
           {/*<Route path="/admin/reviews" element={<AdminReviews />} />*/}
           <Route path="/admin/reports" element={<AdminReports />} />
           <Route path="/admin/coupons" element={<AdminCoupons />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
+          {/*<Route path="/admin/settings" element={<AdminSettings />} />*/}
           <Route path="/admin/profile" element={<AdminProfile />} />
         </Route>
 

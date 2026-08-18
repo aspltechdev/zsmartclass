@@ -189,7 +189,8 @@ class ReportService {
                     select: {
                         enrollments: true,
                         reviews: true,
-                        modules: true,
+                        // NOTE: `modules` removed — Course's relation is `CourseModule`
+                        // and modules are now shared via the link table (counted below).
                     }
                 },
                 reviews: {
@@ -199,6 +200,10 @@ class ReportService {
                 },
                 enrollments: {
                     where: { completed: true }
+                },
+                payments: {
+                    where: { status: "COMPLETED" },
+                    select: { amount: true }
                 }
             },
             orderBy: {
@@ -207,6 +212,22 @@ class ReportService {
                 },
             },
         });
+
+        // Module counts per course via the sharing link table (scalar-only).
+        const courseIds = courses.map((c) => c.id);
+        const assignments = courseIds.length
+            ? await prisma.courseModuleAssignment.findMany({
+                  where: { courseId: { in: courseIds } },
+                  select: { courseId: true }
+              })
+            : [];
+        const moduleCountByCourse = new Map();
+        for (const a of assignments) {
+            moduleCountByCourse.set(
+                a.courseId,
+                (moduleCountByCourse.get(a.courseId) || 0) + 1
+            );
+        }
 
         return courses.map(course => {
             const avgRating = course.reviews.length > 0
@@ -217,18 +238,25 @@ class ReportService {
                 ? Math.round((course.enrollments.length / course._count.enrollments) * 100)
                 : 0;
 
+            const revenue = course.payments.reduce(
+                (sum, p) => sum + (p.amount || 0),
+                0
+            );
+
             return {
                 id: course.id,
                 title: course.title,
                 category: course.category?.name || 'Uncategorized',
                 status: course.status,
                 level: course.level,
-                price: course.price || 0,
+                revenue: revenue,      // real revenue from completed payments
+                price: 0,              // kept for backward-compat (courses aren't priced)
                 enrollments: course._count.enrollments,
+                completedEnrollments: course.enrollments.length,
                 reviews: course._count.reviews,
                 avgRating: Math.round(avgRating * 10) / 10,
                 completionRate: completionRate,
-                modules: course._count.modules,
+                modules: moduleCountByCourse.get(course.id) || 0,
             };
         });
     }
@@ -585,7 +613,7 @@ class ReportService {
             case 'courses':
                 const courses = await this.getCourseAnalytics();
                 data = courses;
-                fields = ['id', 'title', 'category', 'status', 'level', 'price', 'enrollments', 'reviews', 'avgRating', 'completionRate', 'modules'];
+                fields = ['id', 'title', 'category', 'status', 'level', 'enrollments', 'completedEnrollments', 'completionRate', 'avgRating', 'reviews', 'modules', 'revenue'];
                 break;
 
             case 'users':
@@ -609,23 +637,63 @@ class ReportService {
                 const payments = await prisma.payment.findMany({
                     where: dateFilter,
                     include: {
-                        user: { select: { name: true, email: true } },
+                        // Payment's relation is `student` (not `user`).
+                        student: { select: { name: true, email: true } },
                         course: { select: { title: true } },
                     },
                     orderBy: { createdAt: 'desc' },
                 });
                 data = payments.map(p => ({
                     id: p.id,
-                    student: p.user?.name || 'N/A',
-                    email: p.user?.email || 'N/A',
+                    receipt: p.orderId || '',
+                    student: p.student?.name || 'N/A',
+                    email: p.student?.email || 'N/A',
                     course: p.course?.title || 'N/A',
-                    amount: `₹${(p.amount || 0).toLocaleString()}`,
+                    amount: p.amount || 0,
                     status: p.status,
-                    method: p.paymentMethod || 'N/A',
-                    date: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '',
+                    method: p.method || 'N/A',
+                    reference: p.paymentId || '',
+                    date: p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : '',
                 }));
-                fields = ['id', 'student', 'email', 'course', 'amount', 'status', 'method', 'date'];
+                fields = ['id', 'receipt', 'student', 'email', 'course', 'amount', 'status', 'method', 'reference', 'date'];
                 break;
+
+            case 'enrollments': {
+                const enrollments = await prisma.enrollment.findMany({
+                    where: startDate && endDate
+                        ? { enrolledAt: { gte: new Date(startDate), lte: new Date(endDate) } }
+                        : {},
+                    include: {
+                        user: { select: { name: true, email: true } },
+                        course: { select: { title: true } },
+                    },
+                    orderBy: { enrolledAt: 'desc' },
+                });
+                data = enrollments.map(e => ({
+                    id: e.id,
+                    student: e.user?.name || 'N/A',
+                    email: e.user?.email || 'N/A',
+                    course: e.course?.title || 'N/A',
+                    progress: `${Math.round(e.progress || 0)}%`,
+                    status: e.completed ? 'Completed' : (e.progress > 0 ? 'In Progress' : 'Not Started'),
+                    enrolled: e.enrolledAt ? new Date(e.enrolledAt).toLocaleDateString('en-IN') : '',
+                    expiry: e.accessExpiry ? new Date(e.accessExpiry).toLocaleDateString('en-IN') : 'Unlimited',
+                }));
+                fields = ['id', 'student', 'email', 'course', 'progress', 'status', 'enrolled', 'expiry'];
+                break;
+            }
+
+            case 'revenue': {
+                const rev = await this.getRevenueByCourse();
+                data = rev.map(r => ({
+                    id: r.id,
+                    course: r.title,
+                    enrollments: r.enrollments,
+                    revenue: r.revenue,
+                }));
+                fields = ['id', 'course', 'enrollments', 'revenue'];
+                break;
+            }
 
             default:
                 data = [];
@@ -803,29 +871,39 @@ class ReportService {
                 const payments = await prisma.payment.findMany({
                     where: dateFilter,
                     include: {
-                        user: { select: { name: true, email: true } },
+                        // Payment's relation is `student` (not `user`).
+                        student: { select: { name: true, email: true } },
                         course: { select: { title: true } },
                     },
                     orderBy: { createdAt: 'desc' },
                 });
-                y = this._drawSectionTitle(doc, `Payments (${payments.length})`, y);
+                const paidTotal = payments
+                    .filter((p) => p.status === 'COMPLETED')
+                    .reduce((s, p) => s + (p.amount || 0), 0);
+                y = this._drawSectionTitle(
+                    doc,
+                    `Payments (${payments.length})  ·  Collected: INR ${paidTotal.toLocaleString('en-IN')}`,
+                    y
+                );
                 y = this._drawTable(doc, {
                     startY: y,
                     columns: [
-                        { key: 'student', label: 'STUDENT', width: contentWidth * 0.22 },
-                        { key: 'course', label: 'COURSE', width: contentWidth * 0.26 },
-                        { key: 'amount', label: 'AMOUNT', width: contentWidth * 0.14 },
-                        { key: 'status', label: 'STATUS', width: contentWidth * 0.14 },
-                        { key: 'method', label: 'METHOD', width: contentWidth * 0.12 },
-                        { key: 'date', label: 'DATE', width: contentWidth * 0.12 },
+                        { key: 'receipt', label: 'RECEIPT', width: contentWidth * 0.14 },
+                        { key: 'student', label: 'STUDENT', width: contentWidth * 0.20 },
+                        { key: 'course', label: 'COURSE', width: contentWidth * 0.22 },
+                        { key: 'amount', label: 'AMOUNT', width: contentWidth * 0.13 },
+                        { key: 'status', label: 'STATUS', width: contentWidth * 0.13 },
+                        { key: 'method', label: 'METHOD', width: contentWidth * 0.09 },
+                        { key: 'date', label: 'DATE', width: contentWidth * 0.09 },
                     ],
                     rows: payments.map((p) => ({
-                        student: p.user?.name || 'N/A',
+                        receipt: p.orderId || '-',
+                        student: p.student?.name || 'N/A',
                         course: p.course?.title || 'N/A',
-                        amount: `₹${(p.amount || 0).toLocaleString()}`,
+                        amount: `INR ${(p.amount || 0).toLocaleString('en-IN')}`,
                         status: p.status,
-                        method: p.paymentMethod || 'N/A',
-                        date: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '',
+                        method: p.method || 'N/A',
+                        date: p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : '',
                     })),
                 });
             } else if (type === 'revenue' || type === 'enrollments') {

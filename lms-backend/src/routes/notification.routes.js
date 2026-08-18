@@ -1,55 +1,61 @@
+// src/routes/notification.routes.js
 const express = require("express");
 const router = express.Router();
 
 const notificationController = require("../controllers/notification.controller");
 const authMiddleware = require("../middleware/auth.middleware");
+const roleMiddleware = require("../middleware/role.middleware");
 
 // ==========================================
-// ADMIN ROUTE - Get all notifications
-// ==========================================
-router.get(
-    "/admin",
-    authMiddleware,
-    notificationController.getAllNotifications
-);
-
-// ==========================================
-// USER ROUTES - Get user's own notifications
+// ADMIN ROUTES (role-gated)
 // ==========================================
 
-// Create Notification
+// Send to an audience: broadcast / course / role / single user
 router.post(
-    "/",
-    authMiddleware,
-    notificationController.create
+  "/admin/send",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  notificationController.adminSend
 );
 
-// Get My Notifications (for current user only)
+// Grouped sent history
 router.get(
-    "/",
-    authMiddleware,
-    notificationController.getMyNotifications
+  "/admin",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  notificationController.getAllNotifications
 );
 
-// Mark One Read
-router.put(
-    "/:id/read",
-    authMiddleware,
-    notificationController.markAsRead
-);
-
-// Mark All Read
-router.put(
-    "/read-all",
-    authMiddleware,
-    notificationController.markAllRead
-);
-
-// Delete Notification
+// Delete a whole broadcast group (body: { ids: [...] })
 router.delete(
-    "/:id",
-    authMiddleware,
-    notificationController.delete
+  "/admin/batch",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  notificationController.deleteBatch
 );
+
+// Single create (admin only — sets an arbitrary recipient)
+router.post(
+  "/",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  notificationController.create
+);
+
+// ==========================================
+// USER ROUTES (own notifications only)
+// ==========================================
+
+// My notifications
+router.get("/", authMiddleware, notificationController.getMyNotifications);
+
+// Mark all read (specific path registered before the :id route)
+router.put("/read-all", authMiddleware, notificationController.markAllRead);
+
+// Mark one read (ownership enforced in the service)
+router.put("/:id/read", authMiddleware, notificationController.markAsRead);
+
+// Delete one (owner or admin, enforced in the service)
+router.delete("/:id", authMiddleware, notificationController.delete);
 
 module.exports = router;
