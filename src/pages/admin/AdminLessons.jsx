@@ -1,4 +1,4 @@
-// src/pages/mentor/Lessons.jsx
+// src/pages/admin/AdminLessons.jsx
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -7,7 +7,7 @@ import {
   Video, File, Link as LinkIcon, RefreshCw,
 } from "lucide-react";
 import api from "../../services/api";
-import "./Lessons.css";
+import "./AdminLessons.css";
 
 const VIDEO_TYPES = ["VIDEO", "DOCUMENT", "LINK", "FILE"];
 
@@ -16,7 +16,7 @@ const EMPTY_LESSON = {
   attachment: "", isPreview: false, position: 1,
 };
 
-function Lessons() {
+function AdminLessons() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const moduleId = params.get("moduleId") || "";
@@ -124,7 +124,7 @@ function Lessons() {
       <div className="modules-page">
         <div className="page-header">
           <div><h1>Lessons</h1><p className="subtitle">Pick a module to manage its lessons</p></div>
-          <button className="refresh-btn" onClick={() => navigate("/mentor/modules")}>
+          <button className="refresh-btn" onClick={() => navigate("/admin/modules")}>
             <ArrowLeft size={18} />
           </button>
         </div>
@@ -159,7 +159,7 @@ function Lessons() {
     <div className="modules-page">
       <div className="page-header">
         <div>
-          <button className="back-link" onClick={() => navigate("/mentor/modules")}>
+          <button className="back-link" onClick={() => navigate("/admin/modules")}>
             <ArrowLeft size={15} /> Back to Modules
           </button>
           <h1>{module?.title || "Lessons"}</h1>
@@ -316,4 +316,4 @@ function Lessons() {
   );
 }
 
-export default Lessons;
+export default AdminLessons;

@@ -65,8 +65,9 @@ router.get("/", courseController.getAll);
 
 router.get("/:id", courseController.getById);
 
+
 // ─── MODULE ATTACHMENT (ADMIN & MENTOR) ─────────────────────────────
-// List modules that can be attached (not yet on any course)
+// Mentors cannot create courses, but they DO manage course content.
 router.get(
     "/:id/available-modules",
     authMiddleware,
@@ -74,7 +75,6 @@ router.get(
     courseController.getAvailableModules
 );
 
-// Attach existing module(s) to this course
 router.post(
     "/:id/modules",
     authMiddleware,
@@ -82,7 +82,6 @@ router.post(
     courseController.attachModules
 );
 
-// Detach a module from this course
 router.delete(
     "/:id/modules/:moduleId",
     authMiddleware,
@@ -90,18 +89,18 @@ router.delete(
     courseController.detachModule
 );
 
-// Protected Routes
+// Protected Routes (course creation/editing is ADMIN only)
 router.post(
     "/",
     authMiddleware,
-    roleMiddleware("ADMIN", "MENTOR"),
+    roleMiddleware("ADMIN"),
     courseController.create
 );
 
 router.put(
     "/:id",
     authMiddleware,
-    roleMiddleware("ADMIN", "MENTOR"),
+    roleMiddleware("ADMIN"),
     courseController.update
 );
 

@@ -200,15 +200,17 @@ model Review {
 }
 
 model LessonProgress {
-  id             Int       @id @default(autoincrement())
-  studentId      Int
-  lessonId       Int
-  completed      Boolean   @default(false)
-  watchedAt      DateTime?
-  createdAt      DateTime  @default(now())
-  watchedSeconds Int       @default(0)
-  lesson         Lesson    @relation(fields: [lessonId], references: [id])
-  student        User      @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              Int       @id @default(autoincrement())
+  studentId       Int
+  lessonId        Int
+  completed       Boolean   @default(false)
+  watchedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  watchedSeconds  Int       @default(0)
+  lastPosition    Float     @default(0)
+  durationSeconds Int       @default(0)
+  lesson          Lesson    @relation(fields: [lessonId], references: [id])
+  student         User      @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([studentId, lessonId])
 }
@@ -369,7 +371,7 @@ model QuizAnswer {
   QuizQuestion QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   QuizMark     QuizMark     @relation(fields: [quizMarkId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([quizMarkId, questionId])
+  @@unique([quizMarkId, questionId, optionId], map: "QuizAnswer_mark_question_option_key")
 }
 
 model QuizOption {
@@ -388,6 +390,8 @@ model QuizQuestion {
   quizId     Int
   question   String
   position   Int
+  marks      Int          @default(1)
+  type       String       @default("RADIO")
   QuizAnswer QuizAnswer[]
   QuizOption QuizOption[]
   Quiz       Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)

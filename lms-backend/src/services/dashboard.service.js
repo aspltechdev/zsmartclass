@@ -57,6 +57,9 @@ class DashboardService {
       completedCourses,
       revenueAgg,
       usersBeforeWindow,
+      activeCertificates,
+      pendingCertificates,
+      paymentsByMethod,
       enrollmentTrendRows,
       userGrowthRows,
       recentCourses,
@@ -89,6 +92,18 @@ class DashboardService {
 
       // Users created before the trend window, used as the cumulative baseline
       prisma.user.count({ where: { createdAt: { lt: windowStart } } }),
+
+      // Certificates (issued vs awaiting auto-verification)
+      prisma.certificate.count({ where: { status: "ACTIVE" } }),
+      prisma.certificate.count({ where: { status: "PENDING" } }),
+
+      // Payments grouped by method -> cash vs UPI split
+      prisma.payment.groupBy({
+        by: ["method"],
+        where: { status: "COMPLETED" },
+        _sum: { amount: true },
+        _count: { _all: true }
+      }),
 
       // Enrollments per month for the last 6 months (bucketed in SQL)
       prisma.$queryRaw`
@@ -194,6 +209,17 @@ class DashboardService {
         enrollments,
         completedCourses,
         revenue,
+        activeCertificates,
+        pendingCertificates,
+        cashRevenue: paymentsByMethod
+          .filter((p) => (p.method || "").toUpperCase() === "CASH")
+          .reduce((s, p) => s + (p._sum.amount || 0), 0),
+        upiRevenue: paymentsByMethod
+          .filter((p) => (p.method || "").toUpperCase() === "UPI")
+          .reduce((s, p) => s + (p._sum.amount || 0), 0),
+        completionRate: enrollments
+          ? Math.round((completedCourses / enrollments) * 100)
+          : 0,
       },
       charts: {
         enrollmentTrends,
@@ -208,49 +234,89 @@ class DashboardService {
   // ============================================================
   // MENTOR DASHBOARD
   // ============================================================
-  async mentorDashboard(mentorId) {
-    const id = Number(mentorId);
+  // ============================================================
+  // MENTOR DASHBOARD
+  // Mentors have admin-like VISIBILITY (all courses, all students) but a
+  // content-focused feature set — no revenue/payment or user-management data.
+  // ============================================================
+  async mentorDashboard() {
+    const buckets = this._buildMonthBuckets(6);
+    const windowStart = buckets[0].date;
 
     const [
-      myCourses,
-      publishedCourses,
-      draftCourses,
+      coursesByStatus,
+      categories,
       modules,
       lessons,
       students,
+      enrollments,
+      completedEnrollments,
+      enrollmentTrendRows,
       recentCourses,
+      recentEnrollments
     ] = await Promise.all([
-      prisma.course.count({ where: { createdById: id } }),
-      // Enum-safe values (was "Published"/"Draft" -> Prisma validation error)
-      prisma.course.count({ where: { createdById: id, status: "PUBLISHED" } }),
-      prisma.course.count({ where: { createdById: id, status: "DRAFT" } }),
-      // CourseModule's relation to Course is named `Course` (capital C) in the schema.
-      prisma.courseModule.count({ where: { Course: { createdById: id } } }),
-      prisma.lesson.count({
-        where: { module: { Course: { createdById: id } } },
-      }),
-      prisma.enrollment.count({ where: { course: { createdById: id } } }),
+      prisma.course.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.category.count(),
+      prisma.courseModule.count(),
+      prisma.lesson.count(),
+      prisma.user.count({ where: { role: "STUDENT" } }),
+      prisma.enrollment.count(),
+      prisma.enrollment.count({ where: { completed: true } }),
+      prisma.$queryRaw`
+        SELECT date_trunc('month', "enrolledAt") AS month, COUNT(*)::int AS count
+        FROM "Enrollment"
+        WHERE "enrolledAt" >= ${windowStart}
+        GROUP BY 1
+        ORDER BY 1
+      `,
       prisma.course.findMany({
-        where: { createdById: id },
         take: 5,
         orderBy: { createdAt: "desc" },
+        include: { category: true }
       }),
+      prisma.enrollment.findMany({
+        take: 5,
+        orderBy: { enrolledAt: "desc" },
+        include: {
+          user: { select: { id: true, name: true } },
+          course: { select: { id: true, title: true } }
+        }
+      })
     ]);
 
+    const statusCount = (st) =>
+      coursesByStatus.find((c) => c.status === st)?._count._all ?? 0;
+
+    const enrollmentByKey = new Map(
+      enrollmentTrendRows.map((r) => [this._monthKey(r.month), Number(r.count)])
+    );
+
     return {
-      myCourses,
-      publishedCourses,
-      draftCourses,
-      modules,
-      lessons,
-      students,
+      cards: {
+        courses: coursesByStatus.reduce((s, c) => s + c._count._all, 0),
+        publishedCourses: statusCount("PUBLISHED"),
+        draftCourses: statusCount("DRAFT"),
+        categories,
+        modules,
+        lessons,
+        students,
+        enrollments,
+        completedEnrollments,
+        completionRate: enrollments
+          ? Math.round((completedEnrollments / enrollments) * 100)
+          : 0
+      },
+      charts: {
+        enrollmentTrends: {
+          labels: buckets.map((b) => b.label),
+          data: buckets.map((b) => enrollmentByKey.get(b.key) ?? 0)
+        }
+      },
       recentCourses,
+      recentEnrollments
     };
   }
 
-  // ============================================================
-  // STUDENT DASHBOARD
-  // ============================================================
   async studentDashboard(studentId) {
     const id = Number(studentId);
 

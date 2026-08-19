@@ -1,6 +1,6 @@
 // src/components/mentor/MentorHeader.jsx
 import { useState, useEffect, useRef } from "react";
-import { Bell, LogOut, Menu, ChevronRight, User, Settings, ChevronDown } from "lucide-react";
+import { Bell, LogOut, Menu, ChevronRight, User, ChevronDown } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "./MentorHeader.css";
@@ -16,7 +16,6 @@ const PAGE_LABELS = {
   assignments: "Assignments",
   quiz: "Quiz",
   profile: "Profile",
-  settings: "Settings",
   notifications: "Notifications",
 };
 
@@ -122,10 +121,6 @@ function MentorHeader({ onToggleMobile }) {
                 <Link to="/mentor/profile" className="mh-dropdown-item" onClick={() => setIsProfileOpen(false)}>
                   <User size={16} />
                   <span>Profile</span>
-                </Link>
-                <Link to="/mentor/settings" className="mh-dropdown-item" onClick={() => setIsProfileOpen(false)}>
-                  <Settings size={16} />
-                  <span>Settings</span>
                 </Link>
                 <div className="mh-dropdown-divider"></div>
                 <button className="mh-dropdown-item mh-dropdown-logout" onClick={handleLogout}>

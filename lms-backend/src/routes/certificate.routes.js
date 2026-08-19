@@ -43,7 +43,7 @@ router.put(
 router.put(
     "/admin/:id/reject",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN","MENTOR"),
     certificateController.rejectCertificate
 );
 

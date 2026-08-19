@@ -1,1382 +1,415 @@
-﻿import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import "./Courses.css";
+﻿// src/pages/mentor/Courses.jsx
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
-  Eye,
-  Pencil,
+  BookOpen,
+  Search,
+  RefreshCw,
+  Layers,
   Plus,
-  Trash2
+  X,
+  Trash2,
+  FileText,
+  Info,
 } from "lucide-react";
+import api from "../../services/api";
+import "./Courses.css";
 
-function MentorCourses() {
-  const [categories, setCategories] = useState([]);
+function Courses() {
   const [courses, setCourses] = useState([]);
-  const [modules, setModules] = useState({});
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Module management for the selected course
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [selectedModule, setSelectedModule] = useState(null);
-  const [showView, setShowView] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
-  const [showModuleView, setShowModuleView] = useState(false);
-  const [editCourse, setEditCourse] = useState({});
-  const [showAddModule, setShowAddModule] = useState(false);
-  const [showEditModule, setShowEditModule] = useState(false);
-  const navigate = useNavigate();
-  const [newModule, setNewModule] = useState({
-    title: "",
-    description: "",
-    position: "",
-    courseId: ""
-  });
-  const [editModule, setEditModule] = useState({
-    id: "",
-    title: "",
-    description: "",
-    position: ""
-  });
-  const [showAddCourse, setShowAddCourse] = useState(false);
-const [newCourse, setNewCourse] = useState({
-    title: "",
-    subtitle: "",
-    description: "",
-    language: "",
-    level: "",
-    duration: "",
-    price: "",
-    discountPrice: "",
-    requirements: "",
-    outcomes: "",
-    audience: "",
-    status: "DRAFT",
-    categoryId: ""
-});
+  const [courseModules, setCourseModules] = useState([]);
+  const [availableModules, setAvailableModules] = useState([]);
+  const [modulesLoading, setModulesLoading] = useState(false);
+  const [moduleActionId, setModuleActionId] = useState(null);
+  const [selectedModuleToAdd, setSelectedModuleToAdd] = useState("");
 
-  // Language options
-  const languages = [
-    "English",
-  "Tamil"
-  ];
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  // Level options
-  const levels = [
-    "Beginner",
-    "Intermediate",
-    "Advanced",
-    "All Levels"
-  ];
-
- useEffect(() => {
-    fetchCourses();
-    fetchCategories();
-}, []);
-
-const fetchCategories = async () => {
-  try {
-    const token = localStorage.getItem("token");
-
-    const res = await axios.get(
-      "http://localhost:5000/api/categories",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    setCategories(res.data.data || res.data || []);
-  } catch (err) {
-    console.log(err);
-    setCategories([]);
-  }
-};
-
-  const fetchCourses = async () => {
+  const fetchData = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        "http://localhost:5000/api/courses",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      const courseData = response.data.data || [];
-      setCourses(courseData);
-      courseData.forEach((course) => {
-        fetchModules(course.id);
-      });
+      setLoading(true);
+      setError("");
+      const [coursesRes, catRes] = await Promise.all([
+        api.get("/courses"),
+        api.get("/categories").catch(() => ({ data: { data: [] } })),
+      ]);
+      setCourses(coursesRes.data?.data || coursesRes.data || []);
+      setCategories(catRes.data?.data || catRes.data || []);
     } catch (err) {
-      console.log(err);
+      setError(
+        err.response?.data?.message ||
+          "Couldn't load courses. Please refresh or check the server."
+      );
       setCourses([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchModules = async (courseId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:5000/api/modules/course/${courseId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      setModules((prev) => ({
-        ...prev,
-        [courseId]: response.data.data || []
-      }));
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  // Function to reorder modules when a module is added/deleted/updated
-  const reorderModules = async (courseId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:5000/api/modules/course/${courseId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      const modulesList = response.data.data || [];
-      const sortedModules = [...modulesList].sort((a, b) => a.position - b.position);
-      
-      for (let i = 0; i < sortedModules.length; i++) {
-        const newPosition = i + 1;
-        if (sortedModules[i].position !== newPosition) {
-          await axios.put(
-            `http://localhost:5000/api/modules/${sortedModules[i].id}`,
-            {
-              title: sortedModules[i].title,
-              description: sortedModules[i].description,
-              position: newPosition
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
-            }
-          );
-        }
-      }
-      
-      fetchModules(courseId);
-    } catch (err) {
-      console.log("Error reordering modules:", err);
-    }
-  };
-
-  const createModule = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const courseId = Number(newModule.courseId);
-      
-      const response = await axios.get(
-        `http://localhost:5000/api/modules/course/${courseId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      const currentModules = response.data.data || [];
-      const maxPosition = currentModules.length > 0 
-        ? Math.max(...currentModules.map(m => m.position)) 
-        : 0;
-      
-      let position = Number(newModule.position);
-      if (!position || position <= 0) {
-        position = maxPosition + 1;
-      }
-      
-      const positionExists = currentModules.some(m => m.position === position);
-      if (positionExists) {
-        const modulesToShift = currentModules.filter(m => m.position >= position);
-        for (const module of modulesToShift) {
-          await axios.put(
-            `http://localhost:5000/api/modules/${module.id}`,
-            {
-              title: module.title,
-              description: module.description,
-              position: module.position + 1
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
-            }
-          );
-        }
-      }
-      
-      await axios.post(
-        "http://localhost:5000/api/modules",
-        {
-          title: newModule.title,
-          description: newModule.description,
-          position: position,
-          courseId: courseId
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      await reorderModules(courseId);
-      
-      alert("Module created successfully.");
-      setShowAddModule(false);
-      setNewModule({
-        title: "",
-        description: "",
-        position: "",
-        courseId: ""
-      });
-      fetchCourses();
-    } catch (err) {
-      console.log(err);
-      alert(
-        err.response?.data?.message ||
-        "Unable to create module."
-      );
-    }
-  };
-
-  const updateModule = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const moduleId = Number(editModule.id);
-      const newPosition = Number(editModule.position);
-      
-      const currentModuleResponse = await axios.get(
-        `http://localhost:5000/api/modules/${moduleId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      const currentModule = currentModuleResponse.data.data;
-      const courseId = currentModule.courseId;
-      
-      const response = await axios.get(
-        `http://localhost:5000/api/modules/course/${courseId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      const allModules = response.data.data || [];
-      const oldPosition = currentModule.position;
-      
-      if (newPosition !== oldPosition && newPosition > 0) {
-        if (newPosition < oldPosition) {
-          const modulesToShift = allModules.filter(
-            m => m.position >= newPosition && m.position < oldPosition && m.id !== moduleId
-          );
-          for (const module of modulesToShift) {
-            await axios.put(
-              `http://localhost:5000/api/modules/${module.id}`,
-              {
-                title: module.title,
-                description: module.description,
-                position: module.position + 1
-              },
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`
-                }
-              }
-            );
-          }
-        } else if (newPosition > oldPosition) {
-          const modulesToShift = allModules.filter(
-            m => m.position > oldPosition && m.position <= newPosition && m.id !== moduleId
-          );
-          for (const module of modulesToShift) {
-            await axios.put(
-              `http://localhost:5000/api/modules/${module.id}`,
-              {
-                title: module.title,
-                description: module.description,
-                position: module.position - 1
-              },
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`
-                }
-              }
-            );
-          }
-        }
-      }
-      
-      await axios.put(
-        `http://localhost:5000/api/modules/${moduleId}`,
-        {
-          title: editModule.title,
-          description: editModule.description,
-          position: newPosition > 0 ? newPosition : oldPosition
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      await reorderModules(courseId);
-      
-      alert("Module updated successfully.");
-      setShowEditModule(false);
-      fetchCourses();
-    } catch (err) {
-      console.log(err);
-      alert(
-        err.response?.data?.message ||
-        "Unable to update module."
-      );
-    }
-  };
-
-  const deleteModule = async (id) => {
-    if (!window.confirm("Delete this module?")) return;
-    try {
-      const token = localStorage.getItem("token");
-      
-      const moduleResponse = await axios.get(
-        `http://localhost:5000/api/modules/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      const module = moduleResponse.data.data;
-      const courseId = module.courseId;
-      
-      await axios.delete(
-        `http://localhost:5000/api/modules/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      await reorderModules(courseId);
-      setShowModuleView(false);
-      alert("Module deleted successfully.");
-      fetchCourses();
-    } catch (err) {
-      console.log(err);
-      alert(
-        err.response?.data?.message ||
-        "Unable to delete module."
-      );
-    }
-  };
-
-  const deleteCourse = async (courseId) => {
-    if (!window.confirm("Are you sure you want to delete this course?")) return;
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `http://localhost:5000/api/courses/${courseId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      setShowView(false);
-      alert("Course deleted successfully.");
-      fetchCourses();
-    } catch (err) {
-      console.log(err);
-      alert(
-        err.response?.data?.message ||
-        "Unable to delete course."
-      );
-    }
-  };
-
-  const handleView = (course) => {
-    setSelectedCourse(course);
-    setShowView(true);
-  };
-
-  const handleModuleView = (module) => {
-    setSelectedModule(module);
-    setShowModuleView(true);
-  };
-
-  const handleEdit = (course) => {
-    setEditCourse({
-    ...course,
-    categoryId: course.categoryId || ""
-});
-    setShowEdit(true);
-  };
-
-  const handleModuleEdit = (module) => {
-    setEditModule({
-      id: module.id,
-      title: module.title,
-      description: module.description,
-      position: module.position
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return courses.filter((c) => {
+      const matchesSearch =
+        !q ||
+        c.title?.toLowerCase().includes(q) ||
+        c.description?.toLowerCase().includes(q);
+      const matchesCategory =
+        categoryFilter === "all" || String(c.categoryId) === String(categoryFilter);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (c.status || "").toUpperCase() === statusFilter.toUpperCase();
+      return matchesSearch && matchesCategory && matchesStatus;
     });
-    setShowEditModule(true);
+  }, [courses, search, categoryFilter, statusFilter]);
+
+  // ---- Module management ----
+  const openCourse = async (course) => {
+    setSelectedCourse(course);
+    setSelectedModuleToAdd("");
+    setCourseModules([]);
+    setAvailableModules([]);
+    await loadModules(course.id);
   };
 
-  const saveCourse = async () => {
+  const loadModules = async (courseId) => {
+    setModulesLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const payload = {
-        title: editCourse.title,
-        subtitle: editCourse.subtitle,
-        description: editCourse.description,
-        language: editCourse.language,
-        level: editCourse.level,
-        duration: Number(editCourse.duration),
-        price: Number(editCourse.price),
-        discountPrice: editCourse.discountPrice ? Number(editCourse.discountPrice) : null,
-        requirements: editCourse.requirements,
-        outcomes: editCourse.outcomes,
-        audience: editCourse.audience,
-        status: editCourse.status,
-        categoryId: Number(editCourse.categoryId)
-      };
-
-      await axios.put(
-        `http://localhost:5000/api/courses/${editCourse.id}`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      alert("Course updated successfully.");
-      setShowEdit(false);
-      fetchCourses();
+      const [courseRes, availRes] = await Promise.all([
+        api.get(`/courses/${courseId}`),
+        api.get(`/courses/${courseId}/available-modules`),
+      ]);
+      setCourseModules(courseRes.data?.data?.modules || []);
+      setAvailableModules(availRes.data?.data || []);
     } catch (err) {
-      console.log(err);
-      alert(err.response?.data?.message || err.message);
+      setCourseModules([]);
+      setAvailableModules([]);
+    } finally {
+      setModulesLoading(false);
     }
   };
 
-  const addCourse = async () => {
+  const loadAvailable = async (courseId) => {
     try {
-      const token = localStorage.getItem("token");
-      
-      if (!newCourse.title?.trim()) {
-        alert("Course title is required.");
-        return;
-      }
-      
-      if (!newCourse.language) {
-        alert("Please select a language.");
-        return;
-      }
-      
-      if (!newCourse.level) {
-        alert("Please select a level.");
-        return;
-      }
-      
-      if (!newCourse.duration || newCourse.duration <= 0) {
-        alert("Please enter a valid course duration.");
-        return;
-      }
-      
-      if (!newCourse.price || newCourse.price <= 0) {
-        alert("Please enter a valid course price.");
-        return;
-      }
+      const res = await api.get(`/courses/${courseId}/available-modules`);
+      setAvailableModules(res.data?.data || []);
+    } catch {
+      setAvailableModules([]);
+    }
+  };
 
-      const payload = {
-        title: newCourse.title.trim(),
-        subtitle: newCourse.subtitle?.trim() || "",
-        description: newCourse.description?.trim() || "",
-        language: newCourse.language,
-        level: newCourse.level,
-        duration: Number(newCourse.duration),
-        price: Number(newCourse.price),
-        discountPrice: newCourse.discountPrice ? Number(newCourse.discountPrice) : null,
-        requirements: newCourse.requirements?.trim() || "",
-        outcomes: newCourse.outcomes?.trim() || "",
-        audience: newCourse.audience?.trim() || "",
-        status: newCourse.status || "DRAFT",
-        categoryId: Number(newCourse.categoryId) || 1
-      };
-
-      await axios.post(
-        "http://localhost:5000/api/courses",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      alert("Course created successfully.");
-      setShowAddCourse(false);
-      setNewCourse({
-        title: "",
-        subtitle: "",
-        description: "",
-        language: "",
-        level: "",
-        duration: "",
-        price: "",
-        discountPrice: "",
-        requirements: "",
-        outcomes: "",
-        audience: "",
-        status: "DRAFT"
+  const attachModule = async () => {
+    if (!selectedModuleToAdd || !selectedCourse) return;
+    setModuleActionId("attach");
+    try {
+      const res = await api.post(`/courses/${selectedCourse.id}/modules`, {
+        moduleId: parseInt(selectedModuleToAdd),
       });
-      fetchCourses();
+      if (res.data?.data) setCourseModules(res.data.data);
+      setSelectedModuleToAdd("");
+      await loadAvailable(selectedCourse.id);
     } catch (err) {
-      console.error("Error creating course:", err);
-      alert(err.response?.data?.message || "Unable to create course.");
+      alert(err.response?.data?.message || "Failed to add module.");
+    } finally {
+      setModuleActionId(null);
     }
   };
 
-  const getNextModulePosition = (courseId) => {
-    const courseModules = modules[courseId] || [];
-    if (courseModules.length === 0) return 1;
-    const maxPosition = Math.max(...courseModules.map(m => m.position));
-    return maxPosition + 1;
+  const detachModule = async (moduleId) => {
+    if (!selectedCourse) return;
+    setModuleActionId(moduleId);
+    try {
+      const res = await api.delete(
+        `/courses/${selectedCourse.id}/modules/${moduleId}`
+      );
+      if (res.data?.data) setCourseModules(res.data.data);
+      await loadAvailable(selectedCourse.id);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to remove module.");
+    } finally {
+      setModuleActionId(null);
+    }
   };
 
-  if (loading) {
-    return <h3>Loading Courses...</h3>;
-  }
+  const lessonCount = (m) => m?._count?.lessons ?? m?.lessons?.length ?? 0;
 
   return (
     <div className="mentor-courses">
-      {/* Header */}
-    <div className="courses-header">
-  <div>
-    <h1>My Courses</h1>
-    <p>Create, manage and organize your courses.</p>
-  </div>
-
-  <div className="header-buttons">
-
-    <button
-      className="add-course-btn"
-      onClick={() => setShowAddCourse(true)}
-    >
-      <Plus size={18} />
-      Add Course
-    </button>
-
-    <button
-      className="add-quiz-btn"
-      onClick={() => navigate("/mentor/quiz?create=true")}
-    >
-      <Plus size={18} />
-      Add Quiz
-    </button>
-
-  </div>
-</div>
-      {/* Course Cards */}
       <div className="courses-container">
-        {courses.length > 0 ? (
-          courses.map((course) => (
-            <div key={course.id} className="course-card">
-              {/* Course Header */}
-              <div className="course-card-header">
-                <div className="course-info">
-                  <h2 className="course-title">{course.title}</h2>
-                  <p className="course-subtitle">{course.subtitle || "No subtitle"}</p>
-                </div>
-                <div className="course-category">
-  {course.category?.name || "Uncategorized"}
-</div>
-                <div className="course-meta">
-                  <span className={`status-badge ${course.status?.toLowerCase()}`}>
-                    {course.status || "DRAFT"}
-                  </span>
-                  <button
-                    className="view-btn-header"
-                    onClick={() => handleView(course)}
-                    title="View Course"
-                  >
-                    <Eye size={16} />
-                    View
-                  </button>
-                  <span className="course-stats">
-                    👥 {course.students ?? 0}
-                  </span>
-                  <span className="course-stats">
-                    📅 {course.createdAt ?
-                      new Date(course.createdAt).toLocaleDateString(
-                        "en-GB",
-                        {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric"
-                        }
-                      )
-                      : "-"
-                    }
-                  </span>
-                </div>
-              </div>
+        {/* Header */}
+        <div className="courses-header">
+          <div>
+            <h1 className="course-title">
+              <BookOpen size={24} /> Courses
+            </h1>
+            <p className="course-subtitle">
+              Browse all courses and manage their modules.
+            </p>
+          </div>
+          <div className="header-buttons">
+            <button className="view-btn-header" onClick={fetchData}>
+              <RefreshCw size={16} /> Refresh
+            </button>
+          </div>
+        </div>
 
-              {/* Modules Section */}
-              <div className="modules-section">
-                <div className="modules-header">
-                  <h4>📚 Modules</h4>
-                  <span className="module-count">
-                    {modules[course.id]?.length || 0} modules
-                  </span>
-                  <button
-                    className="add-module-btn"
-                    onClick={() => {
-                      const nextPosition = getNextModulePosition(course.id);
-                      setNewModule({
-                        title: "",
-                        description: "",
-                        position: nextPosition,
-                        courseId: course.id
-                      });
-                      setShowAddModule(true);
-                    }}
-                  >
-                    <Plus size={16} />
-                    Add Module
-                  </button>
-                </div>
+        {/* Mentors can't create courses — make that explicit rather than
+            showing a button that would fail. */}
+        <div
+          className="description-box"
+          style={{ display: "flex", alignItems: "center", gap: 8 }}
+        >
+          <Info size={16} />
+          <span>
+            Courses and categories are created by admins. You can add and
+            remove modules on any course.
+          </span>
+        </div>
 
-                {modules[course.id] && modules[course.id].length > 0 ? (
-                  <div className="modules-list">
-                    {modules[course.id]
-                      .sort((a, b) => a.position - b.position)
-                      .map((module) => (
-                        <div key={module.id} className="module-item">
-                          <div className="module-item-header">
-                            <div className="module-info">
-                              <h5>Module {module.position}: {module.title}</h5>
-                              <span className="lesson-count">
-                                {module.lessons?.length || 0} Lessons
-                              </span>
-                              <button
-                                className="module-view-btn"
-                                onClick={() => handleModuleView(module)}
-                                title="View Module"
-                              >
-                                <Eye size={14} />
-                              </button>
-                            </div>
-                          </div>
-                          {module.lessons && module.lessons.length > 0 && (
-                            <div className="lessons-container">
-                              {module.lessons.map((lesson) => (
-                                <span key={lesson.id} className="lesson-tag">
-                                  {lesson.title}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="no-modules">
-                    <p>No modules available</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
+        {/* Filters */}
+        <div
+          className="course-meta"
+          style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "16px 0" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flex: 1,
+              minWidth: 220,
+              background: "#fff",
+              border: "1px solid #e5e7eb",
+              borderRadius: 10,
+              padding: "0 12px",
+              color: "#9ca3af",
+            }}
+          >
+            <Search size={18} />
+            <input
+              placeholder="Search courses…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                border: "none",
+                outline: "none",
+                padding: "10px 0",
+                width: "100%",
+                fontSize: 14,
+                background: "transparent",
+              }}
+            />
+          </div>
+
+          <select
+            className="category-select"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="all">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="category-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="PUBLISHED">Published</option>
+            <option value="DRAFT">Draft</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+        </div>
+
+        {error && (
+          <div
+            className="description-box"
+            style={{ borderLeft: "4px solid #ef4444", color: "#b91c1c" }}
+          >
+            {error}
+          </div>
+        )}
+
+        {/* Course grid */}
+        {loading ? (
+          <div className="no-courses">Loading courses…</div>
+        ) : filtered.length === 0 ? (
+          <div className="no-courses">No courses found.</div>
         ) : (
-          <div className="no-courses">
-            <p>No Courses Found. Start by adding your first course!</p>
+          <div className="view-grid">
+            {filtered.map((course) => (
+              <div className="course-card" key={course.id}>
+                <div className="course-card-header">
+                  <h3>{course.title}</h3>
+                  <span
+                    className={`status-badge ${(course.status || "").toLowerCase()}`}
+                  >
+                    {course.status}
+                  </span>
+                </div>
+
+                <div className="course-info">
+                  <p className="course-category">
+                    {course.category?.name || "Uncategorized"}
+                    {course.level ? ` · ${course.level}` : ""}
+                  </p>
+                  {course.description && (
+                    <p className="course-subtitle">
+                      {course.description.length > 110
+                        ? `${course.description.slice(0, 110)}…`
+                        : course.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="course-stats">
+                  <span className="module-count">
+                    <Layers size={14} /> {course._count?.enrollments ?? 0} students
+                  </span>
+                </div>
+
+                <button
+                  className="module-view-btn"
+                  onClick={() => openCourse(course)}
+                >
+                  <Layers size={16} /> Manage Modules
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* View Course Modal */}
-      {showView && selectedCourse && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Course Details</h2>
-            
-            <div className="view-grid">
-              <div>
-                <label>Course Title</label>
-                <p>{selectedCourse.title}</p>
+      {/* Module management modal */}
+      {selectedCourse &&
+        createPortal(
+          <div className="popup-overlay" onClick={() => setSelectedCourse(null)}>
+            <div
+              className="popup popup-large"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modules-header">
+                <h2 className="section-title">
+                  <Layers size={20} /> {selectedCourse.title}
+                </h2>
+                <button
+                  className="view-btn-header"
+                  onClick={() => setSelectedCourse(null)}
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <div>
-                <label>Subtitle</label>
-                <p>{selectedCourse.subtitle || "-"}</p>
-              </div>
-              <div>
-                <label>Language</label>
-                <p>{selectedCourse.language}</p>
-              </div>
-              <div>
-                <label>Level</label>
-                <p>{selectedCourse.level}</p>
-              </div>
-              <div>
-                <label>Duration</label>
-                <p>{selectedCourse.duration} Hours</p>
-              </div>
-              <div>
-                <label>Price</label>
-                <p>₹{selectedCourse.price}</p>
-              </div>
-              <div>
-                <label>Discount Price</label>
-                <p>₹{selectedCourse.discountPrice || "N/A"}</p>
-              </div>
-              <div>
-                <label>Status</label>
-                <p>{selectedCourse.status}</p>
-              </div>
-            </div>
 
-            <label>Description</label>
-            <div className="description-box">
-              {selectedCourse.description || "No description available."}
-            </div>
-
-            <label>Requirements</label>
-            <div className="description-box">
-              {selectedCourse.requirements || "No requirements specified."}
-            </div>
-
-            <label>Learning Outcomes</label>
-            <div className="description-box">
-              {selectedCourse.outcomes || "No learning outcomes specified."}
-            </div>
-
-            <div className="popup-buttons">
-              <button
-                className="edit-btn"
-                onClick={() => {
-                  setShowView(false);
-                  handleEdit(selectedCourse);
-                }}
-              >
-                <Pencil size={16} />
-                Edit Course
-              </button>
-              <button
-                className="delete-btn"
-                onClick={() => deleteCourse(selectedCourse.id)}
-              >
-                <Trash2 size={16} />
-                Delete Course
-              </button>
-              <button
-                className="close-btn"
-                onClick={() => setShowView(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Module Modal */}
-      {showModuleView && selectedModule && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Module Details</h2>
-            
-            <div className="view-grid">
-              <div>
-                <label>Module Title</label>
-                <p>{selectedModule.title}</p>
-              </div>
-              <div>
-                <label>Course</label>
-                <p>{selectedModule.course?.title}</p>
-              </div>
-              <div>
-                <label>Position</label>
-                <p>{selectedModule.position}</p>
-              </div>
-              <div>
-                <label>Lessons</label>
-                <p>{selectedModule.lessons?.length || 0}</p>
-              </div>
-            </div>
-
-            <label>Description</label>
-            <div className="description-box">
-              {selectedModule.description || "No description available."}
-            </div>
-
-            {selectedModule.lessons && selectedModule.lessons.length > 0 && (
-              <>
-                <label>Lessons</label>
-                <div className="lessons-list-view">
-                  {selectedModule.lessons.map((lesson) => (
-                    <div key={lesson.id} className="lesson-item-view">
-                      <span className="lesson-number">{lesson.position}</span>
-                      <span className="lesson-name">{lesson.title}</span>
-                      <span className="lesson-duration">{lesson.duration} mins</span>
-                    </div>
-                  ))}
+              <div className="modules-section">
+                {/* Add module */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    marginBottom: 16,
+                  }}
+                >
+                  <select
+                    className="form-select"
+                    style={{ flex: 1, minWidth: 220 }}
+                    value={selectedModuleToAdd}
+                    onChange={(e) => setSelectedModuleToAdd(e.target.value)}
+                    disabled={modulesLoading || availableModules.length === 0}
+                  >
+                    <option value="">
+                      {availableModules.length
+                        ? "Select a module to add…"
+                        : "No modules available to add"}
+                    </option>
+                    {availableModules.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title} ({lessonCount(m)} lessons)
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="add-module-btn"
+                    onClick={attachModule}
+                    disabled={!selectedModuleToAdd || moduleActionId === "attach"}
+                  >
+                    <Plus size={16} />
+                    {moduleActionId === "attach" ? "Adding…" : "Add Module"}
+                  </button>
                 </div>
-              </>
-            )}
 
-            <div className="popup-buttons">
-              <button
-                className="edit-btn"
-                onClick={() => {
-                  setShowModuleView(false);
-                  handleModuleEdit(selectedModule);
-                }}
-              >
-                <Pencil size={16} />
-                Edit Module
-              </button>
-              <button
-                className="delete-btn"
-                onClick={() => deleteModule(selectedModule.id)}
-              >
-                <Trash2 size={16} />
-                Delete Module
-              </button>
-              <button
-                className="close-btn"
-                onClick={() => setShowModuleView(false)}
-              >
-                Close
-              </button>
+                <p className="position-hint">
+                  Modules are shared — adding one here doesn't remove it from
+                  other courses.
+                </p>
+
+                {/* Attached modules */}
+                {modulesLoading ? (
+                  <div className="no-modules">Loading modules…</div>
+                ) : courseModules.length === 0 ? (
+                  <div className="no-modules">
+                    No modules attached yet. Add one above.
+                  </div>
+                ) : (
+                  <div className="modules-list">
+                    {courseModules.map((m, index) => (
+                      <div className="module-item" key={m.id}>
+                        <div className="module-item-header">
+                          <div className="module-info">
+                            <h4>
+                              {index + 1}. {m.title}
+                            </h4>
+                            <span className="lesson-count">
+                              <FileText size={13} /> {lessonCount(m)} lesson
+                              {lessonCount(m) === 1 ? "" : "s"}
+                            </span>
+                          </div>
+                          <button
+                            className="view-btn-header"
+                            title="Remove from this course"
+                            onClick={() => detachModule(m.id)}
+                            disabled={moduleActionId === m.id}
+                            style={{ color: "#dc2626" }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="popup-buttons">
+                <button
+                  className="view-btn-header"
+                  onClick={() => setSelectedCourse(null)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Course Modal */}
-      {showEdit && (
-        <div className="popup-overlay">
-          <div className="popup popup-large">
-            <h2>Edit Course</h2>
-            
-            <h3 className="section-title">Basic Information</h3>
-            <input
-              placeholder="Course Title *"
-              value={editCourse.title || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  title: e.target.value
-                })
-              }
-            />
-            <input
-              placeholder="Subtitle"
-              value={editCourse.subtitle || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  subtitle: e.target.value
-                })
-              }
-            />
-            <textarea
-              rows="5"
-              placeholder="Description"
-              value={editCourse.description || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  description: e.target.value
-                })
-              }
-            />
-<h3 className="section-title">Category</h3>
-
-<select
-    className="category-select"
-    value={newCourse.categoryId}
-    onChange={(e)=>
-        setNewCourse({
-            ...newCourse,
-            categoryId: Number(e.target.value)
-        })
-    }
->
-    <option value="">Select Category</option>
-
-    {categories.map(category=>(
-        <option
-            key={category.id}
-            value={category.id}
-        >
-            {category.name}
-        </option>
-    ))}
-</select>
-            <h3 className="section-title">Course Details</h3>
-           
-
-            <select
-              value={editCourse.language || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  language: e.target.value
-                })
-              }
-              className="form-select"
-            >
-              <option value="">Select Language *</option>
-              {languages.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={editCourse.level || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  level: e.target.value
-                })
-              }
-              className="form-select"
-            >
-              <option value="">Select Level *</option>
-              {levels.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="number"
-              placeholder="Duration (Hours) *"
-              value={editCourse.duration || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  duration: Number(e.target.value)
-                })
-              }
-            />
-
-            <h3 className="section-title">Pricing</h3>
-            <input
-              type="number"
-              placeholder="Price *"
-              value={editCourse.price || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  price: Number(e.target.value)
-                })
-              }
-            />
-            <input
-              type="number"
-              placeholder="Discount Price (Optional)"
-              value={editCourse.discountPrice || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  discountPrice: Number(e.target.value)
-                })
-              }
-            />
-
-            <h3 className="section-title">Learning Information</h3>
-            <textarea
-              rows="3"
-              placeholder="Requirements (Optional)"
-              value={editCourse.requirements || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  requirements: e.target.value
-                })
-              }
-            />
-            <textarea
-              rows="3"
-              placeholder="Learning Outcomes (Optional)"
-              value={editCourse.outcomes || ""}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  outcomes: e.target.value
-                })
-              }
-            />
-
-            <h3 className="section-title">Publishing</h3>
-            <select
-              value={editCourse.status || "DRAFT"}
-              onChange={(e) =>
-                setEditCourse({
-                  ...editCourse,
-                  status: e.target.value
-                })
-              }
-              className="form-select"
-            >
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-            </select>
-
-            <div className="popup-buttons">
-              <button className="save-btn" onClick={saveCourse}>
-                Save Changes
-              </button>
-              <button
-                className="close-btn"
-                onClick={() => setShowEdit(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Course Modal */}
-      {showAddCourse && (
-        <div className="popup-overlay">
-          <div className="popup popup-large">
-            <h2>Create New Course</h2>
-            
-            <h3 className="section-title">Basic Information</h3>
-            <input
-              placeholder="Course Title *"
-              value={newCourse.title}
-              onChange={(e) => {
-                setNewCourse({
-                  ...newCourse,
-                  title: e.target.value
-                });
-              }}
-              required
-            />
-            <input
-              placeholder="Subtitle"
-              value={newCourse.subtitle}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  subtitle: e.target.value
-                })
-              }
-            />
-            <textarea
-              rows="5"
-              placeholder="Description"
-              value={newCourse.description}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  description: e.target.value
-                })
-              }
-            />
-            <h3 className="section-title">Category</h3>
-
-<select
-    className="category-select"
-    value={editCourse.categoryId || ""}
-    onChange={(e)=>
-        setEditCourse({
-            ...editCourse,
-            categoryId:Number(e.target.value)
-        })
-    }
->
-    <option value="">Select Category</option>
-
-    {categories.map(category=>(
-        <option
-            key={category.id}
-            value={category.id}
-        >
-            {category.name}
-        </option>
-    ))}
-</select>
-            <h3 className="section-title">Course Details</h3>
-
-            <select
-              value={newCourse.language}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  language: e.target.value
-                })
-              }
-              className="form-select"
-              required
-            >
-              <option value="">Select Language *</option>
-              {languages.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={newCourse.level}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  level: e.target.value
-                })
-              }
-              className="form-select"
-              required
-            >
-              <option value="">Select Level *</option>
-              {levels.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="number"
-              placeholder="Duration (Hours) *"
-              value={newCourse.duration}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  duration: Number(e.target.value)
-                })
-              }
-              required
-            />
-
-            <h3 className="section-title">Pricing</h3>
-            <input
-              type="number"
-              placeholder="Price *"
-              value={newCourse.price}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  price: Number(e.target.value)
-                })
-              }
-              required
-            />
-            <input
-              type="number"
-              placeholder="Discount Price (Optional)"
-              value={newCourse.discountPrice}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  discountPrice: e.target.value
-                })
-              }
-            />
-
-            <h3 className="section-title">Learning Information</h3>
-            <textarea
-              rows="3"
-              placeholder="Requirements (Optional)"
-              value={newCourse.requirements}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  requirements: e.target.value
-                })
-              }
-            />
-            <textarea
-              rows="3"
-              placeholder="Learning Outcomes (Optional)"
-              value={newCourse.outcomes}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  outcomes: e.target.value
-                })
-              }
-            />
-
-            <h3 className="section-title">Publishing</h3>
-            <select
-              value={newCourse.status}
-              onChange={(e) =>
-                setNewCourse({
-                  ...newCourse,
-                  status: e.target.value
-                })
-              }
-              className="form-select"
-            >
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-            </select>
-
-            <div className="popup-buttons">
-              <button className="save-btn" onClick={addCourse}>
-                Create Course
-              </button>
-              <button
-                className="close-btn"
-                onClick={() => {
-                  setShowAddCourse(false);
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Module Modal */}
-      {showAddModule && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Add Module</h2>
-            <label>Module Title</label>
-            <input
-              value={newModule.title}
-              onChange={(e) =>
-                setNewModule({
-                  ...newModule,
-                  title: e.target.value
-                })
-              }
-            />
-            <label>Description</label>
-            <textarea
-              rows="4"
-              value={newModule.description}
-              onChange={(e) =>
-                setNewModule({
-                  ...newModule,
-                  description: e.target.value
-                })
-              }
-            />
-            <label>Position</label>
-            <input
-              type="number"
-              min="1"
-              value={newModule.position}
-              onChange={(e) =>
-                setNewModule({
-                  ...newModule,
-                  position: e.target.value
-                })
-              }
-            />
-            <p className="position-hint">
-              Current modules: {modules[newModule.courseId]?.length || 0}
-              {modules[newModule.courseId]?.length > 0 && (
-                <> (Positions: {modules[newModule.courseId].sort((a, b) => a.position - b.position).map(m => m.position).join(", ")})</>
-              )}
-            </p>
-            <div className="popup-buttons">
-              <button className="save-btn" onClick={createModule}>
-                Create
-              </button>
-              <button
-                className="close-btn"
-                onClick={() => setShowAddModule(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Module Modal */}
-      {showEditModule && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Edit Module</h2>
-            <label>Module Title</label>
-            <input
-              value={editModule.title}
-              onChange={(e) =>
-                setEditModule({
-                  ...editModule,
-                  title: e.target.value
-                })
-              }
-            />
-            <label>Description</label>
-            <textarea
-              rows="4"
-              value={editModule.description}
-              onChange={(e) =>
-                setEditModule({
-                  ...editModule,
-                  description: e.target.value
-                })
-              }
-            />
-            <label>Position</label>
-            <input
-              type="number"
-              min="1"
-              value={editModule.position}
-              onChange={(e) =>
-                setEditModule({
-                  ...editModule,
-                  position: e.target.value
-                })
-              }
-            />
-            <div className="popup-buttons">
-              <button className="save-btn" onClick={updateModule}>
-                Save
-              </button>
-              <button
-                className="close-btn"
-                onClick={() => setShowEditModule(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
 
-export default MentorCourses;
+export default Courses;

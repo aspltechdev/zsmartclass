@@ -1,4 +1,3 @@
-
 const express = require("express");
 const router = express.Router();
 
@@ -12,18 +11,18 @@ router.get("/", categoryController.getAll);
 
 router.get("/:id", categoryController.getById);
 
-// Protected Routes (Admin & Mentor Only)
+// Protected Routes (Admin Only — mentors may read categories but not manage them)
 router.post(
     "/",
     authMiddleware,
-    roleMiddleware("ADMIN","MENTOR"),
+    roleMiddleware("ADMIN"),
     categoryController.create
 );
 
 router.put(
     "/:id",
     authMiddleware,
-    roleMiddleware("ADMIN","MENTOR"),
+    roleMiddleware("ADMIN"),
     categoryController.update
 );
 

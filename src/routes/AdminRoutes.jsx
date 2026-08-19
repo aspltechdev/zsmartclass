@@ -1,86 +1,50 @@
-﻿// import { Routes, Route, Navigate } from 'react-router-dom';
-// import AdminDashboard from '../pages/admin/Dashboard';
-// function AdminRoutes() {
-//   return (
-//     <Routes>
-//       <Route index element={<Navigate to="dashboard" />} />
-//       <Route path="dashboard" element={<AdminDashboard />} />
-//       <Route path="/admin" element={<AdminLayout />}>
+﻿// src/routes/AdminRoutes.jsx
+import { Routes, Route, Navigate } from "react-router-dom";
 
-//     <Route index element={<Navigate to="dashboard" />} />
-
-//     <Route path="dashboard" element={<AdminDashboard />} />
-
-//     <Route path="users" element={<AdminUsers />} />
-
-//     <Route path="categories" element={<AdminCategories />} />
-
-//     <Route path="courses" element={<AdminCourses />} />
-
-//     <Route path="modules" element={<AdminModules />} />
-
-//     <Route path="lessons" element={<AdminLessons />} />
-
-//     <Route path="payments" element={<AdminPayments />} />
-
-//     <Route path="certificates" element={<AdminCertificates />} />
-
-//     <Route path="notifications" element={<AdminNotifications />} />
-
-//     <Route path="reports" element={<AdminReports />} />
-
-//     <Route path="settings" element={<AdminSettings />} />
-
-// </Route>
-//     </Routes>
-//   );
-// }
-// export default AdminRoutes;
-
-// src/routes/AdminRoutes.jsx
-import { Routes, Route, Navigate } from 'react-router-dom';
-import AdminLayout from '../components/admin/AdminLayout';
-import AdminDashboard from '../pages/admin/Dashboard';
-import AdminUsers from '../pages/admin/Users';
-
-import AdminCourses from '../pages/admin/Courses';
-import AdminModules from '../pages/admin/Modules';
-import AdminLessons from '../pages/admin/Lessons';
-import AdminPayments from '../pages/admin/Payments';
-import AdminCertificates from '../pages/admin/Certificates';
-import AdminNotifications from '../pages/admin/Notifications';
-import AdminReports from '../pages/admin/Reports';
-import AdminSettings from '../pages/admin/Settings';
-import AdminCategories from '../pages/admin/AdminCategories';
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import AdminUsers from "../pages/admin/AdminUsers";
+import AdminCategories from "../pages/admin/AdminCategories";
+import AdminCourses from "../pages/admin/AdminCourses";
+import AdminModules from "../pages/admin/AdminModules";
+import AdminLessons from "../pages/admin/AdminLessons";
+import AdminEnrollments from "../pages/admin/AdminEnrollments";
+import AdminPayments from "../pages/admin/AdminPayments";
+import AdminCertificates from "../pages/admin/AdminCertificates";
+import AdminNotifications from "../pages/admin/AdminNotifications";
+import AdminReports from "../pages/admin/AdminReports";
+import AdminProfile from "../pages/admin/AdminProfile";
 
 function AdminRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<AdminLayout />}>
-        {/* Default redirect to dashboard */}
-        <Route index element={<Navigate to="dashboard" replace />} />
-        
-        {/* Admin Pages */}
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="categories" element={<AdminCategories />} />
-        <Route path="courses" element={<AdminCourses />} />
-        <Route path="modules" element={<AdminModules />} />
-        <Route path="lessons" element={<AdminLessons />} />
-        <Route path="payments" element={<AdminPayments />} />
-        <Route path="certificates" element={<AdminCertificates />} />
-        <Route path="notifications" element={<AdminNotifications />} />
-        <Route path="reports" element={<AdminReports />} />
-        <Route path="settings" element={<AdminSettings />} />
-        
-        {/* 404 for admin routes */}
-        <Route path="*" element={
-          <div style={{ padding: '40px', textAlign: 'center' }}>
-            <h2>Page Not Found</h2>
-            <p>The admin page you're looking for doesn't exist.</p>
-          </div>
-        } />
-      </Route>
+      <Route index element={<Navigate to="dashboard" replace />} />
+
+      {/* Main */}
+      <Route path="dashboard" element={<AdminDashboard />} />
+
+      {/* Management */}
+      <Route path="users" element={<AdminUsers />} />
+      <Route path="categories" element={<AdminCategories />} />
+
+      {/* Content */}
+      <Route path="courses" element={<AdminCourses />} />
+      <Route path="modules" element={<AdminModules />} />
+      <Route path="lessons" element={<AdminLessons />} />
+
+      {/* Operations */}
+      <Route path="enrollments" element={<AdminEnrollments />} />
+      <Route path="payments" element={<AdminPayments />} />
+      <Route path="certificates" element={<AdminCertificates />} />
+
+      {/* Engagement + analytics */}
+      <Route path="notifications" element={<AdminNotifications />} />
+      <Route path="reports" element={<AdminReports />} />
+
+      {/* System */}
+      <Route path="profile" element={<AdminProfile />} />
+
+      {/* Unknown admin path -> dashboard instead of a blank 404 */}
+      <Route path="*" element={<Navigate to="dashboard" replace />} />
     </Routes>
   );
 }

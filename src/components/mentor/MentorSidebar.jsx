@@ -6,7 +6,7 @@ import {
   Users,
   IndianRupee,
   Award,
-  PlaySquare,
+  Layers,
   Star,
   ClipboardList,
   FileQuestion,
@@ -36,9 +36,9 @@ const menu = [
     category: "Content",
   },
   {
-    title: "Lessons",
-    path: "/mentor/lessons",
-    icon: PlaySquare,
+    title: "Modules",
+    path: "/mentor/modules",
+    icon: Layers,
     category: "Content",
   },
 
@@ -46,9 +46,15 @@ const menu = [
   // STUDENTS & ENGAGEMENT
   // ==========================================
   {
-    title: "Students",
+    title: "Students Enrollments",
     path: "/mentor/students",
     icon: Users,
+    category: "Engagement",
+  },
+  {
+    title: "Quiz Marks",
+    path: "/mentor/quizmark",
+    icon: FileQuestion,
     category: "Engagement",
   },
   {
@@ -63,37 +69,16 @@ const menu = [
     icon: ClipboardList,
     category: "Engagement",
   },
-  {
-    title: "Quiz",
-    path: "/mentor/quiz",
-    icon: FileQuestion,
-    category: "Engagement",
-  },
+  
 
   // ==========================================
   // ANALYTICS
   // ==========================================
   {
-    title: "Earnings",
-    path: "/mentor/earnings",
-    icon: IndianRupee,
-    category: "Analytics",
-  },
-  {
     title: "Reviews",
     path: "/mentor/reviews",
     icon: Star,
     category: "Analytics",
-  },
-
-  // ==========================================
-  // SYSTEM
-  // ==========================================
-  {
-    title: "Settings",
-    path: "/mentor/settings",
-    icon: Settings,
-    category: "System",
   },
 ];
 

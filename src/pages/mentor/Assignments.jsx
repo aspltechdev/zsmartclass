@@ -499,29 +499,51 @@ function Assignments() {
 
                 </div>
 
-                <div>
+               <div>
+  <label>Total Marks</label>
 
-                  <label>
+  <div className="marks-counter">
 
-                    Total Marks
+    <button
+      type="button"
+      className="marks-btn"
+      onClick={() =>
+        setFormData((prev) => ({
+          ...prev,
+          totalMarks: Math.max(
+            1,
+            Number(prev.totalMarks || 1) - 1
+          ),
+        }))
+      }
+    >
+      −
+    </button>
 
-                  </label>
+    <input
+      type="number"
+      name="totalMarks"
+      value={formData.totalMarks}
+      onChange={handleChange}
+      min="1"
+      required
+    />
 
-                  <input
+    <button
+      type="button"
+      className="marks-btn"
+      onClick={() =>
+        setFormData((prev) => ({
+          ...prev,
+          totalMarks: Number(prev.totalMarks || 0) + 1,
+        }))
+      }
+    >
+      +
+    </button>
 
-                    type="number"
-
-                    name="totalMarks"
-
-                    value={formData.totalMarks}
-
-                    onChange={handleChange}
-
-                    required
-
-                  />
-
-                </div>
+  </div>
+</div>
 
               </div>
 

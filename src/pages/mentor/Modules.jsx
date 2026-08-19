@@ -1,653 +1,255 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
-import "./Modules.css";
+// src/pages/mentor/Modules.jsx
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
-  ArrowLeft,
-  Pencil,
-  Plus,
-  Trash2,
-  Eye,
-  ChevronDown,
-  ChevronRight
+  Layers, Plus, Search, Edit, Trash2, Eye, X, RefreshCw,
+  FileText, Save, ClipboardList, ChevronRight,
 } from "lucide-react";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import "./Modules.css";
+
+const EMPTY_FORM = { title: "", description: "" };
 
 function Modules() {
-  const { courseId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  const [course, setCourse] = useState(null);
+  const { user } = useAuth();
+
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showAddModule, setShowAddModule] = useState(false);
-  const [showEditModule, setShowEditModule] = useState(false);
-  const [showViewModule, setShowViewModule] = useState(false);
-  const [selectedModule, setSelectedModule] = useState(null);
-  const [expandedModules, setExpandedModules] = useState({});
-  
-  const [newModule, setNewModule] = useState({
-    title: "",
-    description: "",
-    position: "",
-    courseId: courseId
-  });
-  
-  const [editModule, setEditModule] = useState({
-    id: "",
-    title: "",
-    description: "",
-    position: ""
-  });
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
-  // Function to get course ID from various sources
-  const getCourseId = () => {
-    // Try 1: From URL params
-    if (courseId && !isNaN(courseId)) {
-      return courseId;
-    }
-    
-    // Try 2: From URL path
-    const pathParts = window.location.pathname.split('/');
-    const lastPart = pathParts[pathParts.length - 1];
-    if (lastPart && !isNaN(lastPart)) {
-      return lastPart;
-    }
-    
-    // Try 3: From URL query string
-    const urlParams = new URLSearchParams(window.location.search);
-    const idFromQuery = urlParams.get('courseId');
-    if (idFromQuery && !isNaN(idFromQuery)) {
-      return idFromQuery;
-    }
-    
-    // Try 4: From state (if passed via navigate)
-    if (location.state && location.state.courseId) {
-      return location.state.courseId;
-    }
-    
-    return null;
-  };
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  useEffect(() => {
-    const id = getCourseId();
-    console.log("Final course ID:", id);
-    
-    if (id) {
-      setNewModule(prev => ({ ...prev, courseId: id }));
-      fetchCourseDetails(id);
-      fetchModules(id);
-    } else {
-      console.error("No courseId found");
-      setError("No course ID provided. Please select a course first.");
-      setLoading(false);
-    }
-  }, [courseId, location]);
+  useEffect(() => { fetchModules(); }, []);
 
-  const fetchCourseDetails = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      console.log("Fetching course details for ID:", id);
-      
-      const response = await axios.get(
-        `http://localhost:5000/api/courses/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      console.log("Course details:", response.data);
-      setCourse(response.data.data);
-    } catch (err) {
-      console.error("Error fetching course details:", err);
-    }
-  };
-
-  const fetchModules = async (id) => {
+  const fetchModules = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      const token = localStorage.getItem("token");
-      console.log("Fetching modules for course ID:", id);
-      
-      const response = await axios.get(
-        `http://localhost:5000/api/modules/course/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      console.log("Modules response:", response.data);
-      const moduleData = response.data.data || [];
-      console.log("Modules data:", moduleData);
-      
-      moduleData.sort((a, b) => a.position - b.position);
-      setModules(moduleData);
-      
-      const expanded = {};
-      moduleData.forEach(module => {
-        expanded[module.id] = true;
-      });
-      setExpandedModules(expanded);
+      setError("");
+      const res = await api.get("/modules");
+      setModules(res.data?.data || res.data || []);
     } catch (err) {
-      console.error("Error fetching modules:", err);
-      console.error("Error response:", err.response?.data);
-      setError(err.response?.data?.message || "Failed to load modules");
+      setError(err.response?.data?.message || "Couldn't load modules.");
       setModules([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getNextModulePosition = () => {
-    if (modules.length === 0) return 1;
-    const maxPosition = Math.max(...modules.map(m => m.position));
-    return maxPosition + 1;
+  const totalLessons = modules.reduce((s, m) => s + (m.lessons?.length || 0), 0);
+
+  const filtered = modules.filter((m) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return m.title?.toLowerCase().includes(q) ||
+           m.description?.toLowerCase().includes(q);
+  });
+
+  const openCreate = () => {
+    setEditing(null); setForm(EMPTY_FORM); setFormErrors({}); setShowModal(true);
   };
 
-  const toggleModule = (moduleId) => {
-    setExpandedModules(prev => ({
-      ...prev,
-      [moduleId]: !prev[moduleId]
-    }));
+  const openEdit = (module) => {
+    setEditing(module);
+    setForm({ title: module.title || "", description: module.description || "" });
+    setFormErrors({}); setShowModal(true);
   };
 
-  const createModule = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const id = getCourseId();
-      
-      if (!newModule.title?.trim()) {
-        alert("Module title is required.");
-        return;
-      }
-
-      if (!id) {
-        alert("Course ID is missing.");
-        return;
-      }
-
-      await axios.post(
-        "http://localhost:5000/api/modules",
-        {
-          title: newModule.title.trim(),
-          description: newModule.description?.trim() || "",
-          position: Number(newModule.position) || getNextModulePosition(),
-          courseId: Number(id)
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      alert("Module created successfully.");
-      setShowAddModule(false);
-      setNewModule({
-        title: "",
-        description: "",
-        position: "",
-        courseId: id
-      });
-      fetchModules(id);
-    } catch (err) {
-      console.log(err);
-      alert(
-        err.response?.data?.message ||
-        "Unable to create module."
-      );
+  const saveModule = async () => {
+    if (!form.title.trim()) {
+      setFormErrors({ title: "Module title is required" });
+      return;
     }
-  };
-
-  const updateModule = async () => {
     try {
-      const token = localStorage.getItem("token");
-      
-      if (!editModule.title?.trim()) {
-        alert("Module title is required.");
-        return;
-      }
+      setIsSubmitting(true);
+      const payload = {
+        title: form.title.trim(),
+        description: form.description || "",
+        createdBy: user?.id,
+      };
+      if (editing) await api.put(`/modules/${editing.id}`, payload);
+      else await api.post("/modules", payload);
 
-      await axios.put(
-        `http://localhost:5000/api/modules/${editModule.id}`,
-        {
-          title: editModule.title.trim(),
-          description: editModule.description?.trim() || "",
-          position: Number(editModule.position)
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      alert("Module updated successfully.");
-      setShowEditModule(false);
-      const id = getCourseId();
-      if (id) fetchModules(id);
+      setShowModal(false); setEditing(null); setForm(EMPTY_FORM);
+      await fetchModules();
     } catch (err) {
-      console.log(err);
-      alert(
-        err.response?.data?.message ||
-        "Unable to update module."
-      );
+      setFormErrors({ submit: err.response?.data?.message || "Failed to save module." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const deleteModule = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this module?")) return;
-    
     try {
-      const token = localStorage.getItem("token");
-      
-      await axios.delete(
-        `http://localhost:5000/api/modules/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      alert("Module deleted successfully.");
-      const courseId = getCourseId();
-      if (courseId) fetchModules(courseId);
+      await api.delete(`/modules/${id}`);
+      setDeleteTarget(null);
+      await fetchModules();
     } catch (err) {
-      console.log(err);
-      alert(
-        err.response?.data?.message ||
-        "Unable to delete module."
-      );
+      alert(err.response?.data?.message || "Failed to delete module.");
+      setDeleteTarget(null);
     }
   };
 
-  const handleViewModule = (module) => {
-    setSelectedModule(module);
-    setShowViewModule(true);
-  };
+  const formatDate = (d) =>
+    d ? new Date(d).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" }) : "—";
 
-  const goBack = () => {
-    navigate("/mentor/courses");
-  };
+  // Hand off to the dedicated Lessons / Quiz pages, carrying the module id.
+  const goToLessons = (moduleId) => navigate(`/mentor/lessons?moduleId=${moduleId}`);
+  const goToQuizzes = (moduleId) => navigate(`/mentor/quiz?moduleId=${moduleId}`);
 
   if (loading) {
     return (
       <div className="modules-page">
-        <div className="modules-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading modules...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="modules-page">
-        <div className="modules-error">
-          <h3>Error Loading Modules</h3>
-          <p>{error}</p>
-          <button onClick={() => {
-            const id = getCourseId();
-            if (id) {
-              fetchModules(id);
-            } else {
-              setError("Still no course ID found. Please go back and select a course.");
-            }
-          }} className="retry-btn">
-            Retry
-          </button>
-          <button onClick={goBack} className="back-btn-secondary">
-            Back to Courses
-          </button>
-        </div>
+        <div className="loading-state"><div className="spinner"></div><p>Loading modules...</p></div>
       </div>
     );
   }
 
   return (
     <div className="modules-page">
-      <div className="modules-header">
-        <div className="modules-header-left">
-          <button className="back-btn" onClick={goBack}>
-            <ArrowLeft size={20} />
-            Back to Courses
-          </button>
-          <div className="course-info-header">
-            <h1>{course?.title || "Course Modules"}</h1>
-            {course && (
-              <span className={`course-status ${course.status?.toLowerCase()}`}>
-                {course.status || "DRAFT"}
-              </span>
-            )}
-          </div>
+      <div className="page-header">
+        <div>
+          <h1>Module Management</h1>
+          <p className="subtitle">Create modules, then add lessons and quizzes inside them</p>
         </div>
-        <button
-          className="add-module-btn"
-          onClick={() => {
-            const id = getCourseId();
-            setNewModule({
-              title: "",
-              description: "",
-              position: getNextModulePosition(),
-              courseId: id
-            });
-            setShowAddModule(true);
-          }}
-        >
-          <Plus size={18} />
-          Add Module
+        <button className="add-btn" onClick={openCreate}>
+          <Plus size={18} /> New Module
         </button>
       </div>
 
-      {course?.subtitle && (
-        <p className="course-subtitle-text">{course.subtitle}</p>
-      )}
+      {error && <div className="error-text">{error}</div>}
 
-      <div className="modules-stats">
-        <span>Total Modules: {modules.length}</span>
-        <span>Total Lessons: {modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)}</span>
+      <div className="module-stats">
+        <div className="stat-card">
+          <Layers size={24} />
+          <div><h3>{modules.length}</h3><p>Total Modules</p></div>
+        </div>
+        <div className="stat-card">
+          <FileText size={24} />
+          <div><h3>{totalLessons}</h3><p>Total Lessons</p></div>
+        </div>
+      </div>
+
+      <div className="toolbar">
+        <div className="search-box">
+          <Search size={18} />
+          <input placeholder="Search modules..." value={search}
+                 onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <button className="refresh-btn" onClick={fetchModules}><RefreshCw size={18} /></button>
       </div>
 
       <div className="modules-container">
-        {modules.length > 0 ? (
-          modules.map((module) => (
-            <div key={module.id} className="module-card">
-              <div className="module-card-header">
-                <div 
-                  className="module-card-left"
-                  onClick={() => toggleModule(module.id)}
-                >
-                  <button className="expand-btn">
-                    {expandedModules[module.id] ? (
-                      <ChevronDown size={20} />
-                    ) : (
-                      <ChevronRight size={20} />
-                    )}
-                  </button>
-                  <div className="module-badge">
-                    Module {module.position}
-                  </div>
-                  <h3 className="module-title">{module.title}</h3>
-                  <span className="lesson-count-badge">
-                    {module.lessons?.length || 0} Lessons
-                  </span>
-                </div>
-                <div className="module-card-actions">
-                  <button
-                    className="module-action-btn view-module-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewModule(module);
-                    }}
-                    title="View Module"
-                  >
-                    <Eye size={16} />
-                  </button>
-                  <button
-                    className="module-action-btn edit-module-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditModule({
-                        id: module.id,
-                        title: module.title,
-                        description: module.description || "",
-                        position: module.position
-                      });
-                      setShowEditModule(true);
-                    }}
-                    title="Edit Module"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    className="module-action-btn delete-module-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteModule(module.id);
-                    }}
-                    title="Delete Module"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {expandedModules[module.id] && (
-                <div className="lessons-section">
-                  {module.lessons && module.lessons.length > 0 ? (
-                    <div className="lessons-list">
-                      {module.lessons.map((lesson) => (
-                        <div key={lesson.id} className="lesson-item">
-                          <span className="lesson-position">
-                            {module.position}.{lesson.position || 1}
-                          </span>
-                          <span className="lesson-title">{lesson.title}</span>
-                          {lesson.duration && (
-                            <span className="lesson-duration">
-                              ⏱ {lesson.duration} min
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="no-lessons">
-                      <p>No lessons in this module yet.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))
+        {filtered.length === 0 ? (
+          <div className="empty-state">
+            <Layers size={48} />
+            <h3>No modules found</h3>
+            <p>Create your first module to get started</p>
+            <button className="add-btn" onClick={openCreate}><Plus size={18} /> Create Module</button>
+          </div>
         ) : (
-          <div className="no-modules">
-            <div className="no-modules-content">
-              <h3>No Modules Yet</h3>
-              <p>Start by adding your first module to this course.</p>
-              <button
-                className="add-module-btn-primary"
-                onClick={() => {
-                  const id = getCourseId();
-                  setNewModule({
-                    title: "",
-                    description: "",
-                    position: 1,
-                    courseId: id
-                  });
-                  setShowAddModule(true);
-                }}
-              >
-                <Plus size={18} />
-                Add First Module
-              </button>
-            </div>
+          <div className="module-grid">
+            {filtered.map((module) => {
+              const lessons = module.lessons || [];
+              return (
+                <div className="module-card" key={module.id}>
+                  <div className="module-card-header">
+                    <div className="module-card-icon"><Layers size={20} /></div>
+                    <div className="module-card-info">
+                      <div className="module-card-title-row"><h4>{module.title}</h4></div>
+                      <div className="module-card-meta">
+                        <span className="lesson-count">{lessons.length} lessons</span>
+                        <span className="date-badge">{formatDate(module.createdAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {module.description && (
+                    <p className="module-card-description">{module.description}</p>
+                  )}
+
+                  {/* Hand-off buttons */}
+                  <div className="module-nav-actions">
+                    <button className="module-nav-btn" onClick={() => goToLessons(module.id)}>
+                      <FileText size={15} /> Lessons <ChevronRight size={14} />
+                    </button>
+                    <button className="module-nav-btn" onClick={() => goToQuizzes(module.id)}>
+                      <ClipboardList size={15} /> Quizzes <ChevronRight size={14} />
+                    </button>
+                  </div>
+
+                  <div className="module-card-actions">
+                    <button title="Edit module" className="edit-btn" onClick={() => openEdit(module)}>
+                      <Edit size={16} />
+                    </button>
+                    <button title="Delete module" className="delete-btn" onClick={() => setDeleteTarget(module.id)}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Add Module Modal */}
-      {showAddModule && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Add Module</h2>
-            <label>Module Title *</label>
-            <input
-              placeholder="Enter module title"
-              value={newModule.title}
-              onChange={(e) =>
-                setNewModule({
-                  ...newModule,
-                  title: e.target.value
-                })
-              }
-            />
-            <label>Description</label>
-            <textarea
-              rows="4"
-              placeholder="Enter module description (optional)"
-              value={newModule.description}
-              onChange={(e) =>
-                setNewModule({
-                  ...newModule,
-                  description: e.target.value
-                })
-              }
-            />
-            <label>Position</label>
-            <input
-              type="number"
-              min="1"
-              value={newModule.position}
-              onChange={(e) =>
-                setNewModule({
-                  ...newModule,
-                  position: e.target.value
-                })
-              }
-              placeholder={`Current modules: ${modules.length} (Next: ${getNextModulePosition()})`}
-            />
-            <small className="position-hint">
-              {newModule.position && modules.some(m => m.position >= Number(newModule.position)) 
-                ? "⚠️ This position will shift existing modules down" 
-                : "✓ Position available"}
-            </small>
-            <div className="popup-buttons">
-              <button className="save-btn" onClick={createModule}>
-                Create Module
-              </button>
-              <button
-                className="close-btn"
-                onClick={() => setShowAddModule(false)}
-              >
-                Cancel
-              </button>
+      {/* Create / edit module */}
+      {showModal && createPortal(
+        <div className="modal" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{editing ? "Edit Module" : "New Module"}</h2>
+              <button className="modal-close" onClick={() => setShowModal(false)}><X size={20} /></button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Module Modal */}
-      {showEditModule && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Edit Module</h2>
-            <label>Module Title *</label>
-            <input
-              placeholder="Enter module title"
-              value={editModule.title}
-              onChange={(e) =>
-                setEditModule({
-                  ...editModule,
-                  title: e.target.value
-                })
-              }
-            />
-            <label>Description</label>
-            <textarea
-              rows="4"
-              placeholder="Enter module description (optional)"
-              value={editModule.description}
-              onChange={(e) =>
-                setEditModule({
-                  ...editModule,
-                  description: e.target.value
-                })
-              }
-            />
-            <label>Position</label>
-            <input
-              type="number"
-              min="1"
-              value={editModule.position}
-              onChange={(e) =>
-                setEditModule({
-                  ...editModule,
-                  position: e.target.value
-                })
-              }
-            />
-            <small className="position-hint">
-              {editModule.position && modules.some(m => m.id !== editModule.id && m.position >= Number(editModule.position)) 
-                ? "⚠️ This position will shift existing modules" 
-                : "✓ Position available"}
-            </small>
-            <div className="popup-buttons">
-              <button className="save-btn" onClick={updateModule}>
-                Save Changes
-              </button>
-              <button
-                className="close-btn"
-                onClick={() => setShowEditModule(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Module Modal */}
-      {showViewModule && selectedModule && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h2>Module Details</h2>
-            <div className="module-view-details">
-              <div>
-                <label>Module Title</label>
-                <p>{selectedModule.title}</p>
+            <div className="modal-body">
+              {formErrors.submit && <p className="error-text">{formErrors.submit}</p>}
+              <div className="form-group">
+                <label>Module Title *</label>
+                <input value={form.title} placeholder="e.g. HTML Basics"
+                       onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                {formErrors.title && <p className="error-text">{formErrors.title}</p>}
               </div>
-              <div>
-                <label>Position</label>
-                <p>Module {selectedModule.position}</p>
-              </div>
-              <div>
+              <div className="form-group full-width">
                 <label>Description</label>
-                <p>{selectedModule.description || "No description provided."}</p>
+                <textarea rows={4} value={form.description}
+                          placeholder="What does this module cover?"
+                          onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
-              <div>
-                <label>Lessons</label>
-                <p>{selectedModule.lessons?.length || 0} lessons</p>
-              </div>
-              {selectedModule.lessons && selectedModule.lessons.length > 0 && (
-                <div>
-                  <label>Lesson List</label>
-                  <ul className="lesson-list-view">
-                    {selectedModule.lessons.map((lesson) => (
-                      <li key={lesson.id}>
-                        <span className="lesson-number">
-                          {selectedModule.position}.{lesson.position || 1}
-                        </span>
-                        {lesson.title}
-                        {lesson.duration && (
-                          <span className="lesson-duration-badge">
-                            ⏱ {lesson.duration} min
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
-            <div className="popup-buttons">
-              <button
-                className="close-btn"
-                onClick={() => setShowViewModule(false)}
-              >
-                Close
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowModal(false)} disabled={isSubmitting}>Cancel</button>
+              <button className="btn-save" onClick={saveModule} disabled={isSubmitting}>
+                <Save size={16} /> {isSubmitting ? "Saving…" : "Save Module"}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>, document.body)}
+
+      {/* Delete confirm */}
+      {deleteTarget && createPortal(
+        <div className="modal" onClick={() => setDeleteTarget(null)}>
+          <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-content">
+              <div className="confirm-icon"><Trash2 size={24} /></div>
+              <div className="confirm-body">
+                <h3>Delete this module?</h3>
+                <p className="confirm-sub">Its lessons, quizzes and student progress will also be removed.</p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn-danger" onClick={() => deleteModule(deleteTarget)}>Delete Module</button>
+            </div>
+          </div>
+        </div>, document.body)}
     </div>
   );
 }

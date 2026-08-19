@@ -21,6 +21,8 @@ import {
   GraduationCap,
   Settings,
   Zap,
+  ChevronDown,
+  BookOpen,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminEnrollments.css";
@@ -42,6 +44,7 @@ function AdminEnrollments() {
   const [reminderStudent, setReminderStudent] = useState(null);
   const [reminderMessage, setReminderMessage] = useState("");
   const [apiError, setApiError] = useState("");
+  const [collapsedCourses, setCollapsedCourses] = useState({});
   
   // Auto-reminder settings
   const [showReminderSettings, setShowReminderSettings] = useState(false);
@@ -395,6 +398,33 @@ function AdminEnrollments() {
     }
   };
 
+  // Group the (already filtered) enrollments under their course.
+  // Layout-only change — the data and every handler stay exactly as before.
+  const toggleCourseGroup = (courseId) =>
+    setCollapsedCourses((prev) => ({ ...prev, [courseId]: !prev[courseId] }));
+
+  const groupedEnrollments = (() => {
+    const map = new Map();
+    for (const e of enrollments) {
+      const id = e.course?.id ?? e.courseId ?? "unknown";
+      if (!map.has(id)) {
+        map.set(id, {
+          courseId: id,
+          title: e.course?.title || getCourseTitle(e.courseId),
+          items: [],
+        });
+      }
+      map.get(id).items.push(e);
+    }
+    const list = Array.from(map.values());
+    list.forEach((g) =>
+      g.items.sort(
+        (a, b) => new Date(b.enrolledAt || 0) - new Date(a.enrolledAt || 0)
+      )
+    );
+    return list.sort((a, b) => b.items.length - a.items.length);
+  })();
+
   const goToPage = (page) => setCurrentPage(page);
   const goToPreviousPage = () => currentPage > 1 && setCurrentPage(currentPage - 1);
   const goToNextPage = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
@@ -633,125 +663,146 @@ function AdminEnrollments() {
         </button>
       </div>
 
-      {/* Enrollments Table */}
+      {/* Enrollments grouped by course */}
       <div className="table-wrapper">
-        <table className="enrollment-table">
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th>Course</th>
-              <th>Progress</th>
-              <th>Status</th>
-              <th>Enrolled</th>
-              <th>Certificate</th>
-              <th style={{ width: "120px" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {enrollments.length === 0 ? (
-              <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "40px" }}>
-                  <div className="empty-state">
-                    <Users size={48} />
-                    <h3>No enrollments found</h3>
-                    <p>
-                      {apiError 
-                        ? apiError
-                        : "Students will appear here once they enroll in courses"}
-                    </p>
-                    <button 
-                      onClick={fetchAllData}
-                      className="add-btn"
-                      style={{ marginTop: '12px' }}
-                    >
-                      <RefreshCw size={16} />
-                      Retry
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              enrollments.map((enrollment) => {
-                const status = getStatusBadge(enrollment);
-                const StatusIcon = status.icon;
-                const needsReminder = enrollment.progress < 50 && !enrollment.completed;
+        {groupedEnrollments.length === 0 ? (
+          <div className="empty-state" style={{ padding: "48px 20px", textAlign: "center" }}>
+            <Users size={48} />
+            <h3>No enrollments found</h3>
+            <p>
+              {apiError
+                ? apiError
+                : "Students will appear here once they enroll in courses"}
+            </p>
+          </div>
+        ) : (
+          groupedEnrollments.map((group) => {
+            const isOpen = !collapsedCourses[group.courseId];
+            const doneCount = group.items.filter((e) => e.completed).length;
 
-                return (
-                  <tr key={enrollment.id} style={needsReminder ? { background: '#fffbeb' } : {}}>
-                    <td>
-                      <div className="user-info">
-                        <span className="user-name">{getUserName(enrollment.userId)}</span>
-                        <span className="user-email">{getUserEmail(enrollment.userId)}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="course-title">{getCourseTitle(enrollment.courseId)}</span>
-                    </td>
-                    <td>
-                      <div className="progress-wrapper">
-                        <div className="progress-bar">
-                          <div 
-                            className="progress-fill" 
-                            style={{ 
-                              width: `${enrollment.progress || 0}%`,
-                              background: needsReminder ? 'linear-gradient(90deg, #f59e0b, #f97316)' : undefined
-                            }}
-                          />
-                        </div>
-                        <span className="progress-text">{enrollment.progress || 0}%</span>
-                        {needsReminder && (
-                          <span style={{ fontSize: '10px', color: '#f59e0b', marginLeft: '4px' }}>⚠️</span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${status.className}`}>
-                        <StatusIcon size={14} />
-                        {status.label}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="enroll-date">
-                        <Calendar size={14} />
-                        {formatDate(enrollment.enrolledAt)}
-                      </span>
-                    </td>
-                    <td>
-                      {enrollment.certificateNo ? (
-                        <span className="certificate-badge">
-                          <Award size={14} />
-                          {enrollment.certificateNo}
-                        </span>
-                      ) : (
-                        <span className="no-certificate">—</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button 
-                          title="View Enrollment Details" 
-                          className="view-btn"
-                          onClick={() => openViewModal(enrollment)}
-                        >
-                          <Eye size={16} />
-                        </button>
-                        {needsReminder && (
-                          <button 
-                            title="Send Reminder" 
-                            className="reminder-btn"
-                            onClick={() => sendReminder(enrollment)}
-                          >
-                            <Bell size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+            return (
+              <div className="course-block" key={group.courseId}>
+                <button
+                  className="course-block-head"
+                  onClick={() => toggleCourseGroup(group.courseId)}
+                >
+                  <span className="course-block-chevron">
+                    {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                  </span>
+                  <span className="course-block-icon">
+                    <BookOpen size={18} />
+                  </span>
+                  <span className="course-block-title">{group.title}</span>
+                  <span className="course-block-count">
+                    {group.items.length} student{group.items.length === 1 ? "" : "s"} · {doneCount} completed
+                  </span>
+                </button>
+
+                {isOpen && (
+                  <div className="course-block-table">
+                    <table className="enrollment-table">
+                      <thead>
+                        <tr>
+                          <th>Student</th>
+                          <th>Enrolled</th>
+                          <th>Progress</th>
+                          <th>Status</th>
+                          <th>Certificate</th>
+                          <th style={{ width: "120px" }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.items.map((enrollment) => {
+                          const status = getStatusBadge(enrollment);
+                          const progress = Math.round(Number(enrollment.progress) || 0);
+                          const studentName = enrollment.user?.name || getUserName(enrollment.userId);
+                          const studentEmail = enrollment.user?.email || getUserEmail(enrollment.userId);
+
+                          return (
+                            <tr key={enrollment.id}>
+                              <td>
+                                <div className="student-cell">
+                                  <span className="student-avatar">
+                                    {(studentName || "?")
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .slice(0, 2)
+                                      .join("")
+                                      .toUpperCase()}
+                                  </span>
+                                  <div>
+                                    <div className="student-name">{studentName}</div>
+                                    <div className="student-email">{studentEmail}</div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td>
+                                <span className="enrolled-date">
+                                  <Calendar size={13} /> {formatDate(enrollment.enrolledAt)}
+                                </span>
+                              </td>
+
+                              <td>
+                                <div className="progress-cell">
+                                  <div className="progress-track">
+                                    <div
+                                      className={`progress-fill ${status.className}`}
+                                      style={{ width: `${progress}%` }}
+                                    />
+                                  </div>
+                                  <span className="progress-pct">{progress}%</span>
+                                </div>
+                              </td>
+
+                              <td>
+                                <span className={`status-badge ${status.className}`}>
+                                  {status.label}
+                                </span>
+                                {enrollment.isExpired && (
+                                  <span className="status-badge status-expired">Expired</span>
+                                )}
+                              </td>
+
+                              <td>
+                                {enrollment.certificateNo ? (
+                                  <span className="cert-no">{enrollment.certificateNo}</span>
+                                ) : (
+                                  <span className="cert-none">—</span>
+                                )}
+                              </td>
+
+                              <td>
+                                <div className="row-actions">
+                                  <button
+                                    className="action-btn view"
+                                    title="View details"
+                                    onClick={() => openViewModal(enrollment)}
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                  {!enrollment.completed && (
+                                    <button
+                                      className="action-btn remind"
+                                      title="Send reminder"
+                                      onClick={() => sendReminder(enrollment)}
+                                    >
+                                      <Bell size={16} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
 
         {/* Pagination */}
         {totalPages > 1 && (

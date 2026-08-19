@@ -1,7 +1,8 @@
 ﻿// src/pages/mentor/Dashboard.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import {
   BookOpen,
   Layers,
@@ -9,330 +10,187 @@ import {
   Users,
   FileText,
   CheckCircle,
-  TrendingUp,
-  Calendar,
+  GraduationCap,
   Award,
   PlusCircle,
-  BarChart3,
-  X,
-  Save
 } from "lucide-react";
 import "./Dashboard.css";
 
+const EMPTY_STATS = {
+  courses: 0,
+  publishedCourses: 0,
+  draftCourses: 0,
+  categories: 0,
+  modules: 0,
+  lessons: 0,
+  students: 0,
+  enrollments: 0,
+  completedEnrollments: 0,
+  completionRate: 0,
+};
+
 function Dashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    courses: 0,
-    modules: 0,
-    lessons: 0,
-    students: 0,
-    draftCourses: 0,
-    publishedCourses: 0
-  });
+  const { user } = useAuth();
+
+  const [stats, setStats] = useState(EMPTY_STATS);
+  const [recentCourses, setRecentCourses] = useState([]);
+  const [recentEnrollments, setRecentEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState({ name: "Renuka R", role: "Mentor" });
-  const [showAddCourseModal, setShowAddCourseModal] = useState(false);
-  const [newCourse, setNewCourse] = useState({
-    title: "",
-    subtitle: "",
-    description: "",
-    trailer: "",
-    language: "",
-    level: "",
-    duration: "",
-    price: "",
-    discountPrice: "",
-    requirements: "",
-    outcomes: "",
-    audience: "",
-    status: "DRAFT"
-  });
-
-  // Language options
-  const languages = [
-    "English", "Hindi", "Spanish", "French", "German",
-    "Chinese", "Japanese", "Arabic", "Portuguese", "Russian"
-  ];
-
-  // Level options
-  const levels = ["Beginner", "Intermediate", "Advanced", "All Levels"];
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    fetchDashboardData();
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setLoadError("");
+
+        const res = await api.get("/dashboard/mentor");
+        const d = res.data?.data || res.data || {};
+        // Mentors have platform-wide visibility; stats arrive under `cards`.
+        // Falls back to the older flat shape if the backend isn't updated yet.
+        const c = d.cards || d;
+
+        if (cancelled) return;
+
+        setStats({
+          courses: c.courses ?? c.myCourses ?? 0,
+          publishedCourses: c.publishedCourses ?? 0,
+          draftCourses: c.draftCourses ?? 0,
+          categories: c.categories ?? 0,
+          modules: c.modules ?? 0,
+          lessons: c.lessons ?? 0,
+          students: c.students ?? 0,
+          enrollments: c.enrollments ?? 0,
+          completedEnrollments: c.completedEnrollments ?? 0,
+          completionRate: c.completionRate ?? 0,
+        });
+        setRecentCourses(d.recentCourses || []);
+        setRecentEnrollments(d.recentEnrollments || []);
+      } catch (err) {
+        if (cancelled) return;
+        setLoadError(
+          err.response?.data?.message ||
+            "Couldn't load dashboard data. Please refresh or check the server."
+        );
+        // Show real zeros rather than invented numbers.
+        setStats(EMPTY_STATS);
+        setRecentCourses([]);
+        setRecentEnrollments([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-      
-      // Fetch courses
-      const coursesRes = await axios.get("http://localhost:5000/api/courses", { headers });
-      const courses = coursesRes.data.data || [];
-      
-      // Fetch modules
-      const modulesRes = await axios.get("http://localhost:5000/api/modules", { headers });
-      const modules = modulesRes.data.data || [];
-      
-      // Fetch lessons
-      const lessonsRes = await axios.get("http://localhost:5000/api/lessons", { headers });
-      const lessons = lessonsRes.data.data || [];
-      
-      // --- ✅ FIX: Use the Admin route that you know works ---
-      let students = 0;
-      try {
-        // Use the /admin/all endpoint that is working in your backend
-        const enrollmentsRes = await axios.get(
-          "http://localhost:5000/api/enrollments/admin/all", 
-          { headers }
-        );
-        
-        // Grab the data the same way AdminEnrollments.jsx does
-        const enrollmentsData = enrollmentsRes.data?.data || enrollmentsRes.data || [];
-        
-        // Count unique students (users) from the enrollments
-        const uniqueStudents = new Set();
-        enrollmentsData.forEach(enrollment => {
-          // Account for different possible key names (userId, userid, or user_id)
-          const userId = enrollment.userId || enrollment.userid || enrollment.user_id;
-          if (userId) uniqueStudents.add(userId);
-        });
-        students = uniqueStudents.size;
+  const formatDate = (d) =>
+    d
+      ? new Date(d).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "—";
 
-      } catch (err) {
-        console.log("Could not fetch enrollments, using fallback.");
-        students = 6; // Fallback value if API call fails
-      }
+  // Mentors manage content — course & category creation belongs to admins.
+  const quickActions = [
+    { label: "Add Module", icon: Layers, path: "/mentor/modules" },
+    { label: "Add Lesson", icon: Video, path: "/mentor/lessons" },
+    { label: "Course Content", icon: BookOpen, path: "/mentor/courses" },
+    { label: "View Students", icon: Users, path: "/mentor/students" },
+  ];
 
-      const draftCourses = courses.filter(c => c.status === "DRAFT").length;
-      const publishedCourses = courses.filter(c => c.status === "PUBLISHED").length;
-
-      setStats({
-        courses: courses.length,
-        modules: modules.length,
-        lessons: lessons.length,
-        students: students,
-        draftCourses: draftCourses,
-        publishedCourses: publishedCourses
-      });
-
-    } catch (err) {
-      console.log(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateCourse = () => {
-    setShowAddCourseModal(true);
-  };
-
-  const handleAddCourseSubmit = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      
-      // Validate required fields
-      if (!newCourse.title?.trim()) {
-        alert("Course title is required.");
-        return;
-      }
-      
-      if (!newCourse.language) {
-        alert("Please select a language.");
-        return;
-      }
-      
-      if (!newCourse.level) {
-        alert("Please select a level.");
-        return;
-      }
-      
-      if (!newCourse.duration || newCourse.duration <= 0) {
-        alert("Please enter a valid course duration.");
-        return;
-      }
-      
-      if (!newCourse.price || newCourse.price <= 0) {
-        alert("Please enter a valid course price.");
-        return;
-      }
-
-      // Ensure status is properly set
-      const statusValue = newCourse.status || "DRAFT";
-      
-      const payload = {
-        title: newCourse.title.trim(),
-        subtitle: newCourse.subtitle?.trim() || "",
-        description: newCourse.description?.trim() || "",
-        trailer: newCourse.trailer?.trim() || "",
-        language: newCourse.language,
-        level: newCourse.level,
-        duration: Number(newCourse.duration),
-        price: Number(newCourse.price),
-        discountPrice: newCourse.discountPrice ? Number(newCourse.discountPrice) : null,
-        requirements: newCourse.requirements?.trim() || "",
-        outcomes: newCourse.outcomes?.trim() || "",
-        audience: newCourse.audience?.trim() || "",
-        status: statusValue,
-        categoryId: 1
-      };
-
-      const response = await axios.post(
-        "http://localhost:5000/api/courses",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log("✅ Course created successfully:", response.data);
-      
-      alert(`Course created successfully with status: ${statusValue}`);
-      setShowAddCourseModal(false);
-      
-      // Reset form
-      setNewCourse({
-        title: "",
-        subtitle: "",
-        description: "",
-        trailer: "",
-        language: "",
-        level: "",
-        duration: "",
-        price: "",
-        discountPrice: "",
-        requirements: "",
-        outcomes: "",
-        audience: "",
-        status: "DRAFT"
-      });
-      
-      // Refresh dashboard data
-      await fetchDashboardData();
-      
-    } catch (err) {
-      console.error("❌ Error creating course:", err);
-      alert(err.response?.data?.message || "Unable to create course. Please try again.");
-    }
-  };
-
-  // ==========================================
-  // HANDLE QUICK ACTIONS
-  // ==========================================
-  const handleQuickAction = (action) => {
-    switch(action) {
-      case "Add Course":
-        setShowAddCourseModal(true);
-        break;
-      case "Add Module":
-        navigate("/mentor/courses");
-        break;
-      case "Add Lesson":
-        navigate("/mentor/lessons");
-        break;
-      case "View Students":
-        navigate("/mentor/students");
-        break;
-      default:
-        break;
-    }
-  };
+  const statCards = [
+    { value: stats.courses, label: "Total Courses", icon: BookOpen, color: "#7c3aed" },
+    { value: stats.modules, label: "Modules", icon: Layers, color: "#2563eb" },
+    { value: stats.lessons, label: "Lessons", icon: Video, color: "#059669" },
+    { value: stats.students, label: "Students", icon: Users, color: "#d97706" },
+    { value: stats.enrollments, label: "Enrollments", icon: GraduationCap, color: "#0ea5e9" },
+    { value: `${stats.completionRate}%`, label: "Completion Rate", icon: CheckCircle, color: "#16a34a" },
+  ];
 
   if (loading) {
     return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading Dashboard...</p>
+      <div className="dashboard-container">
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="dashboard-container">
-      {/* Welcome Section */}
-      <div className="dashboard-welcome">
+      {/* Welcome */}
+      <div className="welcome-section">
         <div className="welcome-content">
-          <div className="welcome-text">
-            <h1>Welcome Back, {user.name} 👋</h1>
-            <p>Here's an overview of your mentoring activities.</p>
+          <div>
+            <h1>Welcome back, {user?.name || "Mentor"} 👋</h1>
+            <p>Manage course content — modules, lessons, and quizzes.</p>
           </div>
           <div className="welcome-actions">
-            <button className="welcome-btn primary" onClick={handleCreateCourse}>
+            <button
+              className="welcome-btn primary"
+              onClick={() => navigate("/mentor/modules")}
+            >
               <PlusCircle size={18} />
-              Create New Course
+              Create Module
             </button>
-            
           </div>
-        </div>
-        <div className="welcome-date">
-          <Calendar size={18} />
-          <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
 
-      {/* Stats Cards - Updated to look like Admin Dashboard */}
+      {loadError && (
+        <div
+          className="dashboard-error"
+          style={{
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#b91c1c",
+            borderRadius: 10,
+            padding: "12px 14px",
+            marginBottom: 16,
+            fontSize: 14,
+          }}
+        >
+          {loadError}
+        </div>
+      )}
+
+      {/* Stats */}
       <div className="stats-grid">
-        <div className="stat-card" style={{ borderTop: "3px solid #7c3aed" }}>
-          <div className="stat-icon" style={{ background: "#7c3aed", color: "white" }}>
-            <BookOpen />
-          </div>
-          <div className="stat-content">
-            <h3>{stats.courses}</h3>
-            <p>Total Courses</p>
-            <span className="stat-trend up">
-              <TrendingUp size={14} />
-              +12%
-            </span>
-          </div>
-        </div>
-
-        <div className="stat-card" style={{ borderTop: "3px solid #2563eb" }}>
-          <div className="stat-icon" style={{ background: "#2563eb", color: "white" }}>
-            <Layers />
-          </div>
-          <div className="stat-content">
-            <h3>{stats.modules}</h3>
-            <p>Total Modules</p>
-            <span className="stat-trend up">
-              <TrendingUp size={14} />
-              +8%
-            </span>
-          </div>
-        </div>
-
-        <div className="stat-card" style={{ borderTop: "3px solid #059669" }}>
-          <div className="stat-icon" style={{ background: "#059669", color: "white" }}>
-            <Video />
-          </div>
-          <div className="stat-content">
-            <h3>{stats.lessons}</h3>
-            <p>Total Lessons</p>
-            <span className="stat-trend up">
-              <TrendingUp size={14} />
-              +5%
-            </span>
-          </div>
-        </div>
-
-        <div className="stat-card" style={{ borderTop: "3px solid #d97706" }}>
-          <div className="stat-icon" style={{ background: "#d97706", color: "white" }}>
-            <Users />
-          </div>
-          <div className="stat-content">
-            <h3>{stats.students}</h3>
-            <p>Total Students</p>
-            <span className="stat-trend up">
-              <TrendingUp size={14} />
-              +18%
-            </span>
-          </div>
-        </div>
+        {statCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div
+              className="stat-card"
+              key={card.label}
+              style={{ borderTop: `3px solid ${card.color}` }}
+            >
+              <div
+                className="stat-icon"
+                style={{ background: card.color, color: "white" }}
+              >
+                <Icon />
+              </div>
+              <div className="stat-content">
+                <h3>{card.value}</h3>
+                <p>{card.label}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Course Status Cards */}
+      {/* Course status */}
       <div className="status-grid">
         <div className="status-card draft">
           <div className="status-icon">
@@ -368,167 +226,99 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Actions - Full Width */}
+      {/* Quick actions */}
       <div className="quick-actions-section full-width">
         <div className="section-header">
           <h3>⚡ Quick Actions</h3>
         </div>
         <div className="quick-actions-grid">
-          <button className="quick-action-btn add-btn" onClick={() => handleQuickAction("Add Course")}>
-            <PlusCircle size={20} />
-            <span>Add Course</span>
-          </button>
-          <button className="quick-action-btn add-btn" onClick={() => handleQuickAction("Add Module")}>
-            <Layers size={20} />
-            <span>Add Module</span>
-          </button>
-          <button className="quick-action-btn add-btn" onClick={() => handleQuickAction("Add Lesson")}>
-            <Video size={20} />
-            <span>Add Lesson</span>
-          </button>
-          <button className="quick-action-btn add-btn" onClick={() => handleQuickAction("View Students")}>
-            <Users size={20} />
-            <span>View Students</span>
-          </button>
+          {quickActions.map((a) => {
+            const Icon = a.icon;
+            return (
+              <button
+                key={a.label}
+                className="quick-action-btn add-btn"
+                onClick={() => navigate(a.path)}
+              >
+                <Icon size={20} />
+                <span>{a.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Add Course Modal - Updated with Admin's Button Styles */}
-      {showAddCourseModal && (
-        <div className="modal-overlay" onClick={() => setShowAddCourseModal(false)}>
-          <div className="modal-content course-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Create New Course</h2>
-              <button className="modal-close" onClick={() => setShowAddCourseModal(false)}>
-                <X size={24} />
-              </button>
-            </div>
-            <div className="modal-body course-modal-body">
-              <div className="form-section">
-                <h4>Basic Information</h4>
-                <input
-                  className="form-input"
-                  placeholder="Course Title *"
-                  value={newCourse.title}
-                  onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
-                />
-                <input
-                  className="form-input"
-                  placeholder="Subtitle"
-                  value={newCourse.subtitle}
-                  onChange={(e) => setNewCourse({ ...newCourse, subtitle: e.target.value })}
-                />
-                <textarea
-                  className="form-textarea"
-                  rows="4"
-                  placeholder="Description"
-                  value={newCourse.description}
-                  onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
-                />
-              </div>
-
-              <div className="form-section">
-                <h4>Course Details</h4>
-                <input
-                  className="form-input"
-                  placeholder="Trailer URL (Optional)"
-                  value={newCourse.trailer}
-                  onChange={(e) => setNewCourse({ ...newCourse, trailer: e.target.value })}
-                />
-                <select
-                  className="form-select"
-                  value={newCourse.language}
-                  onChange={(e) => setNewCourse({ ...newCourse, language: e.target.value })}
-                >
-                  <option value="">Select Language *</option>
-                  {languages.map((lang) => (
-                    <option key={lang} value={lang}>{lang}</option>
-                  ))}
-                </select>
-                <select
-                  className="form-select"
-                  value={newCourse.level}
-                  onChange={(e) => setNewCourse({ ...newCourse, level: e.target.value })}
-                >
-                  <option value="">Select Level *</option>
-                  {levels.map((level) => (
-                    <option key={level} value={level}>{level}</option>
-                  ))}
-                </select>
-                <input
-                  className="form-input"
-                  type="number"
-                  placeholder="Duration (Hours) *"
-                  value={newCourse.duration}
-                  onChange={(e) => setNewCourse({ ...newCourse, duration: Number(e.target.value) })}
-                />
-              </div>
-
-              <div className="form-section">
-                <h4>Pricing</h4>
-                <input
-                  className="form-input"
-                  type="number"
-                  placeholder="Price *"
-                  value={newCourse.price}
-                  onChange={(e) => setNewCourse({ ...newCourse, price: Number(e.target.value) })}
-                />
-                <input
-                  className="form-input"
-                  type="number"
-                  placeholder="Discount Price (Optional)"
-                  value={newCourse.discountPrice}
-                  onChange={(e) => setNewCourse({ ...newCourse, discountPrice: e.target.value })}
-                />
-              </div>
-
-              <div className="form-section">
-                <h4>Learning Information</h4>
-                <textarea
-                  className="form-textarea"
-                  rows="3"
-                  placeholder="Requirements (Optional)"
-                  value={newCourse.requirements}
-                  onChange={(e) => setNewCourse({ ...newCourse, requirements: e.target.value })}
-                />
-                <textarea
-                  className="form-textarea"
-                  rows="3"
-                  placeholder="Learning Outcomes (Optional)"
-                  value={newCourse.outcomes}
-                  onChange={(e) => setNewCourse({ ...newCourse, outcomes: e.target.value })}
-                />
-              </div>
-
-              <div className="form-section">
-                <h4>Publishing</h4>
-                <select
-                  className="form-select"
-                  value={newCourse.status || "DRAFT"}
-                  onChange={(e) => setNewCourse({ ...newCourse, status: e.target.value })}
-                >
-                  <option value="DRAFT">Save as Draft</option>
-                  <option value="PUBLISHED">Publish Now</option>
-                </select>
-                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-                  {newCourse.status === "PUBLISHED" 
-                    ? "⚠️ Course will be published immediately and visible to students." 
-                    : "💡 Course will be saved as draft. You can publish it later."}
-                </p>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setShowAddCourseModal(false)}>
-                Cancel
-              </button>
-              <button className="btn-save" onClick={handleAddCourseSubmit}>
-                <PlusCircle size={18} />
-                {newCourse.status === "PUBLISHED" ? "Publish Course" : "Save as Draft"}
-              </button>
-            </div>
+      {/* Recent activity */}
+      <div className="status-grid">
+        <div className="quick-actions-section">
+          <div className="section-header">
+            <h3>🆕 Recent Courses</h3>
           </div>
+          {recentCourses.length === 0 ? (
+            <p style={{ color: "#94a3b8", fontSize: 14, padding: "8px 0" }}>
+              No courses yet.
+            </p>
+          ) : (
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {recentCourses.map((c) => (
+                <li
+                  key={c.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    padding: "10px 0",
+                    borderBottom: "1px solid #f1f5f9",
+                    fontSize: 14,
+                  }}
+                >
+                  <span style={{ fontWeight: 600, color: "#111827" }}>
+                    {c.title}
+                  </span>
+                  <span style={{ color: "#94a3b8", fontSize: 12.5 }}>
+                    {c.category?.name || "Uncategorized"} ·{" "}
+                    {formatDate(c.createdAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      )}
+
+        <div className="quick-actions-section">
+          <div className="section-header">
+            <h3>👨‍🎓 Recent Enrollments</h3>
+          </div>
+          {recentEnrollments.length === 0 ? (
+            <p style={{ color: "#94a3b8", fontSize: 14, padding: "8px 0" }}>
+              No enrollments yet.
+            </p>
+          ) : (
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {recentEnrollments.map((e) => (
+                <li
+                  key={e.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    padding: "10px 0",
+                    borderBottom: "1px solid #f1f5f9",
+                    fontSize: 14,
+                  }}
+                >
+                  <span style={{ fontWeight: 600, color: "#111827" }}>
+                    {e.user?.name || "—"}
+                  </span>
+                  <span style={{ color: "#94a3b8", fontSize: 12.5 }}>
+                    {e.course?.title || "—"} · {formatDate(e.enrolledAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

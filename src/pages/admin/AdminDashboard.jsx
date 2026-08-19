@@ -8,6 +8,11 @@ import {
   UserCheck,
   ArrowUpRight,
   TrendingUp,
+  Award,
+  Clock,
+  Banknote,
+  Smartphone,
+  CheckCircle,
 } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -49,6 +54,11 @@ const EMPTY_STATS = {
   courses: 0,
   enrollments: 0,
   revenue: 0,
+  activeCertificates: 0,
+  pendingCertificates: 0,
+  cashRevenue: 0,
+  upiRevenue: 0,
+  completionRate: 0,
 };
 
 const EMPTY_SERIES = { labels: [], data: [] };
@@ -85,6 +95,11 @@ function AdminDashboard() {
           courses: cards.courses ?? 0,
           enrollments: cards.enrollments ?? 0,
           revenue: cards.revenue ?? 0,
+          activeCertificates: cards.activeCertificates ?? 0,
+          pendingCertificates: cards.pendingCertificates ?? 0,
+          cashRevenue: cards.cashRevenue ?? 0,
+          upiRevenue: cards.upiRevenue ?? 0,
+          completionRate: cards.completionRate ?? 0,
         });
 
         setEnrollmentTrends(charts.enrollmentTrends ?? EMPTY_SERIES);
@@ -182,6 +197,21 @@ function AdminDashboard() {
       value: `₹${Number(stats.revenue).toLocaleString("en-IN")}`,
       icon: CreditCard,
       color: "#ef4444",
+    },
+    { title: "Completion Rate", value: `${stats.completionRate}%`, icon: CheckCircle, color: "#22c55e" },
+    { title: "Certificates Issued", value: stats.activeCertificates, icon: Award, color: "#ec4899" },
+    { title: "Pending Certificates", value: stats.pendingCertificates, icon: Clock, color: "#f97316" },
+    {
+      title: "Cash Collected",
+      value: `₹${Number(stats.cashRevenue).toLocaleString("en-IN")}`,
+      icon: Banknote,
+      color: "#0d9488",
+    },
+    {
+      title: "UPI Collected",
+      value: `₹${Number(stats.upiRevenue).toLocaleString("en-IN")}`,
+      icon: Smartphone,
+      color: "#4f46e5",
     },
   ];
 

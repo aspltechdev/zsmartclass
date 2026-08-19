@@ -65,7 +65,16 @@ app.use("/api/users", userRoutes);
 const reportRoutes = require("./routes/report.routes");
 app.use("/api/reports", reportRoutes);
 
+const quizRoutes = require("./routes/quiz.routes");
+app.use("/api/quizzes", quizRoutes);
+
+const assignmentRoutes = require("./routes/assignment.routes");
+app.use("/api/assignments", assignmentRoutes);
+
 const settingsRoutes = require("./routes/settings.routes");
 app.use("/api/settings", settingsRoutes);
+
+const reviewRoutes = require("./routes/review.routes");
+app.use("/api/reviews", reviewRoutes);
 
 module.exports = app;

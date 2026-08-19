@@ -50,6 +50,19 @@ router.put(
 );
 
 // ==========================================
+// ADMIN & MENTOR READ ROUTES
+// Mentors get admin-like visibility of people (they teach all students),
+// but no write access — these are registered BEFORE the admin-only gate.
+// ==========================================
+
+router.get(
+  "/",
+  authMiddleware,
+  roleMiddleware("ADMIN", "MENTOR"),
+  userController.getAllUsers
+);
+
+// ==========================================
 // ADMIN ROUTES - Authentication + ADMIN role required
 // ==========================================
 
@@ -73,11 +86,7 @@ router.post(
   userController.resendInvitation
 );
 
-// Get all users (with pagination, search, filters)
-router.get(
-  "/",
-  userController.getAllUsers
-);
+// Get all users — registered above (ADMIN & MENTOR)
 
 // Get single user by ID
 router.get(

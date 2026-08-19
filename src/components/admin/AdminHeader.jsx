@@ -1,6 +1,6 @@
 // src/components/admin/AdminHeader.jsx
 import { useState, useEffect, useRef } from "react";
-import { Bell, LogOut, Menu, ChevronRight, User, Settings, ChevronDown } from "lucide-react";
+import { Bell, LogOut, Menu, ChevronRight, Use, ChevronDown } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
@@ -19,7 +19,6 @@ const PAGE_LABELS = {
   notifications: "Notifications",
   reviews: "Reviews",
   reports: "Reports",
-  settings: "Settings",
 };
 
 function AdminHeader({ onToggleMobile }) {
@@ -142,10 +141,6 @@ function AdminHeader({ onToggleMobile }) {
                 <Link to="/admin/profile" className="ah-dropdown-item" onClick={() => setIsProfileOpen(false)}>
                   <User size={16} />
                   <span>Profile</span>
-                </Link>
-                <Link to="/admin/settings" className="ah-dropdown-item" onClick={() => setIsProfileOpen(false)}>
-                  <Settings size={16} />
-                  <span>Settings</span>
                 </Link>
                 <div className="ah-dropdown-divider"></div>
                 <button className="ah-dropdown-item ah-dropdown-logout" onClick={handleLogout}>

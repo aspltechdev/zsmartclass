@@ -1,449 +1,402 @@
-// src/pages/mentor/QuizMarks/QuizMarks.jsx
-
-import { useEffect, useState } from "react";
-import axios from "axios";
+// src/pages/mentor/QuizMarks.jsx
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   RefreshCw,
   Trophy,
-  BookOpen
+  BookOpen,
+  ChevronDown,
+  Users,
+  Percent,
+  CheckCircle,
 } from "lucide-react";
-
+import api from "../../services/api";
 import "./QuizMarks.css";
 
-const API = "http://localhost:5000/api";
+const PASS_MARK = 40; // percent
 
 function QuizMarks() {
-
-  const token = localStorage.getItem("token");
-
-  const config = {
-
-    headers: {
-
-      Authorization: `Bearer ${token}`
-
-    }
-
-  };
-
-  // ==========================================
-  // States
-  // ==========================================
-
+  const [modules, setModules] = useState([]);
+  const [selectedModule, setSelectedModule] = useState("");
+  const [moduleQuizzes, setModuleQuizzes] = useState([]);
   const [quizMarks, setQuizMarks] = useState([]);
 
-  const [filteredMarks, setFilteredMarks] = useState([]);
-
-  const [quizzes, setQuizzes] = useState([]);
-
-  const [selectedQuiz, setSelectedQuiz] = useState("");
-
   const [search, setSearch] = useState("");
+  const [quizFilter, setQuizFilter] = useState("all");
 
-  const [loading, setLoading] = useState(false);
-
-  // ==========================================
-  // Initial Load
-  // ==========================================
+  const [loadingModules, setLoadingModules] = useState(true);
+  const [loadingMarks, setLoadingMarks] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-
-    fetchQuizzes();
-
+    fetchModules();
   }, []);
 
-  // ==========================================
-  // Fetch Quizzes
-  // ==========================================
-
-  const fetchQuizzes = async () => {
-
+  const fetchModules = async () => {
     try {
-
-      const res = await axios.get(
-
-        `${API}/quizzes`,
-
-        config
-
+      setLoadingModules(true);
+      setError("");
+      const res = await api.get("/modules");
+      setModules(res.data?.data || res.data || []);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Couldn't load modules. Please refresh or check the server."
       );
-
-      setQuizzes(res.data.data || []);
-
+      setModules([]);
+    } finally {
+      setLoadingModules(false);
     }
-
-    catch (err) {
-
-      console.error(err);
-
-    }
-
   };
 
-  // ==========================================
-  // Fetch Marks
-  // ==========================================
-
-  const fetchMarks = async (quizId) => {
-
-    if (!quizId) return;
-
-    setLoading(true);
-
-    try {
-
-      const res = await axios.get(
-
-        `${API}/quizzes/${quizId}/marks`,
-
-        config
-
-      );
-
-      setQuizMarks(res.data.data || []);
-
-      setFilteredMarks(res.data.data || []);
-
-    }
-
-    catch (err) {
-
-      console.error(err);
-
-    }
-
-    finally {
-
-      setLoading(false);
-
-    }
-
-  };
-
-  // ==========================================
-  // Quiz Change
-  // ==========================================
-
-  const handleQuizChange = (e) => {
-
-    const id = e.target.value;
-
-    setSelectedQuiz(id);
-
-    fetchMarks(id);
-
-  };
-
-  // ==========================================
-  // Search Student
-  // ==========================================
-
-  useEffect(() => {
-
-    if (!search.trim()) {
-
-      setFilteredMarks(quizMarks);
-
-      return;
-
-    }
-
-    const value = search.toLowerCase();
-
-    const filtered = quizMarks.filter((item) =>
-
-      item.student.name.toLowerCase().includes(value)
-
-    );
-
-    setFilteredMarks(filtered);
-
-  }, [search, quizMarks]);
-    // ==========================================
-  // JSX
-  // ==========================================
-
-  return (
-
-    <div className="quiz-marks">
-
-      <div className="quiz-marks-header">
-
-        <div>
-
-          <h1>Quiz Marks</h1>
-
-          <p>View students' quiz performance.</p>
-
-        </div>
-
-      </div>
-
-      {/* ==========================================
-            Filters
-      ========================================== */}
-
-      <div className="marks-toolbar">
-
-        <div className="quiz-select">
-
-          <BookOpen size={18} />
-
-          <select
-
-            value={selectedQuiz}
-
-            onChange={handleQuizChange}
-
-          >
-
-            <option value="">
-
-              Select Quiz
-
-            </option>
-
-            {quizzes.map((quiz) => (
-
-              <option
-
-                key={quiz.id}
-
-                value={quiz.id}
-
-              >
-
-                {quiz.title}
-
-              </option>
-
-            ))}
-
-          </select>
-
-        </div>
-
-        <div className="search-box">
-
-          <Search size={18} />
-
-          <input
-
-            type="text"
-
-            placeholder="Search student..."
-
-            value={search}
-
-            onChange={(e) =>
-
-              setSearch(e.target.value)
-
-            }
-
-          />
-
-        </div>
-
-        <button
-
-          className="refresh-btn"
-
-          onClick={() => fetchMarks(selectedQuiz)}
-
-        >
-
-          <RefreshCw size={17} />
-
-          Refresh
-
-        </button>
-
-      </div>
-
-      {/* ==========================================
-            Statistics
-      ========================================== */}
-
-      <div className="marks-stats">
-
-        <div className="stat-card">
-
-          <Trophy size={28} />
-
-          <div>
-
-            <h3>
-
-              {filteredMarks.length}
-
-            </h3>
-
-            <p>Students Attempted</p>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* ==========================================
-            Table
-      ========================================== */}
-
-      <div className="marks-table">
-
-        <table>
-
-          <thead>
-
-            <tr>
-
-              <th>Student</th>
-
-              <th>Email</th>
-
-              <th>Quiz</th>
-
-              <th>Course</th>
-
-              <th>Module</th>
-
-              <th>Marks</th>
-
-              <th>Total</th>
-
-              <th>Percentage</th>
-
-              <th>Status</th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {loading ? (
-
-              <tr>
-
-                <td colSpan="9">
-
-                  Loading...
-
-                </td>
-
-              </tr>
-
-            ) : filteredMarks.length === 0 ? (
-
-              <tr>
-
-                <td colSpan="9">
-
-                  No Marks Available
-
-                </td>
-
-              </tr>
-
-            ) : (
-
-              filteredMarks.map((item) => (
-
-                <tr key={item.id}>
-
-                  <td>
-
-                    {item.student.name}
-
-                  </td>
-
-                  <td>
-
-                    {item.student.email}
-
-                  </td>
-
-                  <td>
-
-                    {item.quiz.title}
-
-                  </td>
-
-                  <td>
-
-                    {item.quiz.course.title}
-
-                  </td>
-
-                  <td>
-
-                    {item.quiz.module.title}
-
-                  </td>
-
-                  <td>
-
-                    {item.obtainedMarks}
-
-                  </td>
-
-                  <td>
-
-                    {item.totalMarks}
-
-                  </td>
-
-                  <td>
-
-                    {item.percentage.toFixed(1)}%
-
-                  </td>
-
-                  <td>
-
-                    <span
-
-                      className={
-
-                        item.percentage >= 40
-
-                          ? "status pass"
-
-                          : "status fail"
-
-                      }
-
-                    >
-
-                      {item.percentage >= 40
-
-                        ? "Pass"
-
-                        : "Fail"}
-
-                    </span>
-
-                  </td>
-
-                </tr>
-
-              ))
-
-            )}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-    </div>
-
+  const selectedModuleData = useMemo(
+    () => modules.find((m) => String(m.id) === String(selectedModule)),
+    [modules, selectedModule]
   );
 
+  /**
+   * Load the quizzes for a module, then their marks.
+   * Quizzes come from /quizzes/module/:moduleId — there is no "list all
+   * quizzes" endpoint, so we always scope by module.
+   */
+  const loadModuleData = async (moduleId) => {
+    if (!moduleId) {
+      setModuleQuizzes([]);
+      setQuizMarks([]);
+      return;
+    }
+
+    try {
+      setLoadingMarks(true);
+      setError("");
+
+      const quizRes = await api.get(`/quizzes/module/${moduleId}`);
+      const quizzes = quizRes.data?.data || [];
+      setModuleQuizzes(quizzes);
+
+      if (quizzes.length === 0) {
+        setQuizMarks([]);
+        return;
+      }
+
+      // Fetch every quiz's marks in parallel; one failure shouldn't blank the page.
+      const results = await Promise.all(
+        quizzes.map(async (quiz) => {
+          try {
+            const res = await api.get(`/quizzes/${quiz.id}/marks`);
+            const marks = res.data?.marks || [];
+            return marks.map((m) => ({
+              ...m,
+              quizId: quiz.id,
+              quizTitle: quiz.title,
+              quizTotalMarks: quiz.totalMarks,
+            }));
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      setQuizMarks(results.flat());
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Couldn't load quiz marks for this module."
+      );
+      setModuleQuizzes([]);
+      setQuizMarks([]);
+    } finally {
+      setLoadingMarks(false);
+    }
+  };
+
+  const handleModuleChange = async (e) => {
+    const moduleId = e.target.value;
+    setSelectedModule(moduleId);
+    setSearch("");
+    setQuizFilter("all");
+    setQuizMarks([]);
+    setModuleQuizzes([]);
+    await loadModuleData(moduleId);
+  };
+
+  const handleRefresh = async () => {
+    await fetchModules();
+    if (selectedModule) await loadModuleData(selectedModule);
+  };
+
+  // ---- value helpers (tolerant of shape differences) ----
+  const studentName = (m) => m.student?.name || m.user?.name || "Unknown Student";
+  const studentEmail = (m) => m.student?.email || m.user?.email || "—";
+  const obtained = (m) => Number(m.obtainedMarks ?? m.marks ?? 0);
+  const total = (m) => Number(m.totalMarks ?? m.quizTotalMarks ?? 0);
+  const percent = (m) => {
+    if (m.percentage !== undefined && m.percentage !== null) {
+      return Number(m.percentage);
+    }
+    const t = total(m);
+    return t ? (obtained(m) / t) * 100 : 0;
+  };
+
+  const filteredMarks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return quizMarks.filter((m) => {
+      const matchesSearch =
+        !q ||
+        studentName(m).toLowerCase().includes(q) ||
+        studentEmail(m).toLowerCase().includes(q) ||
+        (m.quizTitle || "").toLowerCase().includes(q);
+      const matchesQuiz =
+        quizFilter === "all" || String(m.quizId) === String(quizFilter);
+      return matchesSearch && matchesQuiz;
+    });
+  }, [quizMarks, search, quizFilter]);
+
+  const stats = useMemo(() => {
+    const attempts = filteredMarks.length;
+    const uniqueStudents = new Set(
+      filteredMarks.map((m) => m.student?.id ?? m.user?.id ?? studentName(m))
+    ).size;
+    const avg = attempts
+      ? filteredMarks.reduce((s, m) => s + percent(m), 0) / attempts
+      : 0;
+    const passed = filteredMarks.filter((m) => percent(m) >= PASS_MARK).length;
+    return {
+      attempts,
+      uniqueStudents,
+      avg: Math.round(avg),
+      passRate: attempts ? Math.round((passed / attempts) * 100) : 0,
+    };
+  }, [filteredMarks]);
+
+  const fmtDate = (d) =>
+    d
+      ? new Date(d).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "—";
+
+  return (
+    <div className="quiz-marks-page">
+      {/* Header */}
+      <div className="quiz-marks-header">
+        <div>
+          <h1>Quiz Marks</h1>
+          <p>View students' quiz performance module by module.</p>
+        </div>
+      </div>
+
+      {/* Module selector */}
+      <div className="module-selector-wrapper">
+        <BookOpen size={20} />
+        <select
+          value={selectedModule}
+          onChange={handleModuleChange}
+          disabled={loadingModules}
+        >
+          <option value="">
+            {loadingModules ? "Loading Modules..." : "Select Module"}
+          </option>
+          {modules.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.title || `Module ${m.id}`}
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={18} />
+      </div>
+
+      {error && <div className="quiz-marks-error">{error}</div>}
+
+      {/* No modules */}
+      {!loadingModules && modules.length === 0 && (
+        <div className="quiz-marks-empty">
+          <BookOpen size={46} />
+          <h2>No Modules Found</h2>
+          <p>Create a module first, then add quizzes to it.</p>
+          <button className="refresh-button" onClick={fetchModules}>
+            <RefreshCw size={16} /> Refresh Modules
+          </button>
+        </div>
+      )}
+
+      {/* Nothing selected yet */}
+      {!loadingModules && modules.length > 0 && !selectedModule && (
+        <div className="quiz-marks-empty">
+          <Trophy size={44} />
+          <h2>Select a Module</h2>
+          <p>Choose a module above to see how students performed on its quizzes.</p>
+        </div>
+      )}
+
+      {selectedModule && (
+        <>
+          <div className="selected-module-header">
+            <div>
+              <h2>{selectedModuleData?.title || "Selected Module"}</h2>
+              <p>Students who attempted quizzes in this module.</p>
+            </div>
+            <div className="module-quiz-count">
+              {moduleQuizzes.length}{" "}
+              {moduleQuizzes.length === 1 ? "Quiz" : "Quizzes"}
+            </div>
+          </div>
+
+          {/* Toolbar */}
+          <div className="quiz-marks-toolbar">
+            <div className="search-box">
+              <Search size={18} />
+              <input
+                type="text"
+                placeholder="Search student, email, or quiz..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            {moduleQuizzes.length > 1 && (
+              <select
+                className="quiz-filter-select"
+                value={quizFilter}
+                onChange={(e) => setQuizFilter(e.target.value)}
+              >
+                <option value="all">All Quizzes</option>
+                {moduleQuizzes.map((q) => (
+                  <option key={q.id} value={q.id}>
+                    {q.title}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <button
+              className="refresh-button"
+              onClick={handleRefresh}
+              disabled={loadingMarks}
+            >
+              <RefreshCw size={17} className={loadingMarks ? "spin" : ""} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Stats */}
+          <div className="quiz-marks-stats">
+            <div className="stat-card">
+              <div className="stat-icon"><Trophy size={22} /></div>
+              <div>
+                <strong>{stats.attempts}</strong>
+                <span>ATTEMPTS</span>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon blue"><Users size={22} /></div>
+              <div>
+                <strong>{stats.uniqueStudents}</strong>
+                <span>STUDENTS</span>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon amber"><Percent size={22} /></div>
+              <div>
+                <strong>{stats.avg}%</strong>
+                <span>AVERAGE SCORE</span>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon green"><CheckCircle size={22} /></div>
+              <div>
+                <strong>{stats.passRate}%</strong>
+                <span>PASS RATE</span>
+              </div>
+            </div>
+          </div>
+
+          {/* No quizzes */}
+          {!loadingMarks && moduleQuizzes.length === 0 && (
+            <div className="quiz-marks-empty">
+              <BookOpen size={45} />
+              <h2>No Quizzes Found</h2>
+              <p>No quizzes have been added to this module yet.</p>
+            </div>
+          )}
+
+          {/* Table */}
+          {moduleQuizzes.length > 0 && (
+            <div className="marks-table-container">
+              {loadingMarks ? (
+                <div className="quiz-marks-empty">
+                  <RefreshCw size={35} className="spin" />
+                  <p>Loading student marks...</p>
+                </div>
+              ) : filteredMarks.length === 0 ? (
+                <div className="quiz-marks-empty">
+                  <Trophy size={42} />
+                  <h2>No Marks Available</h2>
+                  <p>No students have attempted the quizzes in this module yet.</p>
+                </div>
+              ) : (
+                <table className="marks-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Email</th>
+                      <th>Quiz</th>
+                      <th>Marks</th>
+                      <th>Total</th>
+                      <th>Percentage</th>
+                      <th>Submitted</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredMarks.map((item, index) => {
+                      const pct = percent(item);
+                      const passed = pct >= PASS_MARK;
+                      return (
+                        <tr key={item.id || `${item.quizId}-${index}`}>
+                          <td>
+                            <div className="student-name">{studentName(item)}</div>
+                          </td>
+                          <td>{studentEmail(item)}</td>
+                          <td>{item.quizTitle || "—"}</td>
+                          <td>
+                            <strong>{obtained(item)}</strong>
+                          </td>
+                          <td>{total(item)}</td>
+                          <td>
+                            <div className="pct-cell">
+                              <div className="pct-track">
+                                <div
+                                  className={`pct-fill ${passed ? "pass" : "fail"}`}
+                                  style={{ width: `${Math.min(100, pct)}%` }}
+                                />
+                              </div>
+                              <span>{pct.toFixed(1)}%</span>
+                            </div>
+                          </td>
+                          <td>{fmtDate(item.submittedAt)}</td>
+                          <td>
+                            <span
+                              className={
+                                passed ? "status-badge pass" : "status-badge fail"
+                              }
+                            >
+                              {passed ? "Pass" : "Fail"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 export default QuizMarks;

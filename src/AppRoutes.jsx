@@ -24,37 +24,9 @@ import StudentCourseDetail from "./pages/student/StudentCourseDetail";
 import StudentMyCourses from "./pages/student/Studentmycourses";
 import StudentCertificates from "./pages/student/StudentCertificates";
 
-// Admin Pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminCourses from "./pages/admin/AdminCourses";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminPayments from "./pages/admin/AdminPayments";
-import AdminCertificates from "./pages/admin/AdminCertificates";
-import AdminModules from "./pages/admin/AdminModules";
-import AdminEnrollments from "./pages/admin/AdminEnrollments";
-//import AdminLessons from "./pages/admin/AdminLessons";
-import AdminNotifications from "./pages/admin/AdminNotifications";
-//import AdminReviews from "./pages/admin/AdminReviews";
-import AdminReports from "./pages/admin/AdminReports";
-import AdminCoupons from "./pages/admin/AdminCoupons";
-//import AdminSettings from "./pages/admin/AdminSettings";
-import AdminProfile from "./pages/admin/AdminProfile";
-
-// Mentor Pages
-//import QuizMarks from "./pages/mentor/QuizMarks";
-//import MentorModules from "./pages/mentor/Modules";
-//import MentorCategories from "./pages/mentor/Category";
-//import MentorAssignments from "./pages/mentor/Assignments";
-//import MentorQuiz from "./pages/mentor/Quiz";
-//import MentorLessons from "./pages/mentor/Lessons";
-//import MentorCertificates from "./pages/mentor/Certificates";
-//import MentorReviews from "./pages/mentor/Review";
-//import MentorProfile from "./pages/mentor/Profile";
-import MentorDashboard from "./pages/mentor/Dashboard";
-//import MentorCourses from "./pages/mentor/Courses";
-//import MentorStudents from "./pages/mentor/Students";
-//import MentorEarnings from "./pages/mentor/Earnings";
-//import MentorNotification from "./pages/mentor/Notification";
+// // Page Routes
+import AdminRoutes from "./routes/AdminRoutes";
+import MentorRoutes from "./routes/MentorRoutes";
 
 // Layout Components
 import StudentLayout from "./components/student/StudentLayout";
@@ -95,58 +67,36 @@ function AppRoutes() {
           <Route path="certificates" element={<StudentCertificates />} />
         </Route>
 
- 
+
+      {/* ========================================== */}
+      {/* Admin Routes */}
+      {/* ========================================== */}
+
         <Route
-          path="/admin"
+          path="/admin/*"
           element={
             <ProtectedRoute roles={["ADMIN"]}>
               <AdminLayout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="dashboard" />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="courses" element={<AdminCourses />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="payments" element={<AdminPayments />} />
-          <Route path="categories" element ={<AdminCategories/>}/>
-          <Route path="/admin/certificates" element={<AdminCertificates />} />
-          <Route path="/admin/modules" element={<AdminModules />} />
-          <Route path="/admin/enrollments" element={<AdminEnrollments />} />
-          {/*<Route path="/admin/lessons" element={<AdminLessons />} />*/}
-          <Route path="/admin/notifications" element={<AdminNotifications />} />
-          {/*<Route path="/admin/reviews" element={<AdminReviews />} />*/}
-          <Route path="/admin/reports" element={<AdminReports />} />
-          <Route path="/admin/coupons" element={<AdminCoupons />} />
-          {/*<Route path="/admin/settings" element={<AdminSettings />} />*/}
-          <Route path="/admin/profile" element={<AdminProfile />} />
+          <Route path="*" element={<AdminRoutes />} />
         </Route>
+
 
         {/* ========================================== */}
         {/* Mentor Routes */}
         {/* ========================================== */}
+
         <Route
-          path="/mentor"
+          path="/mentor/*"
           element={
             <ProtectedRoute roles={["MENTOR"]}>
               <MentorLayout />
             </ProtectedRoute>
           }
         >
-          {/*<Route index element={<Navigate to="dashboard" />} />*/}
-          <Route path="dashboard" element={<MentorDashboard />} />
-          {/*<Route path="courses" element={<MentorCourses />} />
-          <Route path="category" element={<MentorCategories />} />
-          <Route path="students" element={<MentorStudents />} />
-          <Route path="earnings" element={<MentorEarnings />} />
-          <Route path="lessons" element={<MentorLessons />} />
-          <Route path="certificates" element={<MentorCertificates />} />
-          <Route path="reviews" element={<MentorReviews />} />
-          <Route path="assignments" element={<MentorAssignments />} />
-          <Route path="quiz" element={<MentorQuiz />} />
-          <Route path="notifications" element={<MentorNotification />} />
-          <Route path="profile" element={<MentorProfile />} />
-          <Route path="quizmarks" element={<QuizMarks />} />*/}
+          <Route path="*" element={<MentorRoutes />} />
         </Route>
 
         {/* ========================================== */}

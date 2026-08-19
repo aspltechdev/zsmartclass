@@ -1,707 +1,256 @@
-// src/pages/admin/CertificateManagement.jsx
-import { useEffect, useState } from "react";
-import axios from "axios";
+// src/pages/mentor/Certificates.jsx
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
-  Search,
-  Filter,
-  Eye,
-  CheckCircle,
-  XCircle,
-  Download,
-  RefreshCw,
-  Clock,
-  FileCheck,
-  FileX,
-  FileText,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
-  Edit,
-  Save,
-  X
+  Award, Search, RefreshCw, CheckCircle, XCircle, Clock,
+  Download, Zap, X, User, BookOpen,
 } from "lucide-react";
+import api from "../../services/api";
 import "./Certificates.css";
 
-function CertificateManagement() {
-  const [certificates, setCertificates] = useState([]);
-  const [filteredCertificates, setFilteredCertificates] = useState([]);
+function Certificates() {
+  const [pending, setPending] = useState([]);
+  const [issued, setIssued] = useState([]);
+  const [tab, setTab] = useState("pending");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [stats, setStats] = useState({
-    pending: 0,
-    active: 0,
-    rejected: 0,
-    total: 0,
-  });
-  const [selectedCertificate, setSelectedCertificate] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [actionId, setActionId] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [expandedRows, setExpandedRows] = useState({});
+  const [notice, setNotice] = useState("");
 
+  useEffect(() => { fetchAll(); }, []);
 
-useEffect(() => {
-    fetchCertificates();
-}, []);
-
-  useEffect(() => {
-    filterCertificates();
-  }, [certificates, searchTerm, statusFilter]);
-
-  // ==========================================
-  // FETCH CERTIFICATES
-  // ==========================================
-  const fetchCertificates = async () => {
+  const fetchAll = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        "http://localhost:5000/api/certificates/mentor/all",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+      setLoading(true); setError("");
+      const [p, a] = await Promise.all([
+        api.get("/certificates/admin/pending").catch(() => ({ data: { data: [] } })),
+        api.get("/certificates/admin/all").catch(() => ({ data: { data: [] } })),
+      ]);
+      const pend = p.data?.data || p.data || [];
+      const all = a.data?.data || a.data || [];
+      setPending(Array.isArray(pend) ? pend : []);
+      setIssued(
+        (Array.isArray(all) ? all : []).filter(
+          (c) => (c.status || "").toUpperCase() === "ACTIVE"
+        )
       );
-      
-      setCertificates(res.data.data || []);
-      setFilteredCertificates(res.data.data || []);
     } catch (err) {
-      console.error("Error fetching certificates:", err);
-      setError(err.response?.data?.message || "Failed to load certificates");
-    } finally {
-      setLoading(false);
-    }
+      setError(err.response?.data?.message || "Couldn't load certificates.");
+    } finally { setLoading(false); }
   };
 
-  // ==========================================
-  // FETCH STATS
-  // ==========================================
-  const fetchStats = async () => {
+  const flash = (msg) => { setNotice(msg); setTimeout(() => setNotice(""), 4000); };
+
+  const approve = async (cert) => {
+    setActionId(cert.id);
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        "http://localhost:5000/api/certificates/mentor/stats",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      setStats(res.data.data || {
-        pending: 0,
-        active: 0,
-        rejected: 0,
-        total: 0,
-        templates: 0
+      await api.put(`/certificates/admin/${cert.id}/approve`);
+      await fetchAll();
+      flash("Certificate approved and sent to the student.");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to approve.");
+    } finally { setActionId(null); }
+  };
+
+  const reject = async () => {
+    if (!rejectTarget) return;
+    setActionId(rejectTarget.id);
+    try {
+      await api.put(`/certificates/admin/${rejectTarget.id}/reject`, {
+        reason: rejectReason || "Not eligible yet",
       });
+      setRejectTarget(null); setRejectReason("");
+      await fetchAll();
+      flash("Certificate request rejected.");
     } catch (err) {
-      console.error("Error fetching stats:", err);
-    }
+      alert(err.response?.data?.message || "Failed to reject.");
+    } finally { setActionId(null); }
   };
 
-  // ==========================================
-  // FILTER CERTIFICATES
-  // ==========================================
-  const filterCertificates = () => {
-    let filtered = [...certificates];
-
-    // Status filter
-    if (statusFilter !== "ALL") {
-      filtered = filtered.filter(cert => cert.status === statusFilter);
-    }
-
-    // Search filter
-    if (searchTerm.trim()) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(cert =>
-        cert.certificateNo?.toLowerCase().includes(search) ||
-        cert.studentName?.toLowerCase().includes(search) ||
-        cert.courseTitle?.toLowerCase().includes(search) ||
-        cert.student?.email?.toLowerCase().includes(search)
-      );
-    }
-
-    setFilteredCertificates(filtered);
-  };
-
-  // ==========================================
-  // APPROVE CERTIFICATE
-  // ==========================================
-  const approveCertificate = async (id) => {
-    if (!window.confirm("Are you sure you want to approve this certificate?")) {
-      return;
-    }
-
+  const verifyNow = async () => {
+    setActionId("verify");
     try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5000/api/certificates/mentor/${id}/approve`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      await fetchCertificates();
-      await fetchStats();
-      alert("Certificate approved successfully!");
+      const res = await api.post("/certificates/admin/verify-now");
+      await fetchAll();
+      flash(res.data?.message || "Verification run complete.");
     } catch (err) {
-      console.error("Error approving certificate:", err);
-      alert(err.response?.data?.message || "Failed to approve certificate");
-    }
+      alert(err.response?.data?.message || "Verify failed.");
+    } finally { setActionId(null); }
   };
 
-  // ==========================================
-  // REJECT CERTIFICATE
-  // ==========================================
-  const rejectCertificate = async (id) => {
-    if (!rejectReason.trim()) {
-      alert("Please provide a reason for rejection");
-      return;
-    }
-
+  const download = async (certNo) => {
+    if (!certNo) return;
+    setActionId(certNo);
     try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5000/api/certificates/mentor/${id}/reject`,
-        { reason: rejectReason },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      setShowRejectModal(false);
-      setRejectReason("");
-      await fetchCertificates();
-      await fetchStats();
-      alert("Certificate rejected successfully!");
+      const res = await api.get(`/certificates/download/${certNo}`);
+      const payload = res.data?.data || res.data;
+      if (!payload?.pdfBuffer) throw new Error("No PDF returned");
+      const bytes = atob(payload.pdfBuffer);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      const url = window.URL.createObjectURL(new Blob([arr], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = `${certNo}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Error rejecting certificate:", err);
-      alert(err.response?.data?.message || "Failed to reject certificate");
-    }
+      alert(err.response?.data?.message || "Couldn't download this certificate.");
+    } finally { setActionId(null); }
   };
 
-  // ==========================================
-  // DELETE CERTIFICATE
-  // ==========================================
-  const deleteCertificate = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this certificate? This action cannot be undone.")) {
-      return;
-    }
+  const rows = tab === "pending" ? pending : issued;
 
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `http://localhost:5000/api/certificates/mentor/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      await fetchCertificates();
-      await fetchStats();
-      alert("Certificate deleted successfully!");
-    } catch (err) {
-      console.error("Error deleting certificate:", err);
-      alert(err.response?.data?.message || "Failed to delete certificate");
-    }
-  };
-
-  // ==========================================
-  // DOWNLOAD CERTIFICATE
-  // ==========================================
-  const downloadCertificate = async (certificateNo) => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `http://localhost:5000/api/certificates/download/${certificateNo}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          responseType: 'blob'
-        }
-      );
-      
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Certificate_${certificateNo}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (err) {
-      console.error("Error downloading certificate:", err);
-      alert("Failed to download certificate");
-    }
-  };
-
-  // ==========================================
-  // TOGGLE ROW EXPANSION
-  // ==========================================
-  const toggleRowExpand = (id) => {
-    setExpandedRows(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
-
-  // ==========================================
-  // GET STATUS BADGE
-  // ==========================================
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      PENDING: { class: "status-pending", icon: <Clock size={14} />, label: "Pending Review" },
-      ACTIVE: { class: "status-active", icon: <CheckCircle size={14} />, label: "Approved" },
-      REJECTED: { class: "status-rejected", icon: <XCircle size={14} />, label: "Rejected" },
-      REVOKED: { class: "status-revoked", icon: <XCircle size={14} />, label: "Revoked" }
-    };
-    
-    return statusMap[status] || statusMap.PENDING;
-  };
-
-  // ==========================================
-  // FORMAT DATE
-  // ==========================================
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  // ==========================================
-  // RENDER STATS CARDS
-  // ==========================================
-  const renderStatsCards = () => {
-    const cards = [
-      {
-        label: "Pending Review",
-        value: stats.pending,
-        icon: <Clock size={24} />,
-        color: "#f59e0b",
-        bgColor: "#fef3c7"
-      },
-      {
-        label: "Active Certificates",
-        value: stats.active,
-        icon: <CheckCircle size={24} />,
-        color: "#10b981",
-        bgColor: "#d1fae5"
-      },
-      {
-        label: "Rejected",
-        value: stats.rejected,
-        icon: <XCircle size={24} />,
-        color: "#ef4444",
-        bgColor: "#fee2e2"
-      },
-      {
-        label: "Total Certificates",
-        value: stats.total,
-        icon: <FileText size={24} />,
-        color: "#6366f1",
-        bgColor: "#e0e7ff"
-      }
-    ];
-
-    return (
-      <div className="stats-grid">
-        {cards.map((card, index) => (
-          <div key={index} className="stat-card">
-            <div className="stat-icon" style={{ backgroundColor: card.bgColor, color: card.color }}>
-              {card.icon}
-            </div>
-            <div className="stat-info">
-              <span className="stat-value">{card.value}</span>
-              <span className="stat-label">{card.label}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((c) =>
+      (c.student?.name || c.User?.name || "").toLowerCase().includes(q) ||
+      (c.student?.email || c.User?.email || "").toLowerCase().includes(q) ||
+      (c.course?.title || c.Course?.title || "").toLowerCase().includes(q) ||
+      (c.certificateNo || "").toLowerCase().includes(q)
     );
-  };
+  }, [rows, search]);
 
-  if (loading) {
-    return (
-      <div className="certificate-loading">
-        <RefreshCw className="spinning" size={32} />
-        <p>Loading certificates...</p>
-      </div>
-    );
-  }
+  const nameOf = (c) => c.student?.name || c.User?.name || "—";
+  const emailOf = (c) => c.student?.email || c.User?.email || "";
+  const courseOf = (c) => c.course?.title || c.Course?.title || "—";
+  const fmt = (d) => d ? new Date(d).toLocaleDateString("en-IN",
+    { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
   return (
-    <div className="certificate-management">
-      {/* HEADER */}
-      <div className="certificate-header">
+    <div className="cert-page">
+      <div className="cert-header">
         <div>
-          <h1>Certificate Management</h1>
-          <p>Review pending certificates, manage templates, and verify certificates</p>
+          <h1><Award size={24} /> Certificates</h1>
+          <p className="cert-subtitle">
+            Review certificate requests and approve them for your students.
+          </p>
         </div>
-        <div className="header-actions">
-          <button className="btn-refresh" onClick={fetchCertificates}>
-            <RefreshCw size={18} />
-            Refresh
+        <div className="cert-actions">
+          <button className="cert-btn ghost" onClick={fetchAll}><RefreshCw size={16} /></button>
+          <button className="cert-btn primary" onClick={verifyNow} disabled={actionId === "verify"}>
+            <Zap size={16} /> {actionId === "verify" ? "Verifying…" : "Verify Now"}
           </button>
         </div>
       </div>
 
-      {/* STATS CARDS */}
-      {renderStatsCards()}
+      {notice && <div className="cert-notice">{notice}</div>}
+      {error && <div className="cert-alert">{error}</div>}
 
-      {/* SECONDARY STATS */}
-      <div className="secondary-stats">
-        <div className="secondary-stat">
-          <span className="dot pending"></span>
-          <span className="stat-label">{stats.pending} Pending Review</span>
+      <div className="cert-stats">
+        <div className="cert-stat">
+          <div className="cert-stat-icon amber"><Clock size={20} /></div>
+          <div><div className="cert-stat-value">{pending.length}</div>
+               <div className="cert-stat-label">Pending Review</div></div>
         </div>
-        <div className="secondary-stat">
-          <span className="dot active"></span>
-          <span className="stat-label">{stats.active} Approved</span>
-        </div>
-        <div className="secondary-stat">
-          <span className="dot rejected"></span>
-          <span className="stat-label">{stats.rejected} Rejected</span>
+        <div className="cert-stat">
+          <div className="cert-stat-icon green"><CheckCircle size={20} /></div>
+          <div><div className="cert-stat-value">{issued.length}</div>
+               <div className="cert-stat-label">Issued</div></div>
         </div>
       </div>
 
-      {/* SEARCH & FILTER */}
-      <div className="certificate-toolbar">
-        <div className="search-box">
+      <div className="cert-tabs">
+        <button className={tab === "pending" ? "active" : ""} onClick={() => setTab("pending")}>
+          <Clock size={15} /> Pending ({pending.length})
+        </button>
+        <button className={tab === "issued" ? "active" : ""} onClick={() => setTab("issued")}>
+          <CheckCircle size={15} /> Issued ({issued.length})
+        </button>
+      </div>
+
+      <div className="cert-toolbar">
+        <div className="cert-search">
           <Search size={18} />
-          <input
-            type="text"
-            placeholder="Search by student, course, or certificate #..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="filter-box">
-          <Filter size={18} />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="PENDING">Pending Review</option>
-            <option value="ACTIVE">Approved</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="REVOKED">Revoked</option>
-          </select>
+          <input placeholder="Search student, course, or certificate no…"
+                 value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
-      {/* TABLE */}
-      <div className="certificate-table-container">
-        <table className="certificate-table">
-          <thead>
-            <tr>
-              <th>CERTIFICATE #</th>
-              <th>STUDENT</th>
-              <th>COURSE</th>
-              <th>ISSUE DATE</th>
-              <th>STATUS</th>
-              <th>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCertificates.length > 0 ? (
-              filteredCertificates.map((cert) => {
-                const status = getStatusBadge(cert.status);
-                const isExpanded = expandedRows[cert.id] || false;
+      {loading ? (
+        <div className="cert-empty">Loading certificates…</div>
+      ) : filtered.length === 0 ? (
+        <div className="cert-empty">
+          <Award size={44} />
+          <h3>{tab === "pending" ? "No pending requests" : "No certificates issued yet"}</h3>
+          <p>{tab === "pending"
+            ? "Requests appear here when students who completed a course apply."
+            : "Approved certificates will be listed here."}</p>
+        </div>
+      ) : (
+        <div className="cert-list">
+          {filtered.map((c) => (
+            <div className="cert-card" key={c.id}>
+              <div className="cert-card-icon"><Award size={20} /></div>
+              <div className="cert-card-body">
+                <div className="cert-card-top">
+                  <span className="cert-student"><User size={13} /> {nameOf(c)}</span>
+                  {c.certificateNo && <span className="cert-no">{c.certificateNo}</span>}
+                </div>
+                <div className="cert-card-meta">
+                  <span><BookOpen size={13} /> {courseOf(c)}</span>
+                  <span>{emailOf(c)}</span>
+                  <span>{fmt(c.createdAt || c.issuedAt)}</span>
+                </div>
+              </div>
 
-                return (
+              <div className="cert-card-actions">
+                {tab === "pending" ? (
                   <>
-                    <tr key={cert.id} className="certificate-row">
-                      <td>
-                        <div className="certificate-number">
-                          <FileText size={16} />
-                          <span>{cert.certificateNo}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="student-info">
-                          <span className="student-name">{cert.studentName || cert.student?.name}</span>
-                          <span className="student-email">{cert.student?.email}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="course-title">{cert.courseTitle || cert.course?.title}</span>
-                      </td>
-                      <td>{formatDate(cert.issueDate)}</td>
-                      <td>
-                        <span className={`status-badge ${status.class}`}>
-                          {status.icon}
-                          {status.label}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            className="btn-view"
-                            onClick={() => {
-                              setSelectedCertificate(cert);
-                              setShowDetailsModal(true);
-                            }}
-                            title="View Details"
-                          >
-                            <Eye size={16} />
-                          </button>
-                          
-                          {cert.status === "PENDING" && (
-                            <>
-                              <button
-                                className="btn-approve"
-                                onClick={() => approveCertificate(cert.id)}
-                                title="Approve"
-                              >
-                                <CheckCircle size={16} />
-                              </button>
-                            </>
-                          )}
-                          
-                          {cert.status === "ACTIVE" && (
-                            <button
-                              className="btn-download"
-                              onClick={() => downloadCertificate(cert.certificateNo)}
-                              title="Download"
-                            >
-                              <Download size={16} />
-                            </button>
-                          )}
-                          
-                          <button
-                            className="btn-expand"
-                            onClick={() => toggleRowExpand(cert.id)}
-                            title="Toggle Details"
-                          >
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        
-                        </div>
-                      </td>
-                    </tr>
-                    
-                    {/* Expanded Row */}
-                    {isExpanded && (
-                      <tr className="expanded-row">
-                        <td colSpan="6">
-                          <div className="expanded-content">
-                            <div className="expanded-grid">
-                              <div className="expanded-item">
-                                <label>Student Name</label>
-                                <p>{cert.studentName || cert.student?.name}</p>
-                              </div>
-                              <div className="expanded-item">
-                                <label>Student Email</label>
-                                <p>{cert.student?.email}</p>
-                              </div>
-                              <div className="expanded-item">
-                                <label>Course Title</label>
-                                <p>{cert.courseTitle || cert.course?.title}</p>
-                              </div>
-                              <div className="expanded-item">
-                                <label>Instructor</label>
-                                <p>{cert.instructorName}</p>
-                              </div>
-                              <div className="expanded-item">
-                                <label>Issue Date</label>
-                                <p>{formatDate(cert.issueDate)}</p>
-                              </div>
-                              <div className="expanded-item">
-                                <label>Reviewed By</label>
-                                <p>{cert.reviewedBy?.name || "Not reviewed yet"}</p>
-                              </div>
-                              {cert.revokeReason && (
-                                <div className="expanded-item full-width">
-                                  <label>Reason</label>
-                                  <p className="reason-text">{cert.revokeReason}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
+                    <button className="cert-btn approve" onClick={() => approve(c)}
+                            disabled={actionId === c.id}>
+                      <CheckCircle size={15} /> {actionId === c.id ? "…" : "Approve"}
+                    </button>
+                    <button className="cert-btn reject" onClick={() => setRejectTarget(c)}
+                            disabled={actionId === c.id}>
+                      <XCircle size={15} /> Reject
+                    </button>
                   </>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="6" className="empty-state">
-                  <div className="empty-content">
-                    <FileText size={48} />
-                    <h3>No certificates found</h3>
-                    <p>All certificates have been reviewed.</p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* DETAILS MODAL */}
-      {showDetailsModal && selectedCertificate && (
-        <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Certificate Details</h2>
-              <button className="modal-close" onClick={() => setShowDetailsModal(false)}>
-                <X size={24} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="detail-grid">
-                <div className="detail-item">
-                  <label>Certificate #</label>
-                  <p className="highlight">{selectedCertificate.certificateNo}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Status</label>
-                  <span className={`status-badge ${getStatusBadge(selectedCertificate.status).class}`}>
-                    {getStatusBadge(selectedCertificate.status).icon}
-                    {getStatusBadge(selectedCertificate.status).label}
-                  </span>
-                </div>
-                <div className="detail-item">
-                  <label>Student Name</label>
-                  <p>{selectedCertificate.studentName}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Student Email</label>
-                  <p>{selectedCertificate.student?.email}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Course</label>
-                  <p>{selectedCertificate.courseTitle}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Instructor</label>
-                  <p>{selectedCertificate.instructorName}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Issue Date</label>
-                  <p>{formatDate(selectedCertificate.issueDate)}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Created At</label>
-                  <p>{formatDate(selectedCertificate.createdAt)}</p>
-                </div>
-                <div className="detail-item full-width">
-                  <label>QR Code URL</label>
-                  <p className="truncate">{selectedCertificate.qrCodeUrl || "N/A"}</p>
-                </div>
-                {selectedCertificate.revokeReason && (
-                  <div className="detail-item full-width">
-                    <label>Revoke Reason</label>
-                    <p className="error-text">{selectedCertificate.revokeReason}</p>
-                  </div>
+                ) : (
+                  <button className="cert-btn ghost" onClick={() => download(c.certificateNo)}
+                          disabled={actionId === c.certificateNo}>
+                    <Download size={15} /> Download
+                  </button>
                 )}
               </div>
             </div>
-            <div className="modal-footer">
-              {selectedCertificate.status === "PENDING" && (
-                <>
-                  <button
-                    className="btn-approve-modal"
-                    onClick={() => {
-                      setShowDetailsModal(false);
-                      approveCertificate(selectedCertificate.id);
-                    }}
-                  >
-                    <CheckCircle size={18} />
-                    Approve
-                  </button>
-                  <button
-                    className="btn-reject-modal"
-                    onClick={() => {
-                      setShowDetailsModal(false);
-                      setShowRejectModal(true);
-                    }}
-                  >
-                    <XCircle size={18} />
-                    Reject
-                  </button>
-                </>
-              )}
-              {selectedCertificate.status === "ACTIVE" && (
-                <button
-                  className="btn-download-modal"
-                  onClick={() => {
-                    downloadCertificate(selectedCertificate.certificateNo);
-                  }}
-                >
-                  <Download size={18} />
-                  Download PDF
-                </button>
-              )}
-              <button className="btn-close-modal" onClick={() => setShowDetailsModal(false)}>
-                Close
-              </button>
-            </div>
-          </div>
+          ))}
         </div>
       )}
 
-      {/* REJECT MODAL */}
-      {showRejectModal && (
-        <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
-          <div className="modal-content reject-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Reject Certificate</h2>
-              <button className="modal-close" onClick={() => setShowRejectModal(false)}>
-                <X size={24} />
+      {rejectTarget && createPortal(
+        <div className="cert-modal-overlay" onClick={() => setRejectTarget(null)}>
+          <div className="cert-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cert-modal-header">
+              <h3>Reject certificate request</h3>
+              <button className="cert-btn ghost" onClick={() => setRejectTarget(null)}>
+                <X size={18} />
               </button>
             </div>
-            <div className="modal-body">
-              <p className="reject-warning">
-                Are you sure you want to reject this certificate?
+            <div className="cert-modal-body">
+              <p className="cert-modal-text">
+                Rejecting <strong>{nameOf(rejectTarget)}</strong>'s request for{" "}
+                <strong>{courseOf(rejectTarget)}</strong>.
               </p>
-              <div className="form-group">
-                <label>Reason for rejection</label>
-                <textarea
-                  rows="4"
-                  placeholder="Please provide a reason for rejecting this certificate..."
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                />
-              </div>
+              <label className="cert-label">Reason (shown to the student)</label>
+              <textarea className="cert-input" rows={3} value={rejectReason}
+                        placeholder="e.g. Course not fully completed yet"
+                        onChange={(e) => setRejectReason(e.target.value)} />
             </div>
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setShowRejectModal(false)}>
-                Cancel
-              </button>
-              <button
-                className="btn-reject-modal"
-                onClick={() => rejectCertificate(selectedCertificate?.id)}
-                disabled={!rejectReason.trim()}
-              >
-                <XCircle size={18} />
-                Reject
+            <div className="cert-modal-footer">
+              <button className="cert-btn ghost" onClick={() => setRejectTarget(null)}>Cancel</button>
+              <button className="cert-btn reject" onClick={reject}
+                      disabled={actionId === rejectTarget.id}>
+                {actionId === rejectTarget.id ? "Rejecting…" : "Reject Request"}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>, document.body)}
     </div>
   );
 }
 
-export default CertificateManagement;
+export default Certificates;
