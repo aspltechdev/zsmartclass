@@ -1,140 +1,97 @@
-﻿// src/components/student/StudentHeader.jsx
-import { useState, useEffect } from "react";
-import { Search, Bell, LogOut, Menu, X, ChevronRight } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import api from "../../services/api";
-import "./StudentHeader.css";
+﻿import React, { useState, useEffect } from 'react';
+import { Menu, ChevronLeft, Bell, User, LogOut } from 'lucide-react';  // Removed Settings
+import './StudentHeader.css';
 
-const PAGE_LABELS = {
-  dashboard: "Dashboard",
-  courses: "Browse courses",
-  "my-courses": "My courses",
-  certificates: "Certificates",
-  notifications: "Notifications",
-  profile: "Profile",
-};
-
-function StudentHeader({ onToggleMobile }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, logout } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const segments = location.pathname.split("/").filter(Boolean);
-  const pageKey = segments.length > 2 ? segments[1] : segments.pop() || "dashboard";
-  const pageLabel = PAGE_LABELS[pageKey] || pageKey.replace(/-/g, " ");
+const StudentHeader = ({ onMenuClick, onToggleSidebar, onLogout }) => {
+  const [user, setUser] = useState(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
-    fetchUnreadCount();
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (e) {
+        console.error('Error parsing user data');
+      }
+    }
   }, []);
 
-  const fetchUnreadCount = async () => {
-    try {
-      // GET /notifications is scoped server-side to the logged-in user
-      // (see AdminNotifications.jsx comments) — no /my suffix needed.
-      const res = await api.get("/notifications");
-      const data = res.data?.data || res.data || [];
-      const list = Array.isArray(data) ? data : [];
-      setUnreadCount(list.filter((n) => !n.isRead).length);
-    } catch {
-      // silent — notification badge is non-critical
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
-  };
-
-  const handleSearch = (e) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      navigate(`/student/courses?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery("");
-      setShowMobileSearch(false);
-    }
-  };
-
   return (
-    <>
-      <header className="student-header">
-        <div className="sh-left">
-          <button className="sh-menu-btn" onClick={onToggleMobile} aria-label="Menu">
-            <Menu size={20} />
-          </button>
-          <div className="sh-breadcrumb">
-            <span className="sh-breadcrumb-parent">My learning</span>
-            <ChevronRight size={14} className="sh-breadcrumb-sep" />
-            <span className="sh-breadcrumb-current">{pageLabel}</span>
-          </div>
-        </div>
+    <header className="student-header">
+      <div className="header-left">
+        <button className="header-btn mobile-menu-btn" onClick={onMenuClick}>
+          <Menu size={22} />
+        </button>
 
-        <div className="sh-right">
-          <div className="sh-search">
-            <Search size={15} />
-            <input
-              type="text"
-              placeholder="Search courses…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearch}
-            />
-          </div>
+        <button className="header-btn toggle-sidebar-btn" onClick={onToggleSidebar}>
+          <ChevronLeft size={20} />
+        </button>
+      </div>
 
-          <button
-            className="sh-icon-btn mobile-search-toggle"
-            onClick={() => setShowMobileSearch(true)}
-            aria-label="Search"
+      <div className="header-center">
+        <h1 className="header-title">Dashboard</h1>
+      </div>
+
+      <div className="header-right">
+        <button className="header-btn notification-btn">
+          <Bell size={20} />
+          <span className="notification-dot"></span>
+        </button>
+
+        <div className="profile-container">
+          <button 
+            className="profile-btn"
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
           >
-            <Search size={18} />
-          </button>
-
-          <button
-            className="sh-icon-btn"
-            onClick={() => navigate("/student/notifications")}
-            aria-label="Notifications"
-          >
-            <Bell size={18} />
-            {unreadCount > 0 && <span className="sh-badge">{unreadCount}</span>}
-          </button>
-
-          <div className="sh-profile" onClick={() => navigate("/student/profile")}>
-            <div className="sh-avatar">{user?.name?.charAt(0) || "S"}</div>
-            <div className="sh-profile-info">
-              <span className="sh-profile-name">{user?.name || "Student"}</span>
-              <span className="sh-profile-role">Student</span>
+            <div className="profile-avatar">
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
-          </div>
-
-          <button className="sh-logout-btn" onClick={handleLogout} title="Logout">
-            <LogOut size={16} />
-            <span>Logout</span>
+            <div className="profile-info">
+              <span className="profile-name">{user?.name || 'User'}</span>
+              <span className="profile-role">Student</span>
+            </div>
           </button>
-        </div>
-      </header>
 
-      {showMobileSearch && (
-        <div className="sh-mobile-search">
-          <div className="sh-search expanded">
-            <Search size={16} />
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearch}
-            />
-          </div>
-          <button className="sh-icon-btn" onClick={() => setShowMobileSearch(false)}>
-            <X size={18} />
-          </button>
+          {showProfileMenu && (
+            <div className="profile-dropdown">
+              <div className="dropdown-header">
+                <div className="dropdown-avatar">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div>
+                  <p className="dropdown-name">{user?.name || 'User'}</p>
+                  <p className="dropdown-email">{user?.email || 'user@email.com'}</p>
+                </div>
+              </div>
+
+              <div className="dropdown-divider"></div>
+
+              <button 
+                className="dropdown-item" 
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  window.location.href = '/student/profile';
+                }}
+              >
+                <User size={18} />
+                Profile
+              </button>
+
+              {/* ❌ Settings option REMOVED */}
+
+              <div className="dropdown-divider"></div>
+
+              <button className="dropdown-item dropdown-logout" onClick={onLogout}>
+                <LogOut size={18} />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
-      )}
-    </>
+      </div>
+    </header>
   );
-}
+};
 
 export default StudentHeader;

@@ -29,7 +29,7 @@ router.get(
 router.post(
     "/admin/verify-now",
     authMiddleware,
-    roleMiddleware("ADMIN"),
+    roleMiddleware("ADMIN","MENTOR"),
     certificateController.verifyPendingNow
 );
 

@@ -1,8 +1,9 @@
 ﻿// src/components/admin/AdminLayout.jsx
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import AdminHeader from "./AdminHeader";  // Fix: Use "./" not "../components/admin/"
-import AdminSidebar from "./AdminSidebar"; // Fix: Use "./" not "../components/admin/"
+import AdminHeader from "./AdminHeader";
+import AdminSidebar from "./AdminSidebar"; 
+import "./admin-theme.css";
 import "./AdminLayout.css";
 
 function AdminLayout() {

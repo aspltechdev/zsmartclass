@@ -1,6 +1,6 @@
 // src/components/admin/AdminHeader.jsx
 import { useState, useEffect, useRef } from "react";
-import { Bell, LogOut, Menu, ChevronRight, Use, ChevronDown } from "lucide-react";
+import { Bell, LogOut, Menu, ChevronRight, User, ChevronDown } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
@@ -150,12 +150,6 @@ function AdminHeader({ onToggleMobile }) {
               </div>
             )}
           </div>
-
-          {/* Logout Button (Hidden when profile dropdown is used) */}
-          {/* <button className="ah-logout-btn" onClick={handleLogout} title="Logout">
-            <LogOut size={16} />
-            <span>Logout</span>
-          </button> */}
         </div>
       </header>
     </>

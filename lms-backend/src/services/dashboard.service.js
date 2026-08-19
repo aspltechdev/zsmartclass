@@ -320,20 +320,23 @@ class DashboardService {
   async studentDashboard(studentId) {
     const id = Number(studentId);
 
+    // Enrollment is keyed by `userId` (NOT `studentId`). Using studentId here
+    // throws "Unknown argument `studentId`". LessonProgress/Payment/etc. use
+    // studentId, but Enrollment uses userId — keep them straight.
     const [myCourses, completedCourses, continueLearning, recentCourses] =
       await Promise.all([
-        prisma.enrollment.count({ where: { studentId: id } }),
-        prisma.enrollment.count({ where: { studentId: id, completed: true } }),
+        prisma.enrollment.count({ where: { userId: id } }),
+        prisma.enrollment.count({ where: { userId: id, completed: true } }),
         prisma.enrollment.findFirst({
-          where: { studentId: id, completed: false },
+          where: { userId: id, completed: false },
           include: { course: true },
           orderBy: { enrolledAt: "desc" },
         }),
         prisma.enrollment.findMany({
-          where: { studentId: id },
+          where: { userId: id },
           take: 5,
           orderBy: { enrolledAt: "desc" },
-          include: { course: true },
+          include: { course: true }, // each row already carries `progress`
         }),
       ]);
 

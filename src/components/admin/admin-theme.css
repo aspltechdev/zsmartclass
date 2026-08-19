@@ -1,0 +1,1261 @@
+/* =========================================================
+   ZSMARTCLASS ADMIN DESIGN SYSTEM
+   Shared styles for all admin pages
+   ========================================================= */
+
+/* =========================================================
+   1. FONT
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+
+/* =========================================================
+   2. DESIGN TOKENS
+   ========================================================= */
+
+:root {
+
+  /* ---------- Brand ---------- */
+
+  --admin-primary: #6366f1;
+  --admin-primary-hover: #4f46e5;
+  --admin-primary-light: #eef2ff;
+  --admin-primary-soft: #f5f3ff;
+
+  --admin-secondary: #7c3aed;
+  --admin-secondary-light: #f5f3ff;
+
+  /* ---------- Semantic Colors ---------- */
+
+  --admin-success: #16a34a;
+  --admin-success-light: #dcfce7;
+
+  --admin-warning: #d97706;
+  --admin-warning-light: #fef3c7;
+
+  --admin-danger: #dc2626;
+  --admin-danger-hover: #b91c1c;
+  --admin-danger-light: #fee2e2;
+
+  --admin-info: #2563eb;
+  --admin-info-light: #dbeafe;
+
+
+  /* ---------- Backgrounds ---------- */
+
+  --admin-bg: #f6f7fb;
+  --admin-bg-subtle: #f8fafc;
+  --admin-surface: #ffffff;
+  --admin-surface-hover: #fafbff;
+
+  /* ---------- Sidebar ---------- */
+
+  --admin-sidebar-bg: #111827;
+  --admin-sidebar-bg-secondary: #172033;
+  --admin-sidebar-text: #94a3b8;
+  --admin-sidebar-text-hover: #ffffff;
+  --admin-sidebar-active: rgba(99, 102, 241, 0.14);
+  --admin-sidebar-border: rgba(255, 255, 255, 0.07);
+
+  /* ---------- Typography ---------- */
+
+  --admin-text: #111827;
+  --admin-text-secondary: #475569;
+  --admin-text-muted: #94a3b8;
+  --admin-text-light: #cbd5e1;
+
+  /* ---------- Borders ---------- */
+
+  --admin-border: #e5e7eb;
+  --admin-border-light: #eef0f4;
+  --admin-border-dark: #d1d5db;
+
+  /* ---------- Spacing ---------- */
+
+  --admin-space-1: 4px;
+  --admin-space-2: 8px;
+  --admin-space-3: 12px;
+  --admin-space-4: 16px;
+  --admin-space-5: 20px;
+  --admin-space-6: 24px;
+  --admin-space-7: 28px;
+  --admin-space-8: 32px;
+  --admin-space-10: 40px;
+  --admin-space-12: 48px;
+  --admin-space-16: 64px;
+
+  /* ---------- Radius ---------- */
+
+  --admin-radius-sm: 6px;
+  --admin-radius-md: 8px;
+  --admin-radius-lg: 12px;
+  --admin-radius-xl: 16px;
+  --admin-radius-2xl: 20px;
+  --admin-radius-full: 999px;
+
+  /* ---------- Shadows ---------- */
+
+  --admin-shadow-xs:
+    0 1px 2px rgba(15, 23, 42, 0.04);
+
+  --admin-shadow-sm:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+
+  --admin-shadow-md:
+    0 4px 12px rgba(15, 23, 42, 0.08);
+
+  --admin-shadow-lg:
+    0 12px 30px rgba(15, 23, 42, 0.12);
+
+  --admin-shadow-modal:
+    0 20px 60px rgba(15, 23, 42, 0.18);
+
+  /* ---------- Layout ---------- */
+
+  --admin-sidebar-width: 260px;
+  --admin-sidebar-collapsed-width: 76px;
+  --admin-header-height: 68px;
+
+  /* ---------- Transitions ---------- */
+
+  --admin-transition-fast: 0.15s ease;
+  --admin-transition: 0.2s ease;
+  --admin-transition-slow: 0.3s ease;
+
+  /* ---------- Typography ---------- */
+
+  --admin-font:
+    'Poppins',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+
+  --admin-font-xs: 11px;
+  --admin-font-sm: 12px;
+  --admin-font-md: 13px;
+  --admin-font-base: 14px;
+  --admin-font-lg: 16px;
+  --admin-font-xl: 18px;
+  --admin-font-2xl: 22px;
+  --admin-font-3xl: 28px;
+
+  --admin-line-height: 1.5;
+}
+
+
+/* =========================================================
+   3. GLOBAL ADMIN BASE
+   ========================================================= */
+
+.admin-layout,
+.admin-layout * {
+  box-sizing: border-box;
+}
+
+.admin-layout {
+  font-family: var(--admin-font);
+  color: var(--admin-text);
+  background: var(--admin-bg);
+  font-size: var(--admin-font-base);
+  line-height: var(--admin-line-height);
+}
+
+.admin-layout button,
+.admin-layout input,
+.admin-layout select,
+.admin-layout textarea {
+  font-family: inherit;
+}
+
+.admin-layout button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-layout a {
+  color: inherit;
+}
+
+
+/* =========================================================
+   4. PAGE HEADER
+   ========================================================= */
+
+.admin-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--admin-space-4);
+  margin-bottom: var(--admin-space-6);
+}
+
+.admin-page-title {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: var(--admin-font-3xl);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.admin-page-description {
+  margin: 6px 0 0;
+  color: var(--admin-text-muted);
+  font-size: var(--admin-font-md);
+}
+
+
+/* =========================================================
+   5. CARDS
+   ========================================================= */
+
+.admin-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-light);
+  border-radius: var(--admin-radius-xl);
+  box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-card-padded {
+  padding: var(--admin-space-6);
+}
+
+.admin-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--admin-space-4);
+  padding: var(--admin-space-5) var(--admin-space-6);
+  border-bottom: 1px solid var(--admin-border-light);
+}
+
+.admin-card-title {
+  margin: 0;
+  font-size: var(--admin-font-lg);
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.admin-card-subtitle {
+  margin: 3px 0 0;
+  color: var(--admin-text-muted);
+  font-size: var(--admin-font-sm);
+}
+
+.admin-card-body {
+  padding: var(--admin-space-6);
+}
+
+
+/* =========================================================
+   6. STAT CARDS
+   ========================================================= */
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--admin-space-4);
+}
+
+.admin-stat-card {
+  position: relative;
+  overflow: hidden;
+  padding: var(--admin-space-5);
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-light);
+  border-radius: var(--admin-radius-xl);
+  box-shadow: var(--admin-shadow-sm);
+  transition:
+    transform var(--admin-transition),
+    box-shadow var(--admin-transition);
+}
+
+.admin-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--admin-shadow-md);
+}
+
+.admin-stat-icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--admin-radius-lg);
+  background: var(--admin-primary-light);
+  color: var(--admin-primary);
+}
+
+.admin-stat-label {
+  margin-top: var(--admin-space-4);
+  color: var(--admin-text-muted);
+  font-size: var(--admin-font-sm);
+  font-weight: 500;
+}
+
+.admin-stat-value {
+  margin-top: 3px;
+  color: var(--admin-text);
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   7. BUTTONS
+   ========================================================= */
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--admin-space-2);
+
+  min-height: 38px;
+  padding: 8px 16px;
+
+  border: 1px solid transparent;
+  border-radius: var(--admin-radius-md);
+
+  font-size: var(--admin-font-md);
+  font-weight: 600;
+
+  cursor: pointer;
+  white-space: nowrap;
+
+  transition:
+    background var(--admin-transition),
+    border-color var(--admin-transition),
+    color var(--admin-transition),
+    box-shadow var(--admin-transition),
+    transform var(--admin-transition);
+}
+
+.admin-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-btn-primary {
+  background: var(--admin-primary);
+  color: #ffffff;
+  border-color: var(--admin-primary);
+}
+
+.admin-btn-primary:hover:not(:disabled) {
+  background: var(--admin-primary-hover);
+  border-color: var(--admin-primary-hover);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  transform: translateY(-1px);
+}
+
+.admin-btn-secondary {
+  background: #ffffff;
+  color: var(--admin-text-secondary);
+  border-color: var(--admin-border);
+}
+
+.admin-btn-secondary:hover:not(:disabled) {
+  background: var(--admin-bg-subtle);
+  border-color: var(--admin-border-dark);
+}
+
+.admin-btn-danger {
+  background: var(--admin-danger);
+  color: #ffffff;
+  border-color: var(--admin-danger);
+}
+
+.admin-btn-danger:hover:not(:disabled) {
+  background: var(--admin-danger-hover);
+}
+
+.admin-btn-ghost {
+  background: transparent;
+  color: var(--admin-text-secondary);
+  border-color: transparent;
+}
+
+.admin-btn-ghost:hover:not(:disabled) {
+  background: var(--admin-bg-subtle);
+  color: var(--admin-text);
+}
+
+.admin-btn-sm {
+  min-height: 32px;
+  padding: 6px 11px;
+  font-size: var(--admin-font-sm);
+}
+
+.admin-btn-lg {
+  min-height: 44px;
+  padding: 10px 20px;
+  font-size: var(--admin-font-base);
+}
+
+
+/* =========================================================
+   8. ICON BUTTONS
+   ========================================================= */
+
+.admin-icon-btn {
+  width: 36px;
+  height: 36px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+
+  background: var(--admin-surface);
+  color: var(--admin-text-secondary);
+
+  cursor: pointer;
+
+  transition: all var(--admin-transition);
+}
+
+.admin-icon-btn:hover {
+  background: var(--admin-bg-subtle);
+  color: var(--admin-text);
+  border-color: var(--admin-border-dark);
+}
+
+.admin-icon-btn.danger:hover {
+  background: var(--admin-danger-light);
+  border-color: #fecaca;
+  color: var(--admin-danger);
+}
+
+.admin-icon-btn.edit:hover {
+  background: var(--admin-info-light);
+  border-color: #bfdbfe;
+  color: var(--admin-info);
+}
+
+.admin-icon-btn.success:hover {
+  background: var(--admin-success-light);
+  border-color: #bbf7d0;
+  color: var(--admin-success);
+}
+
+
+/* =========================================================
+   9. TABLE
+   ========================================================= */
+
+.admin-table-container {
+  width: 100%;
+  overflow: hidden;
+
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-light);
+  border-radius: var(--admin-radius-xl);
+  box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+}
+
+.admin-table th {
+  padding: 13px 18px;
+
+  background: var(--admin-bg-subtle);
+  border-bottom: 1px solid var(--admin-border);
+
+  color: var(--admin-text-muted);
+
+  font-size: var(--admin-font-xs);
+  font-weight: 600;
+
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 14px 18px;
+
+  border-bottom: 1px solid var(--admin-border-light);
+
+  color: var(--admin-text-secondary);
+  font-size: var(--admin-font-md);
+}
+
+.admin-table tbody tr {
+  transition: background var(--admin-transition-fast);
+}
+
+.admin-table tbody tr:hover {
+  background: #fafbff;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+
+/* =========================================================
+   10. BADGES
+   ========================================================= */
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  min-height: 24px;
+  padding: 3px 9px;
+
+  border-radius: var(--admin-radius-full);
+
+  font-size: var(--admin-font-xs);
+  font-weight: 600;
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+.admin-badge-success {
+  background: var(--admin-success-light);
+  color: #15803d;
+}
+
+.admin-badge-warning {
+  background: var(--admin-warning-light);
+  color: #a16207;
+}
+
+.admin-badge-danger {
+  background: var(--admin-danger-light);
+  color: #b91c1c;
+}
+
+.admin-badge-info {
+  background: var(--admin-info-light);
+  color: #1d4ed8;
+}
+
+.admin-badge-neutral {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.admin-badge-primary {
+  background: var(--admin-primary-light);
+  color: #4f46e5;
+}
+
+
+/* Compatibility with your existing classes */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 3px 10px;
+  border-radius: var(--admin-radius-full);
+  font-size: var(--admin-font-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.active,
+.status-badge.completed,
+.status-badge.published {
+  background: var(--admin-success-light);
+  color: #15803d;
+}
+
+.status-badge.inactive,
+.status-badge.draft {
+  background: var(--admin-warning-light);
+  color: #a16207;
+}
+
+.status-badge.suspended,
+.status-badge.failed {
+  background: var(--admin-danger-light);
+  color: #b91c1c;
+}
+
+.status-badge.pending {
+  background: var(--admin-info-light);
+  color: #1d4ed8;
+}
+
+
+/* =========================================================
+   11. FORM CONTROLS
+   ========================================================= */
+
+.admin-input,
+.admin-select,
+.admin-textarea {
+  width: 100%;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+
+  background: #ffffff;
+  color: var(--admin-text);
+
+  font-family: inherit;
+  font-size: var(--admin-font-md);
+
+  outline: none;
+
+  transition:
+    border-color var(--admin-transition),
+    box-shadow var(--admin-transition);
+}
+
+.admin-input,
+.admin-select {
+  height: 40px;
+  padding: 0 12px;
+}
+
+.admin-textarea {
+  min-height: 100px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.admin-input::placeholder,
+.admin-textarea::placeholder {
+  color: var(--admin-text-muted);
+}
+
+.admin-input:focus,
+.admin-select:focus,
+.admin-textarea:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.admin-label {
+  display: block;
+  margin-bottom: 6px;
+
+  color: var(--admin-text);
+  font-size: var(--admin-font-md);
+  font-weight: 500;
+}
+
+.admin-form-group {
+  margin-bottom: var(--admin-space-4);
+}
+
+
+/* Existing compatibility classes */
+
+.search-input,
+.filter-select {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: #ffffff;
+  color: var(--admin-text);
+  font-family: inherit;
+  outline: none;
+  transition: all var(--admin-transition);
+}
+
+.search-input {
+  min-height: 40px;
+  padding: 0 12px 0 38px;
+}
+
+.filter-select {
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.search-input:focus,
+.filter-select:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+
+/* =========================================================
+   12. FILTER BAR
+   ========================================================= */
+
+.admin-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--admin-space-5);
+}
+
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--admin-space-5);
+}
+
+
+/* =========================================================
+   13. MODALS
+   IMPORTANT:
+   These are intentionally NOT nested under .admin-layout.
+   createPortal() renders modals directly into document.body.
+   ========================================================= */
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.admin-modal {
+  width: min(100%, 560px);
+  max-height: calc(100vh - 40px);
+
+  display: flex;
+  flex-direction: column;
+
+  background: #ffffff;
+
+  border: 1px solid var(--admin-border-light);
+  border-radius: var(--admin-radius-xl);
+
+  box-shadow: var(--admin-shadow-modal);
+
+  overflow: hidden;
+
+  animation: adminModalIn 0.2s ease;
+}
+
+.admin-modal-lg {
+  width: min(100%, 760px);
+}
+
+.admin-modal-xl {
+  width: min(100%, 960px);
+}
+
+.admin-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 18px 22px;
+
+  border-bottom: 1px solid var(--admin-border-light);
+}
+
+.admin-modal-title {
+  margin: 0;
+
+  color: var(--admin-text);
+  font-size: var(--admin-font-lg);
+  font-weight: 600;
+}
+
+.admin-modal-close {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: var(--admin-radius-md);
+
+  background: transparent;
+  color: var(--admin-text-muted);
+
+  cursor: pointer;
+
+  transition: all var(--admin-transition);
+}
+
+.admin-modal-close:hover {
+  background: var(--admin-danger-light);
+  color: var(--admin-danger);
+}
+
+.admin-modal-body {
+  padding: 22px;
+  overflow-y: auto;
+}
+
+.admin-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--admin-space-2);
+
+  padding: 16px 22px;
+
+  border-top: 1px solid var(--admin-border-light);
+}
+
+@keyframes adminModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+/* =========================================================
+   14. EMPTY STATE
+   ========================================================= */
+
+.admin-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 260px;
+  padding: var(--admin-space-8);
+
+  text-align: center;
+}
+
+.admin-empty-icon {
+  width: 56px;
+  height: 56px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: var(--admin-space-4);
+
+  border-radius: var(--admin-radius-lg);
+
+  background: var(--admin-bg-subtle);
+  color: var(--admin-text-muted);
+}
+
+.admin-empty-state h3 {
+  margin: 0 0 6px;
+
+  color: var(--admin-text);
+  font-size: var(--admin-font-lg);
+  font-weight: 600;
+}
+
+.admin-empty-state p {
+  max-width: 420px;
+  margin: 0;
+
+  color: var(--admin-text-muted);
+  font-size: var(--admin-font-md);
+}
+
+
+/* Existing compatibility */
+
+.empty-state {
+  padding: var(--admin-space-12) var(--admin-space-5);
+  text-align: center;
+  color: var(--admin-text-muted);
+}
+
+.empty-state h3 {
+  margin: 0 0 8px;
+  color: var(--admin-text);
+  font-size: var(--admin-font-lg);
+}
+
+.empty-state p {
+  margin: 0 0 20px;
+  font-size: var(--admin-font-md);
+}
+
+
+/* =========================================================
+   15. LOADING
+   ========================================================= */
+
+.admin-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 240px;
+
+  color: var(--admin-text-muted);
+}
+
+.admin-spinner {
+  width: 34px;
+  height: 34px;
+
+  margin-bottom: 12px;
+
+  border: 3px solid var(--admin-border);
+  border-top-color: var(--admin-primary);
+
+  border-radius: 50%;
+
+  animation: adminSpin 0.8s linear infinite;
+}
+
+@keyframes adminSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   16. PAGINATION
+   ========================================================= */
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 14px 18px;
+
+  border-top: 1px solid var(--admin-border-light);
+}
+
+.admin-pagination-info {
+  color: var(--admin-text-muted);
+  font-size: var(--admin-font-sm);
+}
+
+.admin-pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-pagination-btn {
+  min-width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 8px;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+
+  background: #ffffff;
+  color: var(--admin-text-secondary);
+
+  cursor: pointer;
+}
+
+.admin-pagination-btn:hover:not(:disabled) {
+  background: var(--admin-bg-subtle);
+}
+
+.admin-pagination-btn.active {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: #ffffff;
+}
+
+.admin-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   17. EXPAND / COLLAPSE
+   Plus / Minus buttons
+   ========================================================= */
+
+.admin-expand-btn {
+  width: 32px;
+  height: 32px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+
+  background: #ffffff;
+  color: var(--admin-text-secondary);
+
+  cursor: pointer;
+
+  transition: all var(--admin-transition);
+}
+
+.admin-expand-btn:hover {
+  background: var(--admin-primary-light);
+  border-color: #c7d2fe;
+  color: var(--admin-primary);
+}
+
+.admin-expand-btn svg {
+  transition: transform var(--admin-transition);
+}
+
+.admin-expand-btn.open svg {
+  transform: rotate(180deg);
+}
+
+
+/* =========================================================
+   18. ACTION GROUP
+   ========================================================= */
+
+.admin-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-2);
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-2);
+}
+
+
+/* =========================================================
+   19. COMMON UTILITIES
+   ========================================================= */
+
+.admin-flex {
+  display: flex;
+}
+
+.admin-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-gap-1 {
+  gap: 4px;
+}
+
+.admin-gap-2 {
+  gap: 8px;
+}
+
+.admin-gap-3 {
+  gap: 12px;
+}
+
+.admin-gap-4 {
+  gap: 16px;
+}
+
+.admin-gap-5 {
+  gap: 20px;
+}
+
+.admin-gap-6 {
+  gap: 24px;
+}
+
+.admin-text-muted {
+  color: var(--admin-text-muted);
+}
+
+.admin-text-secondary {
+  color: var(--admin-text-secondary);
+}
+
+.admin-text-primary {
+  color: var(--admin-primary);
+}
+
+.admin-text-success {
+  color: var(--admin-success);
+}
+
+.admin-text-danger {
+  color: var(--admin-danger);
+}
+
+.admin-text-center {
+  text-align: center;
+}
+
+.admin-text-right {
+  text-align: right;
+}
+
+
+/* =========================================================
+   20. RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+  .admin-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-page-title {
+    font-size: var(--admin-font-2xl);
+  }
+}
+
+
+@media (max-width: 768px) {
+
+  .admin-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-page-title {
+    font-size: 21px;
+  }
+
+  .admin-card-padded,
+  .admin-card-body {
+    padding: 16px;
+  }
+
+  .admin-card-header {
+    padding: 16px;
+  }
+
+  .admin-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filter-bar,
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-filter-bar > *,
+  .filters-bar > * {
+    width: 100%;
+  }
+
+  .admin-table-container {
+    border-radius: var(--admin-radius-lg);
+  }
+
+  .admin-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-pagination-buttons {
+    justify-content: center;
+  }
+
+  .admin-modal-overlay {
+    padding: 12px;
+  }
+
+  .admin-modal {
+    max-height: calc(100vh - 24px);
+  }
+
+  .admin-modal-header,
+  .admin-modal-body,
+  .admin-modal-footer {
+    padding: 16px;
+  }
+}
+
+
+@media (max-width: 480px) {
+
+  .admin-btn {
+    min-height: 40px;
+  }
+
+  .admin-actions {
+    width: 100%;
+  }
+
+  .admin-actions .admin-btn {
+    flex: 1;
+  }
+
+  .admin-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .admin-modal-footer .admin-btn {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   21. REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .admin-layout *,
+  .admin-layout *::before,
+  .admin-layout *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
