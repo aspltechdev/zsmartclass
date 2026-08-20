@@ -1,6 +1,3 @@
-/* src/App.css */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
-
 .counter {
   font-size: 16px;
   padding: 5px 10px;
@@ -10,7 +7,6 @@
   border: 2px solid transparent;
   transition: border-color 0.3s;
   margin-bottom: 24px;
-  font-family: 'Poppins', sans-serif;
 
   &:hover {
     border-color: var(--accent-border);
@@ -130,7 +126,6 @@
     gap: 8px;
     text-decoration: none;
     transition: box-shadow 0.3s;
-    font-family: 'Poppins', sans-serif;
 
     &:hover {
       box-shadow: var(--shadow);
@@ -185,73 +180,5 @@
   &::after {
     right: 0;
     border-right-color: var(--border);
-  }
-}
-
-/* ========================================== */
-/* Dashboard Specific Styles (Overrides) */
-/* ========================================== */
-
-.dashboard-page,
-.dashboard-page * {
-  font-family: 'Poppins', sans-serif !important;
-}
-
-/* Ensure all admin pages use Poppins */
-.users-page,
-.courses-page,
-.categories-page,
-.certificates-page,
-.enrollments-page,
-.lessons-page,
-.modules-page,
-.notifications-page,
-.payments-page,
-.profile-page,
-.reports-page {
-  font-family: 'Poppins', sans-serif !important;
-}
-
-.users-page *,
-.courses-page *,
-.categories-page *,
-.certificates-page *,
-.enrollments-page *,
-.lessons-page *,
-.modules-page *,
-.notifications-page *,
-.payments-page *,
-.profile-page *,
-.reports-page * {
-  font-family: 'Poppins', sans-serif !important;
-}
-
-/* Button hover effects - consistent with brand */
-.btn-primary,
-.add-btn,
-.btn-save {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-}
-
-.btn-primary:hover,
-.add-btn:hover,
-.btn-save:hover {
-  background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-/* Dark mode accent overrides */
-@media (prefers-color-scheme: dark) {
-  .btn-primary,
-  .add-btn,
-  .btn-save {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  }
-  
-  .btn-primary:hover,
-  .add-btn:hover,
-  .btn-save:hover {
-    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%) !important;
   }
 }

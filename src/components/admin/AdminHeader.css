@@ -1,192 +1,211 @@
-/* src/components/admin/AdminHeader.css */
+/* =========================================================
+   ZSMARTCLASS - ADMIN HEADER
+   Sticky top bar: breadcrumb + actions + profile
+   Tokens come from admin-theme.css
+   ========================================================= */
 
-/* ========================================== */
-/* CSS Variables */
-/* ========================================== */
-:root {
-  --brand-primary: #667eea;
-  --brand-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --border: #e2e8f0;
-  --bg-subtle: #f1f5f9;
-  --text-primary: #1a1a2e;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --danger: #ef4444;
-  --danger-bg: #fef2f2;
-  --radius-sm: 8px;
-  --radius-full: 9999px;
-  --transition: all 0.2s ease;
-}
-
-/* ========================================== */
-/* Admin Header Container */
-/* ========================================== */
 .admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 900;
+
+  height: var(--admin-header-height);
+  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-sizing: border-box;
-  gap: 16px;
+  gap: var(--admin-space-4);
+
+  padding: 0 var(--admin-space-6);
+
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+
+  border-bottom: 1px solid var(--admin-border-light);
+
+  font-family: var(--admin-font);
 }
 
-/* ========================================== */
-/* Left Section */
-/* ========================================== */
+
+/* =========================================================
+   LEFT — menu + breadcrumb
+   ========================================================= */
+
 .ah-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--admin-space-3);
+
   min-width: 0;
 }
 
 .ah-menu-btn {
-  display: none;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-secondary);
+  width: 38px;
+  height: 38px;
+
+  display: none;                /* shown on mobile only */
   align-items: center;
   justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+
+  background: var(--admin-surface);
+  color: var(--admin-text-secondary);
+
   cursor: pointer;
-  transition: var(--transition);
-  flex-shrink: 0;
+
+  transition: all var(--admin-transition);
 }
 
 .ah-menu-btn:hover {
-  background: var(--bg-subtle);
-  color: var(--text-primary);
+  background: var(--admin-bg-subtle);
+  color: var(--admin-text);
 }
+
+
+/* ---------- Desktop collapse toggle ---------- */
+
+.ah-collapse-btn {
+  width: 38px;
+  height: 38px;
+
+  display: flex;                /* hidden on mobile below */
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+
+  background: var(--admin-surface);
+  color: var(--admin-text-secondary);
+
+  cursor: pointer;
+
+  transition: all var(--admin-transition);
+}
+
+.ah-collapse-btn:hover {
+  background: var(--admin-primary-light);
+  border-color: #c7d2fe;
+  color: var(--admin-primary);
+}
+
+
+/* ---------- Breadcrumb ---------- */
 
 .ah-breadcrumb {
   display: flex;
   align-items: center;
   gap: 6px;
+
+  min-width: 0;
 }
 
 .ah-breadcrumb-parent {
-  font-size: 13px;
-  color: var(--text-muted);
+  color: var(--admin-text-muted);
+  font-size: var(--admin-font-md);
   font-weight: 500;
+
+  white-space: nowrap;
 }
 
 .ah-breadcrumb-sep {
-  color: var(--text-muted);
+  flex-shrink: 0;
+  color: var(--admin-text-light);
 }
 
 .ah-breadcrumb-current {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
+  color: var(--admin-text);
+  font-size: var(--admin-font-lg);
+  font-weight: 600;
+  letter-spacing: -0.2px;
+
+  text-transform: capitalize;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ========================================== */
-/* Right Section */
-/* ========================================== */
+
+/* =========================================================
+   RIGHT — actions + profile
+   ========================================================= */
+
 .ah-right {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: var(--admin-space-3);
 }
 
-/* ========================================== */
-/* Search Bar */
-/* ========================================== */
-.ah-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 7px 14px;
-  width: 220px;
-  transition: var(--transition);
-}
 
-.ah-search:focus-within {
-  background: #fff;
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  width: 260px;
-}
+/* ---------- Icon button (bell) ---------- */
 
-.ah-search svg {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.ah-search input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 13px;
-  color: var(--text-primary);
-  width: 100%;
-}
-
-.ah-search input::placeholder {
-  color: var(--text-muted);
-}
-
-/* ========================================== */
-/* Icon Buttons */
-/* ========================================== */
 .ah-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text-secondary);
+  position: relative;
+
+  width: 40px;
+  height: 40px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+
+  background: var(--admin-surface);
+  color: var(--admin-text-secondary);
+
   cursor: pointer;
-  position: relative;
-  transition: var(--transition);
-  flex-shrink: 0;
+
+  transition: all var(--admin-transition);
 }
 
 .ah-icon-btn:hover {
-  background: var(--bg-subtle);
-  color: var(--text-primary);
+  background: var(--admin-primary-light);
+  border-color: #c7d2fe;
+  color: var(--admin-primary);
 }
 
-/* ========================================== */
-/* Notification Badge */
-/* ========================================== */
 .ah-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 17px;
-  height: 17px;
-  background: var(--danger);
-  color: #fff;
-  font-size: 9px;
-  font-weight: 700;
-  border-radius: var(--radius-full);
+  top: -5px;
+  right: -5px;
+
+  min-width: 18px;
+  height: 18px;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px;
-  border: 2px solid #fff;
+
+  padding: 0 5px;
+
+  border: 2px solid var(--admin-surface);
+  border-radius: var(--admin-radius-full);
+
+  background: var(--admin-danger);
+  color: #ffffff;
+
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
 }
 
-/* ========================================== */
-/* Profile Wrapper & Button */
-/* ========================================== */
+
+/* =========================================================
+   PROFILE
+   ========================================================= */
+
 .ah-profile-wrapper {
   position: relative;
 }
@@ -194,374 +213,311 @@
 .ah-profile {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 4px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: #fff;
+  gap: var(--admin-space-3);
+
+  padding: 5px 10px 5px 5px;
+
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-full);
+
+  background: var(--admin-surface);
+
   cursor: pointer;
-  transition: var(--transition);
+
+  transition: all var(--admin-transition);
 }
 
 .ah-profile:hover {
-  background: var(--bg-subtle);
+  background: var(--admin-bg-subtle);
+  border-color: var(--admin-border-dark);
 }
 
 .ah-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  background: var(--brand-gradient);
-  color: #fff;
+  width: 34px;
+  height: 34px;
+
+  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  flex-shrink: 0;
+
+  border-radius: 50%;
+  overflow: hidden;
+
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+
+  color: #ffffff;
+  font-size: var(--admin-font-base);
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .ah-profile-info {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+
+  min-width: 0;
+  line-height: 1.2;
 }
 
 .ah-profile-name {
-  font-size: 12.5px;
+  color: var(--admin-text);
+  font-size: var(--admin-font-md);
   font-weight: 600;
-  color: var(--text-primary);
+
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ah-profile-role {
+  color: var(--admin-text-muted);
   font-size: 10px;
-  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .ah-profile-arrow {
-  color: var(--text-muted);
-  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  color: var(--admin-text-muted);
+
+  transition: transform var(--admin-transition);
 }
 
 .ah-profile-arrow.open {
   transform: rotate(180deg);
 }
 
-/* ========================================== */
-/* Profile Dropdown */
-/* ========================================== */
+
+/* =========================================================
+   PROFILE DROPDOWN
+   ========================================================= */
+
 .ah-profile-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   right: 0;
-  width: 240px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-  z-index: 200;
-  animation: slideDown 0.2s ease;
+  z-index: 950;
+
+  width: 260px;
+
+  padding: 6px;
+
+  background: var(--admin-surface);
+
+  border: 1px solid var(--admin-border-light);
+  border-radius: var(--admin-radius-lg);
+
+  box-shadow: var(--admin-shadow-lg);
+
+  animation: ahDropdownIn 0.16s ease;
 }
+
+@keyframes ahDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ---------- User block ---------- */
 
 .ah-dropdown-user {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: var(--admin-space-3);
+
+  padding: var(--admin-space-3);
 }
 
 .ah-dropdown-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--brand-gradient);
-  color: #fff;
+  width: 42px;
+  height: 42px;
+
+  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  border-radius: 50%;
+  overflow: hidden;
+
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+
+  color: #ffffff;
+  font-size: var(--admin-font-lg);
   font-weight: 600;
-  font-size: 14px;
-  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.ah-dropdown-user > div:last-child {
+  min-width: 0;
 }
 
 .ah-dropdown-user h4 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
   margin: 0;
+
+  color: var(--admin-text);
+  font-size: var(--admin-font-base);
+  font-weight: 600;
+  line-height: 1.3;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ah-dropdown-user span {
-  font-size: 11px;
-  color: var(--text-muted);
+  display: block;
+
+  color: var(--admin-text-muted);
+  font-size: var(--admin-font-sm);
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+
+/* ---------- Divider ---------- */
 
 .ah-dropdown-divider {
   height: 1px;
-  background: var(--border);
-  margin: 0 12px;
+  margin: 4px 0;
+
+  background: var(--admin-border-light);
 }
+
+
+/* ---------- Items ---------- */
 
 .ah-dropdown-item {
+  width: 100%;
+
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: var(--transition);
-  background: none;
-  border: none;
-  width: 100%;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-}
+  gap: var(--admin-space-3);
 
-.ah-dropdown-item:hover {
-  background: var(--bg-subtle);
-  color: var(--text-primary);
+  padding: 10px var(--admin-space-3);
+
+  border: none;
+  border-radius: var(--admin-radius-md);
+
+  background: transparent;
+  color: var(--admin-text-secondary);
+
+  font-family: inherit;
+  font-size: var(--admin-font-md);
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition: all var(--admin-transition);
 }
 
 .ah-dropdown-item svg {
-  color: var(--text-muted);
+  flex-shrink: 0;
+  color: var(--admin-text-muted);
+
+  transition: color var(--admin-transition);
+}
+
+.ah-dropdown-item:hover {
+  background: var(--admin-primary-light);
+  color: var(--admin-primary);
 }
 
 .ah-dropdown-item:hover svg {
-  color: var(--text-primary);
-}
-
-.ah-dropdown-logout {
-  color: var(--danger);
+  color: var(--admin-primary);
 }
 
 .ah-dropdown-logout:hover {
-  background: var(--danger-bg);
-  color: var(--danger);
+  background: var(--admin-danger-light);
+  color: var(--admin-danger);
 }
 
 .ah-dropdown-logout:hover svg {
-  color: var(--danger);
+  color: var(--admin-danger);
 }
 
-/* ========================================== */
-/* Animations */
-/* ========================================== */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
 
-/* ========================================== */
-/* Mobile Search Overlay */
-/* ========================================== */
-.ah-mobile-search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 64px;
-  z-index: 99;
-}
+/* =========================================================
+   TABLET / MOBILE
+   ========================================================= */
 
-.ah-mobile-search .ah-search.expanded {
-  flex: 1;
-  width: auto;
-}
+@media (max-width: 900px) {
 
-.mobile-search-toggle {
-  display: none;
-}
-
-/* ========================================== */
-/* Dark Mode Support */
-/* ========================================== */
-.dark-mode .admin-header {
-  background: rgba(26, 26, 46, 0.95);
-  border-bottom-color: rgba(255, 255, 255, 0.05);
-}
-
-.dark-mode .ah-breadcrumb-parent {
-  color: #64748b;
-}
-
-.dark-mode .ah-breadcrumb-current {
-  color: #e2e8f0;
-}
-
-.dark-mode .ah-search {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.dark-mode .ah-search input {
-  color: #e2e8f0;
-}
-
-.dark-mode .ah-search input::placeholder {
-  color: #64748b;
-}
-
-.dark-mode .ah-search:focus-within {
-  background: #1a1a2e;
-  border-color: #667eea;
-}
-
-.dark-mode .ah-icon-btn {
-  background: #1a1a2e;
-  border-color: rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
-}
-
-.dark-mode .ah-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e2e8f0;
-}
-
-.dark-mode .ah-profile {
-  background: #1a1a2e;
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.dark-mode .ah-profile-name {
-  color: #e2e8f0;
-}
-
-.dark-mode .ah-profile-role {
-  color: #64748b;
-}
-
-.dark-mode .ah-profile-dropdown {
-  background: #1a1a2e;
-  border-color: rgba(255, 255, 255, 0.05);
-}
-
-.dark-mode .ah-dropdown-user h4 {
-  color: #e2e8f0;
-}
-
-.dark-mode .ah-dropdown-user span {
-  color: #64748b;
-}
-
-.dark-mode .ah-dropdown-item {
-  color: #94a3b8;
-}
-
-.dark-mode .ah-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
-}
-
-.dark-mode .ah-dropdown-item svg {
-  color: #64748b;
-}
-
-.dark-mode .ah-dropdown-item:hover svg {
-  color: #e2e8f0;
-}
-
-.dark-mode .ah-dropdown-divider {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.dark-mode .ah-badge {
-  border-color: #1a1a2e;
-}
-
-.dark-mode .ah-mobile-search {
-  background: #1a1a2e;
-  border-bottom-color: rgba(255, 255, 255, 0.05);
-}
-
-/* ========================================== */
-/* Responsive Design */
-/* ========================================== */
-
-/* Tablet */
-@media (max-width: 1024px) {
-  .ah-profile-info {
-    display: none;
-  }
-  
-  .ah-search {
-    width: 160px;
-  }
-  
-  .ah-search:focus-within {
-    width: 200px;
-  }
-}
-
-/* Mobile */
-@media (max-width: 768px) {
   .admin-header {
-    padding: 0 16px;
-    height: 60px;
+    padding: 0 var(--admin-space-4);
   }
-  
+
   .ah-menu-btn {
     display: flex;
   }
-  
-  .ah-search {
+
+  /* collapsing an overlay drawer makes no sense on mobile */
+  .ah-collapse-btn {
     display: none;
-  }
-  
-  .mobile-search-toggle {
-    display: flex;
-  }
-  
-  .ah-profile {
-    padding: 4px;
-  }
-  
-  .ah-profile-info {
-    display: none;
-  }
-  
-  .ah-profile-arrow {
-    display: none;
-  }
-  
-  .ah-profile-dropdown {
-    right: -20px;
-    width: 220px;
-  }
-  
-  .ah-mobile-search {
-    top: 60px;
   }
 }
 
-/* Small Mobile */
-@media (max-width: 480px) {
-  .admin-header {
-    padding: 0 12px;
-  }
-  
-  .ah-breadcrumb-parent {
-    display: none;
-  }
-  
+
+@media (max-width: 600px) {
+
+  .ah-breadcrumb-parent,
   .ah-breadcrumb-sep {
     display: none;
   }
-  
+
+  .ah-breadcrumb-current {
+    font-size: var(--admin-font-base);
+  }
+
+  .ah-profile-info {
+    display: none;
+  }
+
+  .ah-profile {
+    padding: 4px;
+    border-radius: 50%;
+  }
+
+  .ah-profile-arrow {
+    display: none;
+  }
+
   .ah-profile-dropdown {
-    right: -10px;
-    width: 200px;
+    width: min(280px, calc(100vw - 32px));
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ah-profile-dropdown {
+    animation: none;
+  }
+
+  .ah-icon-btn,
+  .ah-profile,
+  .ah-dropdown-item,
+  .ah-profile-arrow {
+    transition: none;
   }
 }

@@ -1,41 +1,61 @@
-﻿// src/pages/admin/AdminUsers.jsx
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Users,
   Search,
+  UserPlus,
+  RefreshCw,
+  Eye,
   Edit,
   Trash2,
-  Eye,
   X,
-  RefreshCw,
-  AlertCircle,
-  Save,
-  UserPlus,
-  ChevronLeft,
-  ChevronRight,
   Mail,
   Calendar,
   Shield,
   GraduationCap,
   UserCheck,
-  Sparkles,
   Crown,
   Star,
   Send,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
   BookOpen,
   CheckCircle,
   XCircle,
-  PlusCircle,
-  MinusCircle,
-  Loader,
   Clock,
-  Calendar as CalendarIcon,
+  Plus,
+  Minus,
   Infinity,
+  Save,
 } from "lucide-react";
+
 import api from "../../services/api";
 import "./AdminUsers.css";
 
-const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'%3E%3Crect width='300' height='200' fill='%23667eea'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20' font-family='sans-serif'%3ECourse%3C/text%3E%3C/svg%3E";
+const ROLES = {
+  ADMIN: {
+    label: "Administrators",
+    shortLabel: "Admin",
+    icon: Crown,
+    color: "#7c3aed",
+    background: "#f3e8ff",
+  },
+  MENTOR: {
+    label: "Mentors",
+    shortLabel: "Mentor",
+    icon: Star,
+    color: "#2563eb",
+    background: "#dbeafe",
+  },
+  STUDENT: {
+    label: "Students",
+    shortLabel: "Student",
+    icon: GraduationCap,
+    color: "#059669",
+    background: "#d1fae5",
+  },
+};
 
 const EMPTY_FORM = {
   name: "",
@@ -43,72 +63,49 @@ const EMPTY_FORM = {
   role: "STUDENT",
 };
 
-const ROLE_CONFIG = {
-  ADMIN: {
-    title: "Administrators",
-    icon: Crown,
-    color: "#92400e",
-    light: "#fef3c7",
-    gradient: "linear-gradient(135deg, #92400e, #b45309)",
-    emoji: "👑",
-  },
-  MENTOR: {
-    title: "Mentors",
-    icon: Star,
-    color: "#1d4ed8",
-    light: "#dbeafe",
-    gradient: "linear-gradient(135deg, #1d4ed8, #2563eb)",
-    emoji: "⭐",
-  },
-  STUDENT: {
-    title: "Students",
-    icon: GraduationCap,
-    color: "#047857",
-    light: "#d1fae5",
-    gradient: "linear-gradient(135deg, #047857, #059669)",
-    emoji: "🎓",
-  },
-};
+const ITEMS_PER_PAGE = 12;
 
 function AdminUsers() {
-  const [allUsers, setAllUsers] = useState([]);
+  const [users, setUsers] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const [role, setRole] = useState("ALL");
+  const [page, setPage] = useState(1);
 
-  const [showModal, setShowModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [showDurationModal, setShowDurationModal] = useState(false);
+  const [openRoles, setOpenRoles] = useState({
+    ADMIN: true,
+    MENTOR: true,
+    STUDENT: true,
+  });
 
-  const [editingUser, setEditingUser] = useState(null);
-  const [deletingUser, setDeletingUser] = useState(null);
-  const [viewingUser, setViewingUser] = useState(null);
+  const [modal, setModal] = useState(null);
 
+  const [selectedUser, setSelectedUser] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [resending, setResending] = useState(false);
 
-  // Course Access Management State
-  const [allCourses, setAllCourses] = useState([]);
-  const [studentEnrollments, setStudentEnrollments] = useState([]);
-  const [loadingCourses, setLoadingCourses] = useState(false);
-  const [managingAccess, setManagingAccess] = useState(null);
-  const [selectedCourseForAccess, setSelectedCourseForAccess] = useState(null);
-  const [accessDuration, setAccessDuration] = useState(30);
-  const [extendDays, setExtendDays] = useState(30);
+  const [courses, setCourses] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [loadingAccess, setLoadingAccess] = useState(false);
 
-  // ==========================================
-  // FETCH FUNCTIONS
-  // ==========================================
-  const fetchUsers = useCallback(async (showRefresh = false) => {
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [duration, setDuration] = useState(30);
+  const [accessLoading, setAccessLoading] = useState(false);
+
+  // =========================================================
+  // USERS
+  // =========================================================
+
+  const fetchUsers = useCallback(async (refresh = false) => {
     try {
-      if (showRefresh) {
+      if (refresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
@@ -117,16 +114,22 @@ function AdminUsers() {
       setError("");
 
       const response = await api.get("/users");
-      const data = response.data?.data ?? response.data ?? [];
 
-      const normalizedUsers = Array.isArray(data) ? data : [];
-      setAllUsers(normalizedUsers);
+      const data =
+        response.data?.data ??
+        response.data?.users ??
+        response.data ??
+        [];
+
+      setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Error fetching users:", err);
-      setAllUsers([]);
+      console.error("Fetch users error:", err);
+
+      setUsers([]);
+
       setError(
         err.response?.data?.message ||
-          "Unable to load users. Please check the server connection."
+          "Unable to load users. Please try again."
       );
     } finally {
       setLoading(false);
@@ -134,258 +137,177 @@ function AdminUsers() {
     }
   }, []);
 
-  const fetchCoursesAndEnrollments = useCallback(async (userId) => {
-    try {
-      setLoadingCourses(true);
-      
-      const coursesRes = await api.get("/courses");
-      const courses = coursesRes.data?.data || coursesRes.data || [];
-      setAllCourses(courses);
-
-      try {
-        const enrollmentsRes = await api.get(`/enrollments/admin/student/${userId}`);
-        const enrollments = enrollmentsRes.data?.data || enrollmentsRes.data || [];
-        setStudentEnrollments(enrollments);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          setStudentEnrollments([]);
-        } else {
-          console.error("Error fetching enrollments:", err);
-          setStudentEnrollments([]);
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching courses:", err);
-      setAllCourses([]);
-      setStudentEnrollments([]);
-    } finally {
-      setLoadingCourses(false);
-    }
-  }, []);
-
-  // ==========================================
-  // ACCESS MANAGEMENT FUNCTIONS
-  // ==========================================
-  const handleGrantAccess = async (courseId, durationDays) => {
-    if (!viewingUser) return;
-    
-    setManagingAccess(courseId);
-    try {
-      await api.post("/enrollments/admin/grant-access", {
-        userId: viewingUser.id,
-        courseId: courseId,
-        durationDays: durationDays || null,
-      });
-      
-      await fetchCoursesAndEnrollments(viewingUser.id);
-      
-      const courseTitle = allCourses.find(c => c.id === courseId)?.title;
-      alert(
-        `✅ Access granted successfully!\n\n` +
-        `Course: ${courseTitle}\n` +
-        `Duration: ${durationDays ? durationDays + ' days' : 'Unlimited'}`
-      );
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to grant access");
-    } finally {
-      setManagingAccess(null);
-      setShowDurationModal(false);
-      setSelectedCourseForAccess(null);
-    }
-  };
-
-  const handleRevokeAccess = async (enrollmentId, courseTitle) => {
-    if (!confirm(`⚠️ Are you sure you want to revoke access to "${courseTitle}"?\n\nThe student will lose all progress in this course.`)) return;
-    
-    setManagingAccess(enrollmentId);
-    try {
-      await api.delete(`/enrollments/admin/${enrollmentId}`);
-      
-      await fetchCoursesAndEnrollments(viewingUser.id);
-      alert(`✅ Access revoked from "${courseTitle}" successfully!`);
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to revoke access");
-    } finally {
-      setManagingAccess(null);
-    }
-  };
-
-  const handleExtendAccess = async (enrollmentId, additionalDays) => {
-    if (!confirm(`Extend access by ${additionalDays} days?`)) return;
-    
-    setManagingAccess(enrollmentId);
-    try {
-      await api.put(`/enrollments/admin/${enrollmentId}/extend`, {
-        additionalDays: additionalDays,
-      });
-      
-      await fetchCoursesAndEnrollments(viewingUser.id);
-      alert(`✅ Access extended by ${additionalDays} days successfully!`);
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to extend access");
-    } finally {
-      setManagingAccess(null);
-    }
-  };
-
-  const openDurationModal = (courseId) => {
-    setSelectedCourseForAccess(courseId);
-    setAccessDuration(30);
-    setShowDurationModal(true);
-  };
-
-  // ==========================================
-  // USER CRUD FUNCTIONS
-  // ==========================================
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  const stats = useMemo(() => {
-    return {
-      total: allUsers.length,
-      students: allUsers.filter((user) => user.role === "STUDENT").length,
-      mentors: allUsers.filter((user) => user.role === "MENTOR").length,
-      admins: allUsers.filter((user) => user.role === "ADMIN").length,
-      pending: allUsers.filter((user) => user.isActive === false).length,
-    };
-  }, [allUsers]);
+  // =========================================================
+  // FILTERING
+  // =========================================================
 
   const filteredUsers = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const keyword = search.trim().toLowerCase();
 
-    return allUsers.filter((user) => {
-      const matchesRole =
-        roleFilter === "all" || user.role === roleFilter;
+    return users.filter((user) => {
+      const roleMatch =
+        role === "ALL" || user.role?.toUpperCase() === role;
 
-      const matchesSearch =
-        !term ||
-        user.name?.toLowerCase().includes(term) ||
-        user.email?.toLowerCase().includes(term);
+      const searchMatch =
+        !keyword ||
+        user.name?.toLowerCase().includes(keyword) ||
+        user.email?.toLowerCase().includes(keyword);
 
-      return matchesRole && matchesSearch;
+      return roleMatch && searchMatch;
     });
-  }, [allUsers, roleFilter, search]);
+  }, [users, search, role]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, role]);
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredUsers.length / itemsPerPage)
+    Math.ceil(filteredUsers.length / ITEMS_PER_PAGE)
   );
 
-  const safePage = Math.min(currentPage, totalPages);
+  const currentPage = Math.min(page, totalPages);
 
-  const paginatedUsers = useMemo(() => {
-    const start = (safePage - 1) * itemsPerPage;
-    return filteredUsers.slice(start, start + itemsPerPage);
-  }, [filteredUsers, safePage]);
+  const visibleUsers = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
 
-  const adminUsers = paginatedUsers.filter(
-    (user) => user.role === "ADMIN"
+    return filteredUsers.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredUsers, currentPage]);
+
+  const groupedUsers = useMemo(
+    () => ({
+      ADMIN: visibleUsers.filter((u) => u.role === "ADMIN"),
+      MENTOR: visibleUsers.filter((u) => u.role === "MENTOR"),
+      STUDENT: visibleUsers.filter((u) => u.role === "STUDENT"),
+    }),
+    [visibleUsers]
   );
-  const mentorUsers = paginatedUsers.filter(
-    (user) => user.role === "MENTOR"
+
+  // =========================================================
+  // STATISTICS
+  // =========================================================
+
+  const stats = useMemo(
+    () => ({
+      total: users.length,
+      students: users.filter((u) => u.role === "STUDENT").length,
+      mentors: users.filter((u) => u.role === "MENTOR").length,
+      admins: users.filter((u) => u.role === "ADMIN").length,
+      pending: users.filter((u) => u.isActive === false).length,
+    }),
+    [users]
   );
-  const studentUsers = paginatedUsers.filter(
-    (user) => user.role === "STUDENT"
-  );
 
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
+  // =========================================================
+  // HELPERS
+  // =========================================================
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, roleFilter]);
+  const initials = (name = "") => {
+    const parts = name.trim().split(/\s+/);
 
-  const validateForm = () => {
-    const errors = {};
-    const name = form.name.trim();
-    const email = form.email.trim();
-
-    if (!name) {
-      errors.name = "Name is required";
+    if (!parts.length || !parts[0]) {
+      return "U";
     }
 
-    if (!email) {
-      errors.email = "Email is required";
-    } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-      errors.email = "Enter a valid email address";
-    }
-
-    if (!form.role) {
-      errors.role = "Role is required";
-    }
-
-    return errors;
+    return parts
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase();
   };
 
-  const resetForm = () => {
+  const formatDate = (date) => {
+    if (!date) return "—";
+
+    const value = new Date(date);
+
+    if (Number.isNaN(value.getTime())) {
+      return "—";
+    }
+
+    return value.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const toggleRole = (roleName) => {
+    setOpenRoles((previous) => ({
+      ...previous,
+      [roleName]: !previous[roleName],
+    }));
+  };
+
+  // =========================================================
+  // CREATE / EDIT
+  // =========================================================
+
+  const openCreate = () => {
+    setSelectedUser(null);
     setForm(EMPTY_FORM);
     setFormErrors({});
+    setModal("form");
   };
 
-  const openCreateModal = () => {
-    setEditingUser(null);
-    resetForm();
-    setShowModal(true);
-  };
+  const openEdit = (user) => {
+    setSelectedUser(user);
 
-  const openEditModal = (user) => {
-    setEditingUser(user);
     setForm({
       name: user.name || "",
       email: user.email || "",
       role: user.role || "STUDENT",
     });
+
     setFormErrors({});
-    setShowModal(true);
+    setModal("form");
   };
 
-  const closeFormModal = () => {
-    if (isSubmitting) return;
-    setShowModal(false);
-    setEditingUser(null);
-    resetForm();
-  };
-
-  const openViewModal = async (user) => {
-    setViewingUser(user);
-    setShowViewModal(true);
-    if (user.role === "STUDENT") {
-      await fetchCoursesAndEnrollments(user.id);
+  const closeModal = () => {
+    if (saving || deleting || resending || accessLoading) {
+      return;
     }
+
+    setModal(null);
+    setSelectedUser(null);
+    setSelectedCourse(null);
+    setFormErrors({});
   };
 
-  const openDeleteModal = (user) => {
-    setDeletingUser(user);
-    setShowDeleteModal(true);
+  const validateForm = () => {
+    const errors = {};
+
+    if (!form.name.trim()) {
+      errors.name = "Name is required.";
+    }
+
+    if (!form.email.trim()) {
+      errors.email = "Email is required.";
+    } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+      errors.email = "Enter a valid email address.";
+    }
+
+    if (!form.role) {
+      errors.role = "Select a role.";
+    }
+
+    return errors;
   };
 
-  const updateField = (field, value) => {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-
-    setFormErrors((previous) => ({
-      ...previous,
-      [field]: "",
-      submit: "",
-    }));
-  };
-
-  const handleSubmit = async () => {
+  const saveUser = async () => {
     const errors = validateForm();
 
-    if (Object.keys(errors).length > 0) {
+    if (Object.keys(errors).length) {
       setFormErrors(errors);
       return;
     }
 
     try {
-      setIsSubmitting(true);
+      setSaving(true);
 
       const payload = {
         name: form.name.trim(),
@@ -393,281 +315,369 @@ function AdminUsers() {
         role: form.role,
       };
 
-      let response;
-      
-      if (!editingUser) {
-        response = await api.post("/users", payload);
-        
-        const userName = response.data?.data?.name || form.name;
-        const userEmail = response.data?.data?.email || form.email;
-        
-        alert(
-          `✅ Invitation Sent Successfully!\n\n` +
-          `An invitation email has been sent to:\n` +
-          `📧 ${userEmail}\n\n` +
-          `The user will receive instructions to set up their account and create a password.\n` +
-          `They have 48 hours to complete the registration.`
-        );
+      if (selectedUser) {
+        await api.put(`/users/${selectedUser.id}`, payload);
       } else {
-        response = await api.put(`/users/${editingUser.id}`, payload);
-        alert("✅ User updated successfully!");
+        await api.post("/users", payload);
       }
 
-      closeFormModal();
+      closeModal();
       await fetchUsers(true);
+
+      alert(
+        selectedUser
+          ? "User updated successfully."
+          : "Invitation sent successfully."
+      );
     } catch (err) {
-      console.error("User save error:", err);
+      console.error("Save user error:", err);
+
       setFormErrors({
-        submit: err.response?.data?.message || 
-          (editingUser ? "Failed to update user" : "Failed to send invitation"),
+        submit:
+          err.response?.data?.message ||
+          "Unable to save user. Please try again.",
       });
     } finally {
-      setIsSubmitting(false);
+      setSaving(false);
     }
   };
 
-  const handleResendInvitation = async (userId) => {
-    try {
-      const response = await api.post(`/users/${userId}/resend-invitation`);
-      alert(
-        `✅ Invitation Resent!\n\n` +
-        `A new invitation email has been sent to the user.\n` +
-        `They have 48 hours to complete the registration.`
-      );
-      await fetchUsers(true);
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to resend invitation");
-    }
+  // =========================================================
+  // DELETE
+  // =========================================================
+
+  const openDelete = (user) => {
+    setSelectedUser(user);
+    setModal("delete");
   };
 
-  const handleDelete = async () => {
-    if (!deletingUser) return;
+  const deleteUser = async () => {
+    if (!selectedUser) return;
 
     try {
-      setIsSubmitting(true);
+      setDeleting(true);
 
-      await api.delete(`/users/${deletingUser.id}`);
+      await api.delete(`/users/${selectedUser.id}`);
 
-      setShowDeleteModal(false);
-      setDeletingUser(null);
+      setModal(null);
+      setSelectedUser(null);
 
       await fetchUsers(true);
+
+      alert("User deleted successfully.");
     } catch (err) {
       console.error("Delete user error:", err);
+
       alert(
-        err.response?.data?.message || "Failed to delete user"
+        err.response?.data?.message ||
+          "Unable to delete this user."
       );
     } finally {
-      setIsSubmitting(false);
+      setDeleting(false);
     }
   };
 
-  const getInitials = (name) => {
-    if (!name) return "U";
+  // =========================================================
+  // RESEND INVITATION
+  // =========================================================
 
-    return name
-      .trim()
-      .split(/\s+/)
-      .map((word) => word.charAt(0))
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+  const resendInvitation = async (user) => {
+    try {
+      setResending(true);
+
+      await api.post(`/users/${user.id}/resend-invitation`);
+
+      alert("Invitation has been resent successfully.");
+
+      await fetchUsers(true);
+    } catch (err) {
+      console.error("Resend invitation error:", err);
+
+      alert(
+        err.response?.data?.message ||
+          "Unable to resend invitation."
+      );
+    } finally {
+      setResending(false);
+    }
   };
 
-  const formatDate = (date) => {
-    if (!date) return "—";
+  // =========================================================
+  // COURSE ACCESS
+  // =========================================================
 
-    const parsed = new Date(date);
+  const loadCourseAccess = async (userId) => {
+    try {
+      setLoadingAccess(true);
 
-    if (Number.isNaN(parsed.getTime())) {
-      return "—";
+      const [courseResponse, enrollmentResponse] =
+        await Promise.all([
+          api.get("/courses"),
+          api.get(`/enrollments/admin/student/${userId}`),
+        ]);
+
+      const courseData =
+        courseResponse.data?.data ??
+        courseResponse.data ??
+        [];
+
+      const enrollmentData =
+        enrollmentResponse.data?.data ??
+        enrollmentResponse.data ??
+        [];
+
+      setCourses(Array.isArray(courseData) ? courseData : []);
+      setEnrollments(
+        Array.isArray(enrollmentData) ? enrollmentData : []
+      );
+    } catch (err) {
+      console.error("Course access error:", err);
+
+      setCourses([]);
+      setEnrollments([]);
+
+      if (err.response?.status !== 404) {
+        console.error(
+          err.response?.data?.message ||
+            "Unable to load course access."
+        );
+      }
+    } finally {
+      setLoadingAccess(false);
+    }
+  };
+
+  const openView = async (user) => {
+    setSelectedUser(user);
+    setModal("view");
+
+    if (user.role === "STUDENT") {
+      await loadCourseAccess(user.id);
+    } else {
+      setCourses([]);
+      setEnrollments([]);
+    }
+  };
+
+  const openDuration = (course) => {
+    setSelectedCourse(course);
+    setDuration(30);
+    setModal("duration");
+  };
+
+  const grantAccess = async () => {
+    if (!selectedUser || !selectedCourse) return;
+
+    try {
+      setAccessLoading(true);
+
+      await api.post("/enrollments/admin/grant-access", {
+        userId: selectedUser.id,
+        courseId: selectedCourse.id,
+        durationDays: duration > 0 ? duration : null,
+      });
+
+      await loadCourseAccess(selectedUser.id);
+
+      setModal("view");
+      setSelectedCourse(null);
+
+      alert("Course access granted successfully.");
+    } catch (err) {
+      alert(
+        err.response?.data?.message ||
+          "Unable to grant course access."
+      );
+    } finally {
+      setAccessLoading(false);
+    }
+  };
+
+  const revokeAccess = async (enrollment, course) => {
+    const confirmed = window.confirm(
+      `Revoke access to "${course.title}"?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setAccessLoading(true);
+
+      await api.delete(
+        `/enrollments/admin/${enrollment.id}`
+      );
+
+      await loadCourseAccess(selectedUser.id);
+
+      alert("Course access revoked.");
+    } catch (err) {
+      alert(
+        err.response?.data?.message ||
+          "Unable to revoke access."
+      );
+    } finally {
+      setAccessLoading(false);
+    }
+  };
+
+  const extendAccess = async (enrollment) => {
+    const value = window.prompt(
+      "Enter additional days:",
+      "30"
+    );
+
+    const days = Number(value);
+
+    if (!Number.isFinite(days) || days <= 0) {
+      return;
     }
 
-    return parsed.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    try {
+      setAccessLoading(true);
+
+      await api.put(
+        `/enrollments/admin/${enrollment.id}/extend`,
+        {
+          additionalDays: days,
+        }
+      );
+
+      await loadCourseAccess(selectedUser.id);
+
+      alert("Course access extended successfully.");
+    } catch (err) {
+      alert(
+        err.response?.data?.message ||
+          "Unable to extend course access."
+      );
+    } finally {
+      setAccessLoading(false);
+    }
   };
 
-  const goToPage = (page) => {
-    const nextPage = Math.max(1, Math.min(page, totalPages));
-    setCurrentPage(nextPage);
-  };
+  // =========================================================
+  // PAGE NUMBERS
+  // =========================================================
 
   const pageNumbers = useMemo(() => {
     const pages = [];
-    const maxVisible = 5;
 
-    let start = Math.max(1, safePage - 2);
-    let end = Math.min(totalPages, start + maxVisible - 1);
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, start + 4);
 
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let page = start; page <= end; page += 1) {
-      pages.push(page);
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
     }
 
     return pages;
-  }, [safePage, totalPages]);
+  }, [currentPage, totalPages]);
 
-  const clearFilters = () => {
-    setSearch("");
-    setRoleFilter("all");
-  };
-
-  const renderRoleSection = (role, users) => {
-    if (!users.length) return null;
-
-    const config = ROLE_CONFIG[role];
-    const Icon = config.icon;
-
-    return (
-      <section
-        className="role-section"
-        data-role={role.toLowerCase()}
-        style={{ "--role-color": config.color }}
-      >
-        <div className="role-section-header">
-          <div
-            className="role-header-icon"
-            style={{
-              background: config.color,
-              color: "#fff",
-            }}
-          >
-            <Icon size={19} />
-          </div>
-
-          <h2>{config.title}</h2>
-
-          <span
-            className="role-count"
-            style={{
-              background: config.color,
-              color: "#fff",
-            }}
-          >
-            {users.length}
-          </span>
-
-          <Sparkles
-            className="role-header-sparkle"
-            size={14}
-            style={{ color: config.color }}
-          />
-        </div>
-
-        <div className="user-cards-grid">
-          {users.map((user) => (
-            <UserCard
-              key={user.id}
-              user={user}
-              config={config}
-              getInitials={getInitials}
-              formatDate={formatDate}
-              onView={openViewModal}
-              onEdit={openEditModal}
-              onDelete={openDeleteModal}
-              onResend={handleResendInvitation}
-            />
-          ))}
-        </div>
-      </section>
-    );
-  };
+  // =========================================================
+  // LOADING
+  // =========================================================
 
   if (loading) {
     return (
-      <div className="users-page">
-        <div className="loading-state">
+      <div className="admin-users-page">
+        <div className="users-loading">
           <div className="loading-spinner" />
-          <p>Loading users...</p>
+          <h3>Loading users</h3>
+          <p>Please wait...</p>
         </div>
       </div>
     );
   }
 
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
-    <div className="users-page">
+    <div className="admin-users-page">
+
       {/* HEADER */}
-      <div className="page-header">
+
+      <header className="users-header">
         <div>
+          <span className="header-eyebrow">
+            ADMINISTRATION
+          </span>
+
           <h1>User Management</h1>
-          <p className="subtitle">
-            Invite users to join the platform. They will receive an email to set up their account.
+
+          <p>
+            Manage administrators, mentors and students
+            from one place.
           </p>
         </div>
 
-        <button className="add-btn" onClick={openCreateModal}>
+        <button
+          className="invite-user-button"
+          onClick={openCreate}
+        >
           <UserPlus size={18} />
           Invite User
         </button>
-      </div>
+      </header>
 
-      {/* STAT CARDS */}
-      <div className="user-stats">
-        <StatCard
-          className="total-card"
-          color="#7c3aed"
-          icon={<Users size={21} />}
+      {/* STATISTICS */}
+
+      <section className="users-stat-grid">
+
+        <Stat
+          title="Total Users"
           value={stats.total}
-          label="Total Users"
+          icon={<Users size={20} />}
+          color="#7c3aed"
         />
 
-        <StatCard
-          className="student-card"
-          color="#047857"
-          icon={<GraduationCap size={21} />}
+        <Stat
+          title="Students"
           value={stats.students}
-          label="Students"
+          icon={<GraduationCap size={20} />}
+          color="#059669"
         />
 
-        <StatCard
-          className="mentor-card"
-          color="#1d4ed8"
-          icon={<UserCheck size={21} />}
+        <Stat
+          title="Mentors"
           value={stats.mentors}
-          label="Mentors"
+          icon={<UserCheck size={20} />}
+          color="#2563eb"
         />
 
-        <StatCard
-          className="admin-card"
-          color="#92400e"
-          icon={<Shield size={21} />}
+        <Stat
+          title="Admins"
           value={stats.admins}
-          label="Admins"
+          icon={<Shield size={20} />}
+          color="#d97706"
         />
 
-        <StatCard
-          className="pending-card"
-          color="#f59e0b"
-          icon={<Mail size={21} />}
+        <Stat
+          title="Pending Invites"
           value={stats.pending}
-          label="Pending Invites"
+          icon={<Mail size={20} />}
+          color="#ea580c"
         />
-      </div>
 
-      {/* SEARCH / FILTER */}
-      <div className="toolbar">
-        <div className="search-box">
-          <Search size={17} />
+      </section>
+
+      {/* TOOLBAR */}
+
+      <section className="users-toolbar">
+
+        <div className="users-search">
+          <Search size={18} />
 
           <input
-            type="text"
             value={search}
-            placeholder="Search users by name or email..."
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or email..."
           />
 
           {search && (
             <button
-              type="button"
-              className="clear-search"
               onClick={() => setSearch("")}
-              aria-label="Clear search"
+              className="search-clear"
             >
               <X size={15} />
             </button>
@@ -675,802 +685,1131 @@ function AdminUsers() {
         </div>
 
         <select
-          className="filter-select"
-          value={roleFilter}
-          onChange={(event) => setRoleFilter(event.target.value)}
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          className="role-filter"
         >
-          <option value="all">All Roles</option>
-          <option value="ADMIN">👑 Admin</option>
-          <option value="MENTOR">⭐ Mentor</option>
-          <option value="STUDENT">🎓 Student</option>
+          <option value="ALL">All Roles</option>
+          <option value="ADMIN">Administrators</option>
+          <option value="MENTOR">Mentors</option>
+          <option value="STUDENT">Students</option>
         </select>
 
         <button
-          type="button"
-          className={`refresh-btn ${refreshing ? "spinning" : ""}`}
+          className={`users-refresh ${
+            refreshing ? "is-refreshing" : ""
+          }`}
           onClick={() => fetchUsers(true)}
-          title="Refresh users"
+          title="Refresh"
         >
-          <RefreshCw size={17} />
+          <RefreshCw size={18} />
         </button>
-      </div>
+
+      </section>
+
+      {/* ERROR */}
 
       {error && (
-        <div className="error-banner page-error">
-          <AlertCircle size={18} />
+        <div className="users-error">
+          <AlertCircle size={19} />
+
           <span>{error}</span>
-          <button type="button" onClick={() => fetchUsers(true)}>
+
+          <button onClick={() => fetchUsers(true)}>
             Retry
           </button>
         </div>
       )}
 
-      {/* USER SECTIONS */}
-      <div className="users-container">
-        {renderRoleSection("ADMIN", adminUsers)}
-        {renderRoleSection("MENTOR", mentorUsers)}
-        {renderRoleSection("STUDENT", studentUsers)}
+      {/* USERS */}
 
-        {paginatedUsers.length === 0 && (
-          <div className="empty-state">
-            <Users size={46} />
+      <main className="users-content">
+
+        {Object.entries(ROLES).map(
+          ([roleKey, roleConfig]) => {
+            const roleUsers = groupedUsers[roleKey];
+
+            if (!roleUsers.length) return null;
+
+            const RoleIcon = roleConfig.icon;
+            const expanded = openRoles[roleKey];
+
+            return (
+              <section
+                className="role-group"
+                key={roleKey}
+              >
+
+                <button
+                  className="role-group-header"
+                  onClick={() => toggleRole(roleKey)}
+                >
+
+                  <div
+                    className="role-group-icon"
+                    style={{
+                      background: roleConfig.background,
+                      color: roleConfig.color,
+                    }}
+                  >
+                    <RoleIcon size={20} />
+                  </div>
+
+                  <div className="role-group-title">
+                    <h2>{roleConfig.label}</h2>
+                    <span>
+                      {roleUsers.length} users
+                    </span>
+                  </div>
+
+                  <span
+                    className="role-count"
+                    style={{
+                      background: roleConfig.color,
+                    }}
+                  >
+                    {roleUsers.length}
+                  </span>
+
+                  <span
+                    className={`role-chevron ${
+                      expanded ? "expanded" : ""
+                    }`}
+                  >
+                    <ChevronRight size={20} />
+                  </span>
+
+                </button>
+
+                {expanded && (
+                  <div className="users-card-grid">
+                    {roleUsers.map((user) => (
+                      <UserCard
+                        key={user.id}
+                        user={user}
+                        roleConfig={roleConfig}
+                        initials={initials}
+                        formatDate={formatDate}
+                        onView={openView}
+                        onEdit={openEdit}
+                        onDelete={openDelete}
+                        onResend={resendInvitation}
+                      />
+                    ))}
+                  </div>
+                )}
+
+              </section>
+            );
+          }
+        )}
+
+        {!visibleUsers.length && (
+          <div className="users-empty">
+            <div className="empty-icon">
+              <Users size={34} />
+            </div>
+
             <h3>No users found</h3>
-            <p>Try adjusting your search or role filter.</p>
 
-            {(search || roleFilter !== "all") && (
-              <button type="button" onClick={clearFilters}>
+            <p>
+              Try changing your search or role filter.
+            </p>
+
+            {(search || role !== "ALL") && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setRole("ALL");
+                }}
+              >
                 Clear Filters
               </button>
             )}
           </div>
         )}
-      </div>
+
+      </main>
 
       {/* PAGINATION */}
+
       {totalPages > 1 && (
-        <div className="pagination">
+        <div className="users-pagination">
+
           <button
-            type="button"
-            className="page-btn"
-            onClick={() => goToPage(safePage - 1)}
-            disabled={safePage === 1}
+            disabled={currentPage === 1}
+            onClick={() =>
+              setPage((previous) =>
+                Math.max(1, previous - 1)
+              )
+            }
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={17} />
             Previous
           </button>
 
-          <div className="page-numbers">
-            {pageNumbers.map((page) => (
+          <div className="pagination-pages">
+            {pageNumbers.map((number) => (
               <button
-                type="button"
-                key={page}
-                className={`page-number ${safePage === page ? "active" : ""}`}
-                onClick={() => goToPage(page)}
+                key={number}
+                className={
+                  number === currentPage
+                    ? "active"
+                    : ""
+                }
+                onClick={() => setPage(number)}
               >
-                {page}
+                {number}
               </button>
             ))}
           </div>
 
           <button
-            type="button"
-            className="page-btn"
-            onClick={() => goToPage(safePage + 1)}
-            disabled={safePage === totalPages}
+            disabled={currentPage === totalPages}
+            onClick={() =>
+              setPage((previous) =>
+                Math.min(totalPages, previous + 1)
+              )
+            }
           >
             Next
-            <ChevronRight size={16} />
+            <ChevronRight size={17} />
           </button>
+
         </div>
       )}
 
-      {allUsers.length > 0 && (
-        <div className="table-footer">
+      {/* FOOTER */}
+
+      {filteredUsers.length > 0 && (
+        <div className="users-footer">
           Showing{" "}
-          {filteredUsers.length === 0
-            ? 0
-            : (safePage - 1) * itemsPerPage + 1}{" "}
-          to{" "}
-          {Math.min(safePage * itemsPerPage, filteredUsers.length)} of{" "}
-          {filteredUsers.length} users
-          {filteredUsers.length !== allUsers.length && (
-            <span className="filter-hint">
-              {" "}
-              (filtered from {allUsers.length} total)
-            </span>
+          {(currentPage - 1) * ITEMS_PER_PAGE + 1}
+          {" - "}
+          {Math.min(
+            currentPage * ITEMS_PER_PAGE,
+            filteredUsers.length
           )}
+          {" of "}
+          {filteredUsers.length} users
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* CREATE / EDIT MODAL */}
-      {/* ========================================== */}
-      {showModal && (
-        <div className="modal" onMouseDown={closeFormModal}>
-          <div
-            className="modal-content"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h2>{editingUser ? "Edit User" : "Invite New User"}</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={closeFormModal}
-              >
-                <X size={19} />
-              </button>
+      {/* =====================================================
+          CREATE / EDIT MODAL
+      ====================================================== */}
+
+      {modal === "form" && (
+        <Modal onClose={closeModal}>
+
+          <div className="modal-heading">
+            <div>
+              <span className="modal-kicker">
+                USER MANAGEMENT
+              </span>
+
+              <h2>
+                {selectedUser
+                  ? "Edit User"
+                  : "Invite New User"}
+              </h2>
             </div>
 
-            <div className="modal-body">
-              {formErrors.submit && (
-                <div className="error-banner">
-                  <AlertCircle size={18} />
-                  <span>{formErrors.submit}</span>
-                </div>
-              )}
-
-              {!editingUser && (
-                <div className="invite-info-banner">
-                  <Mail size={18} />
-                  <span>The user will receive an email invitation to set up their account.</span>
-                </div>
-              )}
-
-              <FormField label="Full Name" error={formErrors.name}>
-                <input
-                  type="text"
-                  value={form.name}
-                  placeholder="Enter full name"
-                  onChange={(event) => updateField("name", event.target.value)}
-                  className={formErrors.name ? "error" : ""}
-                />
-              </FormField>
-
-              <FormField label="Email Address" error={formErrors.email}>
-                <input
-                  type="email"
-                  value={form.email}
-                  placeholder="Enter email address"
-                  onChange={(event) => updateField("email", event.target.value)}
-                  className={formErrors.email ? "error" : ""}
-                />
-              </FormField>
-
-              <FormField label="Role" error={formErrors.role}>
-                <select
-                  value={form.role}
-                  onChange={(event) => updateField("role", event.target.value)}
-                  className={formErrors.role ? "error" : ""}
-                >
-                  <option value="STUDENT">🎓 Student</option>
-                  <option value="MENTOR">⭐ Mentor</option>
-                  <option value="ADMIN">👑 Admin</option>
-                </select>
-              </FormField>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn-cancel"
-                onClick={closeFormModal}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                className="btn-save"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="spinner-small" />
-                    {editingUser ? "Updating..." : "Sending Invitation..."}
-                  </>
-                ) : (
-                  <>
-                    {editingUser ? (
-                      <>
-                        <Save size={17} />
-                        Update User
-                      </>
-                    ) : (
-                      <>
-                        <Send size={17} />
-                        Send Invitation
-                      </>
-                    )}
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              className="modal-close"
+              onClick={closeModal}
+            >
+              <X size={20} />
+            </button>
           </div>
-        </div>
-      )}
 
-      {/* ========================================== */}
-      {/* DELETE MODAL */}
-      {/* ========================================== */}
-      {showDeleteModal && deletingUser && (
-        <div
-          className="modal"
-          onMouseDown={() => {
-            if (!isSubmitting) setShowDeleteModal(false);
-          }}
-        >
-          <div
-            className="modal-content confirm-content"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h2>Confirm Delete</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setShowDeleteModal(false)}
-              >
-                <X size={19} />
-              </button>
-            </div>
+          {!selectedUser && (
+            <div className="invite-message">
+              <Mail size={20} />
 
-            <div className="confirm-body">
-              <AlertCircle size={48} className="confirm-icon" />
-              <p>
-                Are you sure you want to delete{" "}
-                <strong>{deletingUser.name}</strong>?
-              </p>
-              <p className="confirm-sub">
-                This action cannot be undone. All related records will be automatically deleted.
-              </p>
-            </div>
+              <div>
+                <strong>Invitation email</strong>
 
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn-cancel"
-                onClick={() => setShowDeleteModal(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                className="btn-danger"
-                onClick={handleDelete}
-                disabled={isSubmitting}
-              >
-                <Trash2 size={17} />
-                {isSubmitting ? "Deleting..." : "Delete User"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================== */}
-      {/* VIEW MODAL - WITH COURSE ACCESS MANAGEMENT */}
-      {/* ========================================== */}
-      {showViewModal && viewingUser && (
-        <div
-          className="modal view-modal"
-          onMouseDown={() => setShowViewModal(false)}
-        >
-          <div
-            className="modal-content view-content"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h2>User Details</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setShowViewModal(false)}
-              >
-                <X size={19} />
-              </button>
-            </div>
-
-            <div className="view-body">
-              {/* User Info Header */}
-              <div className="view-user-header">
-                <div
-                  className="view-avatar"
-                  style={{
-                    background: ROLE_CONFIG[viewingUser.role]?.gradient || "#64748b",
-                  }}
-                >
-                  {getInitials(viewingUser.name)}
-                </div>
-
-                <div className="view-user-title">
-                  <h3>{viewingUser.name || "Unknown"}</h3>
-                  <span>{viewingUser.email || "—"}</span>
-                </div>
-
-                <span
-                  className={`role-badge ${(viewingUser.role || "").toLowerCase()}`}
-                >
-                  {viewingUser.role || "USER"}
-                </span>
-              </div>
-
-              {/* User Details Grid */}
-              <div className="view-details">
-                <div className="view-detail-item">
-                  <label>Full Name</label>
-                  <span>{viewingUser.name || "—"}</span>
-                </div>
-                <div className="view-detail-item">
-                  <label>Email</label>
-                  <span>{viewingUser.email || "—"}</span>
-                </div>
-                <div className="view-detail-item">
-                  <label>Role</label>
-                  <span>{viewingUser.role || "—"}</span>
-                </div>
-                <div className="view-detail-item">
-                  <label>Status</label>
-                  <span>{viewingUser.isActive ? "✅ Active" : "⏳ Pending Invitation"}</span>
-                </div>
-                <div className="view-detail-item">
-                  <label>Joined</label>
-                  <span>{formatDate(viewingUser.createdAt)}</span>
-                </div>
-              </div>
-
-              {/* ========================================== */}
-              {/* COURSE ACCESS MANAGEMENT - ONLY FOR STUDENTS */}
-              {/* ========================================== */}
-              {viewingUser.role === "STUDENT" && (
-                <div className="view-section course-access-section">
-                  <div className="section-header">
-                    <h4>
-                      <BookOpen size={18} />
-                      Course Access Management
-                    </h4>
-                    <span className="access-count">
-                      {loadingCourses ? (
-                        <Loader size={16} className="spinning" />
-                      ) : (
-                        `${studentEnrollments.filter(e => !e.isExpired).length} / ${allCourses.length} active`
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="course-access-list">
-                    {loadingCourses ? (
-                      <div className="loading-courses">
-                        <Loader size={24} className="spinning" />
-                        <p>Loading courses...</p>
-                      </div>
-                    ) : allCourses.length === 0 ? (
-                      <div className="empty-courses">
-                        <p>No courses available in the system.</p>
-                      </div>
-                    ) : (
-                      allCourses.map((course) => {
-                        const enrollment = studentEnrollments.find(
-                          (e) => e.courseId === course.id
-                        );
-                        const hasAccess = !!enrollment;
-                        const isExpired = enrollment?.isExpired || false;
-                        const remainingDays = enrollment?.remainingDays || 0;
-                        const accessExpiry = enrollment?.accessExpiry;
-                        const isPending = managingAccess === course.id || managingAccess === enrollment?.id;
-
-                        return (
-                          <div key={course.id} className={`course-access-item ${isExpired ? 'expired' : ''}`}>
-                            <div className="course-info">
-                              {course.thumbnail ? (
-                                <img
-                                  src={course.thumbnail}
-                                  alt={course.title}
-                                  className="course-thumbnail-small"
-                                  onError={(e) => {
-                                    e.target.src = FALLBACK_IMAGE;
-                                  }}
-                                />
-                              ) : (
-                                <div className="course-thumbnail-placeholder">
-                                  <BookOpen size={20} />
-                                </div>
-                              )}
-                              <div className="course-details">
-                                <span className="course-title">{course.title}</span>
-                                <span className="course-meta">
-                                  {course.level || "All Levels"} • 
-                                  {course.isFree ? " Free" : ` ₹${course.price || 0}`}
-                                </span>
-                                {hasAccess && (
-                                  <span className="access-duration">
-                                    {isExpired ? (
-                                      <span className="expired-text">⚠️ Access Expired</span>
-                                    ) : accessExpiry ? (
-                                      <span className="days-left">
-                                        <Clock size={12} />
-                                        {remainingDays} day{remainingDays !== 1 ? 's' : ''} left
-                                      </span>
-                                    ) : (
-                                      <span className="unlimited-text">
-                                        <Infinity size={12} />
-                                        Unlimited Access
-                                      </span>
-                                    )}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="course-access-status">
-                              {hasAccess && !isExpired ? (
-                                <span className="access-badge granted">
-                                  <CheckCircle size={14} />
-                                  Access Granted
-                                </span>
-                              ) : hasAccess && isExpired ? (
-                                <span className="access-badge expired">
-                                  <XCircle size={14} />
-                                  Expired
-                                </span>
-                              ) : (
-                                <span className="access-badge revoked">
-                                  <XCircle size={14} />
-                                  No Access
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="course-access-actions">
-                              {hasAccess && !isExpired ? (
-                                <>
-                                  <button
-                                    className="btn-extend-access"
-                                    onClick={() => {
-                                      const days = prompt("Enter additional days to extend:", "30");
-                                      if (days && parseInt(days) > 0) {
-                                        handleExtendAccess(enrollment.id, parseInt(days));
-                                      }
-                                    }}
-                                    disabled={isPending}
-                                    title="Extend access duration"
-                                  >
-                                    <CalendarIcon size={14} />
-                                    Extend
-                                  </button>
-                                  <button
-                                    className="btn-revoke-access"
-                                    onClick={() =>
-                                      handleRevokeAccess(enrollment.id, course.title)
-                                    }
-                                    disabled={isPending}
-                                  >
-                                    {isPending ? (
-                                      <span className="spinner-small" />
-                                    ) : (
-                                      <>
-                                        <MinusCircle size={16} />
-                                        Revoke
-                                      </>
-                                    )}
-                                  </button>
-                                </>
-                              ) : hasAccess && isExpired ? (
-                                <button
-                                  className="btn-renew-access"
-                                  onClick={() => openDurationModal(course.id)}
-                                  disabled={isPending}
-                                >
-                                  <RefreshCw size={14} />
-                                  Renew Access
-                                </button>
-                              ) : (
-                                <button
-                                  className="btn-grant-access"
-                                  onClick={() => openDurationModal(course.id)}
-                                  disabled={isPending}
-                                >
-                                  {isPending ? (
-                                    <span className="spinner-small" />
-                                  ) : (
-                                    <>
-                                      <PlusCircle size={16} />
-                                      Grant Access
-                                    </>
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-
-                  <div className="access-help-text">
-                    <span>💡 Only admins can grant or revoke course access. Set duration in days (leave empty for unlimited).</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn-cancel"
-                onClick={() => setShowViewModal(false)}
-              >
-                Close
-              </button>
-
-              {!viewingUser.isActive && (
-                <button
-                  type="button"
-                  className="btn-resend"
-                  onClick={() => {
-                    setShowViewModal(false);
-                    handleResendInvitation(viewingUser.id);
-                  }}
-                >
-                  <Send size={17} />
-                  Resend Invitation
-                </button>
-              )}
-
-              <button
-                type="button"
-                className="btn-edit"
-                onClick={() => {
-                  setShowViewModal(false);
-                  openEditModal(viewingUser);
-                }}
-              >
-                <Edit size={17} />
-                Edit User
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================== */}
-      {/* DURATION SELECTION MODAL */}
-      {/* ========================================== */}
-      {showDurationModal && selectedCourseForAccess && (
-        <div className="modal" onMouseDown={() => setShowDurationModal(false)}>
-          <div
-            className="modal-content duration-modal"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h2>Set Access Duration</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setShowDurationModal(false)}
-              >
-                <X size={19} />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <p className="duration-info">
-                Grant access to <strong>{allCourses.find(c => c.id === selectedCourseForAccess)?.title}</strong>
-              </p>
-
-              <div className="form-group">
-                <label>Duration (in days)</label>
-                <div className="duration-input-group">
-                  <input
-                    type="number"
-                    value={accessDuration}
-                    onChange={(e) => setAccessDuration(parseInt(e.target.value) || 0)}
-                    min="1"
-                    max="365"
-                    className="duration-input"
-                    placeholder="Enter days"
-                  />
-                  <span className="duration-unit">days</span>
-                </div>
-                <p className="duration-hint">
-                  Enter 0 or leave blank for unlimited access.
+                <p>
+                  The user will receive an email with
+                  instructions to complete their account.
                 </p>
               </div>
+            </div>
+          )}
 
-              <div className="duration-presets">
-                <button
-                  className="preset-btn"
-                  onClick={() => setAccessDuration(7)}
-                >
-                  7 days
-                </button>
-                <button
-                  className="preset-btn"
-                  onClick={() => setAccessDuration(30)}
-                >
-                  30 days
-                </button>
-                <button
-                  className="preset-btn"
-                  onClick={() => setAccessDuration(90)}
-                >
-                  90 days
-                </button>
-                <button
-                  className="preset-btn"
-                  onClick={() => setAccessDuration(180)}
-                >
-                  180 days
-                </button>
-                <button
-                  className="preset-btn unlimited"
-                  onClick={() => setAccessDuration(0)}
-                >
-                  <Infinity size={16} />
-                  Unlimited
-                </button>
-              </div>
+          {formErrors.submit && (
+            <div className="form-error-box">
+              <AlertCircle size={18} />
+              {formErrors.submit}
+            </div>
+          )}
+
+          <div className="user-form">
+
+            <label>
+              Full Name
+
+              <input
+                value={form.name}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    name: e.target.value,
+                  })
+                }
+                placeholder="Enter full name"
+              />
+
+              {formErrors.name && (
+                <small>{formErrors.name}</small>
+              )}
+            </label>
+
+            <label>
+              Email Address
+
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    email: e.target.value,
+                  })
+                }
+                placeholder="name@example.com"
+              />
+
+              {formErrors.email && (
+                <small>{formErrors.email}</small>
+              )}
+            </label>
+
+            <label>
+              Role
+
+              <select
+                value={form.role}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    role: e.target.value,
+                  })
+                }
+              >
+                <option value="STUDENT">
+                  Student
+                </option>
+
+                <option value="MENTOR">
+                  Mentor
+                </option>
+
+                <option value="ADMIN">
+                  Administrator
+                </option>
+              </select>
+
+              {formErrors.role && (
+                <small>{formErrors.role}</small>
+              )}
+            </label>
+
+          </div>
+
+          <div className="modal-actions">
+
+            <button
+              className="secondary-button"
+              onClick={closeModal}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={saveUser}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <span className="button-spinner" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  {selectedUser ? (
+                    <Save size={17} />
+                  ) : (
+                    <Send size={17} />
+                  )}
+
+                  {selectedUser
+                    ? "Update User"
+                    : "Send Invitation"}
+                </>
+              )}
+            </button>
+
+          </div>
+
+        </Modal>
+      )}
+
+      {/* =====================================================
+          DELETE MODAL
+      ====================================================== */}
+
+      {modal === "delete" && selectedUser && (
+        <Modal onClose={closeModal}>
+
+          <div className="delete-modal">
+
+            <div className="delete-icon">
+              <Trash2 size={26} />
             </div>
 
-            <div className="modal-footer">
+            <h2>Delete User?</h2>
+
+            <p>
+              Are you sure you want to delete
+              <strong> {selectedUser.name}</strong>?
+            </p>
+
+            <span>
+              This action cannot be undone.
+            </span>
+
+            <div className="modal-actions">
+
               <button
-                type="button"
-                className="btn-cancel"
-                onClick={() => setShowDurationModal(false)}
+                className="secondary-button"
+                onClick={closeModal}
+                disabled={deleting}
               >
                 Cancel
               </button>
+
               <button
-                type="button"
-                className="btn-save"
-                onClick={() => {
-                  const duration = accessDuration > 0 ? accessDuration : null;
-                  handleGrantAccess(selectedCourseForAccess, duration);
-                }}
-                disabled={isSubmitting}
+                className="danger-button"
+                onClick={deleteUser}
+                disabled={deleting}
               >
-                <PlusCircle size={17} />
-                Grant Access
+                <Trash2 size={17} />
+
+                {deleting
+                  ? "Deleting..."
+                  : "Delete User"}
               </button>
+
             </div>
+
           </div>
-        </div>
+
+        </Modal>
       )}
+
+      {/* =====================================================
+          VIEW USER MODAL
+      ====================================================== */}
+
+      {modal === "view" && selectedUser && (
+        <Modal
+          className="view-user-modal"
+          onClose={closeModal}
+        >
+
+          <div className="modal-heading">
+            <div>
+              <span className="modal-kicker">
+                USER PROFILE
+              </span>
+
+              <h2>User Details</h2>
+            </div>
+
+            <button
+              className="modal-close"
+              onClick={closeModal}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="view-modal-body">
+
+          <div className="profile-overview">
+
+            <div
+              className="profile-avatar"
+              style={{
+                background:
+                  ROLES[selectedUser.role]?.color ||
+                  "#64748b",
+              }}
+            >
+              {selectedUser.profileImage ? (
+                <img
+                  src={selectedUser.profileImage}
+                  alt={selectedUser.name}
+                />
+              ) : (
+                initials(selectedUser.name)
+              )}
+            </div>
+
+            <div className="profile-name">
+              <h3>
+                {selectedUser.name || "Unknown User"}
+              </h3>
+
+              <p>
+                <Mail size={14} />
+                {selectedUser.email || "—"}
+              </p>
+            </div>
+
+            <span
+              className="profile-role"
+              style={{
+                color:
+                  ROLES[selectedUser.role]?.color,
+                background:
+                  ROLES[selectedUser.role]?.background,
+              }}
+            >
+              {ROLES[selectedUser.role]?.shortLabel ||
+                selectedUser.role}
+            </span>
+
+          </div>
+
+          <div className="profile-details">
+
+            <Detail
+              icon={<Users size={17} />}
+              label="Full Name"
+              value={selectedUser.name}
+            />
+
+            <Detail
+              icon={<Mail size={17} />}
+              label="Email"
+              value={selectedUser.email}
+            />
+
+            <Detail
+              icon={<Shield size={17} />}
+              label="Role"
+              value={selectedUser.role}
+            />
+
+            <Detail
+              icon={<CheckCircle size={17} />}
+              label="Status"
+              value={
+                selectedUser.isActive
+                  ? "Active"
+                  : "Pending Invitation"
+              }
+            />
+
+            <Detail
+              icon={<Calendar size={17} />}
+              label="Joined"
+              value={formatDate(
+                selectedUser.createdAt
+              )}
+            />
+
+          </div>
+
+          {/* COURSE ACCESS */}
+
+          {selectedUser.role === "STUDENT" && (
+            <section className="access-section">
+
+              <div className="access-header">
+
+                <div>
+                  <h3>
+                    <BookOpen size={18} />
+                    Course Access
+                  </h3>
+
+                  <p>
+                    Manage this student's course
+                    permissions.
+                  </p>
+                </div>
+
+                <span className="access-total">
+                  {
+                    enrollments.filter(
+                      (item) => !item.isExpired
+                    ).length
+                  }
+                  {" / "}
+                  {courses.length}
+                </span>
+
+              </div>
+
+              {loadingAccess ? (
+                <div className="access-loading">
+                  <div className="loading-spinner" />
+                  <span>Loading courses...</span>
+                </div>
+              ) : !courses.length ? (
+                <div className="no-courses">
+                  <BookOpen size={25} />
+                  <p>No courses available.</p>
+                </div>
+              ) : (
+                <div className="course-list">
+
+                  {courses.map((course) => {
+
+                    const enrollment =
+                      enrollments.find(
+                        (item) =>
+                          item.courseId === course.id
+                      );
+
+                    const hasAccess = !!enrollment;
+
+                    const expired =
+                      enrollment?.isExpired;
+
+                    return (
+                      <div
+                        className="course-row"
+                        key={course.id}
+                      >
+
+                        <div className="course-main">
+
+                          <div className="course-icon">
+                            <BookOpen size={18} />
+                          </div>
+
+                          <div>
+                            <h4>{course.title}</h4>
+
+                            <p>
+                              {course.level ||
+                                "All Levels"}
+                            </p>
+
+                            {hasAccess &&
+                              !expired && (
+                                <span className="remaining">
+                                  <Clock size={13} />
+
+                                  {enrollment.remainingDays !=
+                                  null
+                                    ? `${enrollment.remainingDays} days remaining`
+                                    : "Unlimited access"}
+                                </span>
+                              )}
+
+                            {expired && (
+                              <span className="expired-text">
+                                Access expired
+                              </span>
+                            )}
+                          </div>
+
+                        </div>
+
+                        <div className="course-status">
+
+                          {hasAccess && !expired ? (
+                            <span className="access-granted">
+                              <CheckCircle size={14} />
+                              Granted
+                            </span>
+                          ) : hasAccess && expired ? (
+                            <span className="access-expired">
+                              <XCircle size={14} />
+                              Expired
+                            </span>
+                          ) : (
+                            <span className="access-none">
+                              <XCircle size={14} />
+                              No Access
+                            </span>
+                          )}
+
+                        </div>
+
+                        <div className="course-actions">
+
+                          {hasAccess &&
+                            !expired && (
+                              <>
+                                <button
+                                  className="extend-access"
+                                  onClick={() =>
+                                    extendAccess(
+                                      enrollment
+                                    )
+                                  }
+                                  disabled={
+                                    accessLoading
+                                  }
+                                >
+                                  <Calendar size={14} />
+                                  Extend
+                                </button>
+
+                                <button
+                                  className="revoke-access"
+                                  onClick={() =>
+                                    revokeAccess(
+                                      enrollment,
+                                      course
+                                    )
+                                  }
+                                  disabled={
+                                    accessLoading
+                                  }
+                                >
+                                  <Minus size={14} />
+                                  Revoke
+                                </button>
+                              </>
+                            )}
+
+                          {hasAccess && expired && (
+                            <button
+                              className="renew-access"
+                              onClick={() =>
+                                openDuration(course)
+                              }
+                            >
+                              <RefreshCw size={14} />
+                              Renew
+                            </button>
+                          )}
+
+                          {!hasAccess && (
+                            <button
+                              className="grant-access"
+                              onClick={() =>
+                                openDuration(course)
+                              }
+                            >
+                              <Plus size={15} />
+                              Grant Access
+                            </button>
+                          )}
+
+                        </div>
+
+                      </div>
+                    );
+                  })}
+
+                </div>
+              )}
+
+            </section>
+          )}
+
+          </div>
+
+          <div className="modal-actions">
+
+            <button
+              className="secondary-button"
+              onClick={closeModal}
+            >
+              Close
+            </button>
+
+            {!selectedUser.isActive && (
+              <button
+                className="invite-button"
+                onClick={() =>
+                  resendInvitation(selectedUser)
+                }
+                disabled={resending}
+              >
+                <Send size={17} />
+                {resending
+                  ? "Sending..."
+                  : "Resend Invitation"}
+              </button>
+            )}
+
+            <button
+              className="primary-button"
+              onClick={() => openEdit(selectedUser)}
+            >
+              <Edit size={17} />
+              Edit User
+            </button>
+
+          </div>
+
+        </Modal>
+      )}
+
+      {/* =====================================================
+          DURATION MODAL
+      ====================================================== */}
+
+      {modal === "duration" && selectedCourse && (
+        <Modal
+          className="duration-modal"
+          onClose={() => setModal("view")}
+        >
+
+          <div className="modal-heading">
+
+            <div>
+              <span className="modal-kicker">
+                COURSE ACCESS
+              </span>
+
+              <h2>Set Access Duration</h2>
+            </div>
+
+            <button
+              className="modal-close"
+              onClick={() => setModal("view")}
+            >
+              <X size={20} />
+            </button>
+
+          </div>
+
+          <div className="duration-course">
+
+            <div className="duration-course-icon">
+              <BookOpen size={20} />
+            </div>
+
+            <div>
+              <strong>
+                {selectedCourse.title}
+              </strong>
+
+              <span>
+                Access for {selectedUser.name}
+              </span>
+            </div>
+
+          </div>
+
+          <div className="duration-control">
+
+            <label>Duration</label>
+
+            <div className="duration-input">
+
+              <input
+                type="number"
+                min="0"
+                value={duration}
+                onChange={(e) =>
+                  setDuration(
+                    Math.max(
+                      0,
+                      Number(e.target.value)
+                    )
+                  )
+                }
+              />
+
+              <span>days</span>
+
+            </div>
+
+            <p>
+              Set 0 for unlimited access.
+            </p>
+
+          </div>
+
+          <div className="duration-options">
+
+            {[7, 30, 90, 180].map((days) => (
+              <button
+                key={days}
+                className={
+                  duration === days
+                    ? "selected"
+                    : ""
+                }
+                onClick={() =>
+                  setDuration(days)
+                }
+              >
+                {days} days
+              </button>
+            ))}
+
+            <button
+              className={
+                duration === 0
+                  ? "selected unlimited"
+                  : "unlimited"
+              }
+              onClick={() => setDuration(0)}
+            >
+              <Infinity size={16} />
+              Unlimited
+            </button>
+
+          </div>
+
+          <div className="modal-actions">
+
+            <button
+              className="secondary-button"
+              onClick={() => setModal("view")}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={grantAccess}
+              disabled={accessLoading}
+            >
+              <CheckCircle size={17} />
+
+              {accessLoading
+                ? "Saving..."
+                : "Grant Access"}
+            </button>
+
+          </div>
+
+        </Modal>
+      )}
+
     </div>
   );
 }
 
-// ==========================================
-// SUB-COMPONENTS
-// ==========================================
+// =========================================================
+// COMPONENTS
+// =========================================================
 
-function StatCard({ className, color, icon, value, label }) {
+function Stat({
+  title,
+  value,
+  icon,
+  color,
+}) {
   return (
-    <div
-      className={`stat-card ${className}`}
-      style={{ "--stat-color": color }}
-    >
+    <div className="user-stat">
+
       <div
-        className="stat-icon-wrapper"
-        style={{ background: color, color: "#fff" }}
+        className="user-stat-icon"
+        style={{
+          background: color,
+        }}
       >
         {icon}
       </div>
-      <div className="stat-content">
-        <h3>{value}</h3>
-        <p>{label}</p>
+
+      <div>
+        <strong>{value}</strong>
+        <span>{title}</span>
       </div>
+
     </div>
   );
 }
 
-function FormField({ label, error, children }) {
-  return (
-    <div className="form-group">
-      <label>{label}</label>
-      {children}
-      {error && <span className="error-text">{error}</span>}
-    </div>
-  );
-}
+function UserCard({
+  user,
+  roleConfig,
+  initials,
+  formatDate,
+  onView,
+  onEdit,
+  onDelete,
+  onResend,
+}) {
+  const pending = user.isActive === false;
 
-function UserCard({ user, config, getInitials, formatDate, onView, onEdit, onDelete, onResend }) {
-  const isPending = user.isActive === false;
-
   return (
-    <article
-      className="user-card"
-      style={{
-        "--card-color": config.color,
-        borderColor: isPending ? "#fcd34d" : undefined,
-      }}
-    >
-      <div className="user-card-avatar">
+    <article className="user-card">
+
+      <div className="card-top">
+
         <div
-          className="user-avatar-circle"
+          className="user-avatar"
           style={{
-            background: config.gradient,
-            opacity: isPending ? 0.7 : 1,
+            background: roleConfig.color,
           }}
         >
           {user.profileImage ? (
-            <img src={user.profileImage} alt={user.name || "User"} />
+            <img
+              src={user.profileImage}
+              alt={user.name}
+            />
           ) : (
-            <span className="avatar-text">{getInitials(user.name)}</span>
+            initials(user.name)
           )}
+
+          <span
+            className={`user-status-dot ${
+              pending ? "pending" : ""
+            }`}
+          />
         </div>
-        <span
-          className="avatar-status-dot"
-          style={{ background: isPending ? "#f59e0b" : config.color }}
-        />
+
       </div>
 
-      <div className="user-card-info">
-        <h4 className="user-card-name">{user.name || "Unknown"}</h4>
-        <p className="user-card-email">
-          <Mail size={12} />
-          <span>{user.email || "—"}</span>
+      <div className="card-user-info">
+
+        <h3>{user.name || "Unknown User"}</h3>
+
+        <p className="card-email">
+          <Mail size={13} />
+          {user.email || "—"}
         </p>
-        <div className="user-card-role">
-          <span className={`role-badge ${user.role?.toLowerCase() || ""}`}>
-            {config.emoji} {user.role || "USER"}
+
+        <div className="card-badges">
+
+          <span
+            className="role-badge"
+            style={{
+              color: roleConfig.color,
+              background:
+                roleConfig.background,
+            }}
+          >
+            {roleConfig.shortLabel}
           </span>
+
+          <span
+            className={`status-badge ${
+              pending ? "pending" : "active"
+            }`}
+          >
+            {pending ? "Pending" : "Active"}
+          </span>
+
         </div>
-        <div className="user-card-status">
-          {isPending ? (
-            <span className="status-badge pending">⏳ Pending Invite</span>
-          ) : (
-            <span className="status-badge active">✅ Active</span>
-          )}
+
+        <div className="card-date">
+          <Calendar size={13} />
+          Joined {formatDate(user.createdAt)}
         </div>
-        <div className="user-card-joined">
-          <Calendar size={12} />
-          <span>{formatDate(user.createdAt)}</span>
-        </div>
+
       </div>
 
-      <div className="user-card-actions">
+      <div className="card-footer">
+
         <button
-          type="button"
-          className="card-action-btn view-btn"
-          title="View Details"
+          className="card-view"
           onClick={() => onView(user)}
         >
-          <Eye size={16} />
+          <Eye size={15} />
+          View
         </button>
+
         <button
-          type="button"
-          className="card-action-btn edit-btn"
-          title="Edit User"
+          className="card-edit"
           onClick={() => onEdit(user)}
         >
-          <Edit size={16} />
+          <Edit size={15} />
+          Edit
         </button>
-        {isPending && (
+
+        {pending && (
           <button
-            type="button"
-            className="card-action-btn resend-btn"
-            title="Resend Invitation"
-            onClick={() => onResend(user.id)}
+            className="card-resend"
+            onClick={() => onResend(user)}
           >
-            <Send size={16} />
+            <Send size={15} />
           </button>
         )}
+
         <button
-          type="button"
-          className="card-action-btn delete-btn"
-          title="Delete User"
+          className="card-delete"
           onClick={() => onDelete(user)}
         >
-          <Trash2 size={16} />
+          <Trash2 size={15} />
         </button>
+
       </div>
+
     </article>
   );
 }
 
+function Detail({
+  icon,
+  label,
+  value,
+}) {
+  return (
+    <div className="detail-item">
+
+      <div className="detail-icon">
+        {icon}
+      </div>
+
+      <div>
+        <span>{label}</span>
+        <strong>{value || "—"}</strong>
+      </div>
+
+    </div>
+  );
+}
+
+function Modal({
+  children,
+  onClose,
+  className = "",
+}) {
+  // Lock the page behind the modal while it's open, and pad the body by the
+  // scrollbar width so the content behind doesn't shift when the scrollbar
+  // disappears. Restored on unmount / close via the cleanup fn.
+  useEffect(() => {
+    const { body, documentElement } = document;
+    const prevOverflow = body.style.overflow;
+    const prevPaddingRight = body.style.paddingRight;
+    const scrollbarWidth =
+      window.innerWidth - documentElement.clientWidth;
+
+    body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      body.style.overflow = prevOverflow;
+      body.style.paddingRight = prevPaddingRight;
+    };
+  }, []);
+
+  return createPortal(
+    <div
+      className="users-modal-overlay"
+      onMouseDown={onClose}
+    >
+      <div
+        className={`users-modal ${className}`}
+        onMouseDown={(e) =>
+          e.stopPropagation()
+        }
+      >
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+}
 export default AdminUsers;

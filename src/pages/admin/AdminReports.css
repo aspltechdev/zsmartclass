@@ -1,9 +1,11 @@
 /* src/pages/admin/AdminReports.css */
 
 .rp-page {
-  padding: 24px 28px;
-  max-width: 1280px;
+  padding: 2rem;
+  max-width: 1400px;
   margin: 0 auto;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
 /* Header */

@@ -1,9 +1,11 @@
 /* src/pages/admin/AdminPayments.css */
 
 .pay-page {
-  padding: 24px 28px;
-  max-width: 1200px;
+  padding: 2rem;
+  max-width: 1400px;
   margin: 0 auto;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
 /* Header */

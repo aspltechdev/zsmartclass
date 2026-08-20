@@ -1,126 +1,70 @@
 ﻿// src/components/admin/AdminSidebar.jsx
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
   GraduationCap,
   FolderTree,
-  BookOpen,
   CreditCard,
   UserCheck,
   Award,
   Bell,
-  Star,
   BarChart3,
-  Settings,
-  TicketPercent,
-  Globe,
   LogOut,
-  FileText,
   Layers,
-  MessageSquare,
-  ShieldCheck,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import "./AdminSidebar.css";
 
 const menu = [
-  // ==========================================
-  // MAIN DASHBOARD
-  // ==========================================
-  {
-    title: "Dashboard",
-    path: "/admin/dashboard",
-    icon: LayoutDashboard,
-    category: "Main",
-  },
+  { title: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard, category: "Main" },
 
-  // ==========================================
-  // USER MANAGEMENT
-  // ==========================================
-  {
-    title: "Users",
-    path: "/admin/users",
-    icon: Users,
-    category: "Management",
-  },
-  {
-    title: "Categories",
-    path: "/admin/categories",
-    icon: FolderTree,
-    category: "Management",
-  },
+  { title: "Users", path: "/admin/users", icon: Users, category: "Management" },
+  { title: "Categories", path: "/admin/categories", icon: FolderTree, category: "Management" },
 
-  // ==========================================
-  // CONTENT MANAGEMENT
-  // ==========================================
-  {
-    title: "Courses",
-    path: "/admin/courses",
-    icon: GraduationCap,
-    category: "Content",
-  },
-  {
-    title: "Modules",
-    path: "/admin/modules",
-    icon: Layers,
-    category: "Content",
-  },
+  { title: "Courses", path: "/admin/courses", icon: GraduationCap, category: "Content" },
+  { title: "Modules", path: "/admin/modules", icon: Layers, category: "Content" },
 
-  // ==========================================
-  // OPERATIONS
-  // ==========================================
-  {
-    title: "Enrollments",
-    path: "/admin/enrollments",
-    icon: UserCheck,
-    category: "Operations",
-  },
-  {
-    title: "Payments",
-    path: "/admin/payments",
-    icon: CreditCard,
-    category: "Operations",
-  },
-  {
-    title: "Certificates",
-    path: "/admin/certificates",
-    icon: Award,
-    category: "Operations",
-  },
+  { title: "Enrollments", path: "/admin/enrollments", icon: UserCheck, category: "Operations" },
+  { title: "Payments", path: "/admin/payments", icon: CreditCard, category: "Operations" },
+  { title: "Certificates", path: "/admin/certificates", icon: Award, category: "Operations" },
 
-  // ==========================================
-  // ENGAGEMENT
-  // ==========================================
-  {
-    title: "Notifications",
-    path: "/admin/notifications",
-    icon: Bell,
-    category: "Engagement",
-  },
+  { title: "Notifications", path: "/admin/notifications", icon: Bell, category: "Engagement" },
 
-  // ==========================================
-  // ANALYTICS & SETTINGS
-  // ==========================================
-  {
-    title: "Reports",
-    path: "/admin/reports",
-    icon: BarChart3,
-    category: "Analytics",
-  },
+  { title: "Reports", path: "/admin/reports", icon: BarChart3, category: "Analytics" },
 ];
 
-// Get unique categories for grouping
-const categories = [...new Set(menu.map(item => item.category))];
+const categories = [...new Set(menu.map((item) => item.category))];
 
-function AdminSidebar() {
+function AdminSidebar({ collapsed = false, mobileOpen = false, onNavigate }) {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/login";
+    // Use the auth context so in-memory state is cleared too, not just storage.
+    if (typeof logout === "function") {
+      logout();
+    } else {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    navigate("/login", { replace: true });
+  };
+
+  const handleLinkClick = () => {
+    if (typeof onNavigate === "function") onNavigate();
   };
 
   return (
-    <aside className="admin-sidebar">
+    <aside
+      className={[
+        "admin-sidebar",
+        collapsed ? "collapsed" : "",
+        mobileOpen ? "mobile-open" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="logo-circle">Z</div>
@@ -143,6 +87,7 @@ function AdminSidebar() {
                   <NavLink
                     key={item.path}
                     to={item.path}
+                    onClick={handleLinkClick}
                     className={({ isActive }) =>
                       isActive ? "sidebar-link active" : "sidebar-link"
                     }
@@ -159,7 +104,11 @@ function AdminSidebar() {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <button className="logout-btn" onClick={handleLogout}>
+        <button
+          className="logout-btn"
+          onClick={handleLogout}
+          data-title="Logout"
+        >
           <LogOut size={18} />
           <span>Logout</span>
         </button>
