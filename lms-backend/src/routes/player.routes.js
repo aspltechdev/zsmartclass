@@ -7,6 +7,15 @@ const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
 // ============================================
+// BULK PROGRESS (CRITICAL - MUST BE FIRST!)
+// ============================================
+router.get(
+    "/course/:courseId/progress",
+    authMiddleware,
+    playerController.getCourseLessonProgress
+);
+
+// ============================================
 // Course Player
 // Get complete course with modules & lessons
 // ============================================
@@ -30,6 +39,12 @@ router.get(
 // ============================================
 // Mark Lesson Completed
 // ============================================
+router.post(
+    "/lesson/:lessonId/watch-time",
+    authMiddleware,
+    playerController.saveWatchTime
+);
+
 router.post(
     "/complete/:lessonId",
     authMiddleware,

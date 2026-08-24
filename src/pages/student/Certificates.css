@@ -1,0 +1,338 @@
+/* =========================================================
+   STUDENT — CERTIFICATES
+   Request, track approval, and download course certificates.
+   ========================================================= */
+
+.certificates-page { width: 100%; font-family: 'Poppins', system-ui, sans-serif; }
+
+/* ---------- Header ---------- */
+.certificates-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.certificates-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #0f172a;
+}
+
+.certificates-heading-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(245, 158, 11, 0.3);
+}
+
+.certificates-heading-icon svg { color: #fff; }
+
+.certificate-refresh-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 15px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.certificate-refresh-btn:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+
+/* ---------- Sections ---------- */
+.certificates-section { margin-bottom: 26px; }
+
+.certificates-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.certificates-section-header h2,
+.certificates-section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.course-count {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---------- Cards ---------- */
+.certificate-list { display: flex; flex-direction: column; gap: 13px; }
+
+.certificate-card {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.certificate-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+}
+
+.certificate-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbff;
+}
+
+.certificate-course-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.26);
+}
+
+.certificate-course-icon svg { color: #fff; }
+
+.certificate-course-info { flex: 1; min-width: 0; }
+
+.certificate-course-info h3,
+.certificate-course-info h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.certificate-course-info p,
+.certificate-course-info span {
+  display: block;
+  margin: 3px 0 0;
+  color: #94a3b8;
+  font-size: 12.5px;
+}
+
+/* ---------- Status badges ---------- */
+.certificate-approved-badge,
+.certificate-pending-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.certificate-approved-badge { background: #ecfdf5; color: #047857; }
+.certificate-pending-badge { background: #fffbeb; color: #b45309; }
+
+/* ---------- Body ---------- */
+.certificate-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  padding: 16px 18px;
+}
+
+.certificate-info-item {
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid #eef0f4;
+  border-radius: 10px;
+  background: #fafbfc;
+}
+
+.certificate-info-item label,
+.certificate-info-item > span:first-child {
+  display: block;
+  margin-bottom: 4px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.certificate-info-item strong,
+.certificate-info-item > span:last-child {
+  display: block;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Actions ---------- */
+.certificate-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 0 18px 18px;
+}
+
+.download-certificate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.28);
+  transition: all 0.2s ease;
+}
+
+.download-certificate-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+}
+
+.download-certificate-btn:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* awaiting-approval strip */
+.certificate-waiting {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #b45309;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.certificate-waiting svg { flex-shrink: 0; }
+
+.button-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  display: inline-block;
+  animation: certSpin 0.7s linear infinite;
+}
+
+/* ---------- States ---------- */
+.certificate-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 240px;
+  padding: 44px 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: #fff;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.certificate-empty-icon { color: #cbd5e1; }
+
+.certificate-empty h3 {
+  margin: 4px 0 0;
+  color: #334155;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.certificates-loading {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #64748b;
+}
+
+.certificate-loader {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: certSpin 0.75s linear infinite;
+}
+
+@keyframes certSpin { to { transform: rotate(360deg); } }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .certificates-heading { font-size: 21px; }
+  .certificates-header { flex-direction: column; align-items: stretch; }
+  .certificate-refresh-btn { width: 100%; }
+
+  .certificate-card-header { flex-wrap: wrap; }
+  .certificate-card-body { grid-template-columns: 1fr; }
+  .download-certificate-btn { width: 100%; }
+}

@@ -594,7 +594,9 @@ function AdminCertificates() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1>Certificate Management</h1>
+          <h1>
+            <Award size={26} />Certificate Management
+          </h1>
           <p className="subtitle">
             Review pending certificates, manage templates, and verify certificates
           </p>
@@ -1075,6 +1077,9 @@ function AdminCertificates() {
                 </div>
               ) : (
                 <>
+                  {/* LEFT COLUMN — all settings live in this wrapper so the
+                      designer can lay out settings | preview side by side */}
+                  <div className="template-settings">
                   <div className="template-course-info">
                     <h3>{selectedCourseTitle}</h3>
                     <p>Customize the certificate design for this course</p>
@@ -1222,6 +1227,8 @@ function AdminCertificates() {
                     <small>Inactive templates won't be used for new certificates</small>
                   </div>
 
+                  </div>
+                  {/* RIGHT COLUMN — live preview */}
                   {/* Template Preview Section — faithful replica of the PDF */}
                   <div className="template-preview-section">
                     <h4>Design Preview</h4>

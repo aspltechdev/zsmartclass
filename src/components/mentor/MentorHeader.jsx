@@ -1,6 +1,9 @@
 // src/components/mentor/MentorHeader.jsx
 import { useState, useEffect, useRef } from "react";
-import { Bell, LogOut, Menu, ChevronRight, User, ChevronDown } from "lucide-react";
+import {
+  Bell, LogOut, Menu, ChevronRight, User, ChevronDown,
+  PanelLeftClose, PanelLeftOpen,
+} from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "./MentorHeader.css";
@@ -19,7 +22,7 @@ const PAGE_LABELS = {
   notifications: "Notifications",
 };
 
-function MentorHeader({ onToggleMobile }) {
+function MentorHeader({ collapsed = false, onToggleCollapse, onToggleMobile }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
@@ -39,6 +42,11 @@ function MentorHeader({ onToggleMobile }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Close the profile dropdown on route change
+  useEffect(() => {
+    setIsProfileOpen(false);
+  }, [location.pathname]);
+
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
@@ -53,8 +61,17 @@ function MentorHeader({ onToggleMobile }) {
       <header className="mentor-header">
         {/* Left */}
         <div className="mh-left">
-          <button className="mh-menu-btn" onClick={onToggleMobile} aria-label="Menu">
+          <button className="mh-menu-btn" onClick={onToggleMobile} aria-label="Open menu">
             <Menu size={20} />
+          </button>
+
+          <button
+            className="mh-collapse-btn"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
           </button>
           <div className="mh-breadcrumb">
             <span className="mh-breadcrumb-parent">Mentor</span>

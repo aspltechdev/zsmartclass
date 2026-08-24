@@ -1,0 +1,608 @@
+/* =========================================================
+   STUDENT — NOTIFICATIONS
+
+   VERIFIED DOM (read from Notifications.jsx):
+     .notifications-list
+       .notification-item          <- the ROW (gets .unread)
+         .notification-icon        <- inline: backgroundColor = type+"20"
+                                            color           = type
+         .notification-content
+           .notification-header
+             .notification-top     <- .notification-type + .unread-dot
+             .notification-time
+           .notification-title     (h4)
+           .notification-message   (.collapsed / .expanded)
+           .expand-btn
+         .notification-actions
+           .action-btn.read-btn / .action-btn.delete-btn
+
+   COLOUR NOTE
+   The icon's tint comes from the JSX as an inline style, which always
+   beats a stylesheet rule. So this file styles the icon's SHAPE and
+   builds the surrounding colour (ring, row tint) around it instead of
+   fighting it.
+   ========================================================= */
+
+.notifications-container { width: 100%; font-family: 'Poppins', system-ui, sans-serif; }
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.notifications-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  padding: 18px 22px;
+  margin-bottom: 18px;
+
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eef2ff 0%, #ffffff 58%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.notifications-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
+.notifications-header::after {
+  content: "";
+  position: absolute;
+  right: -50px;
+  top: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: #6366f1;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+.notifications-title {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: #0f172a;
+}
+
+.notifications-title svg { color: #6366f1; flex-shrink: 0; }
+
+.notifications-subtitle {
+  position: relative;
+  z-index: 1;
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 13.5px;
+}
+
+.unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 3px 8px rgba(239, 68, 68, 0.32);
+}
+
+.notifications-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mark-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
+}
+
+.mark-all-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.42);
+  transform: translateY(-1px);
+}
+
+.mark-all-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* =========================================================
+   LIST + ROWS
+   ========================================================= */
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  /* clip-path keeps the rounded corners while still letting the
+     tooltips escape the box (overflow:hidden would cut them off) */
+  overflow: visible;
+}
+
+.notification-item:first-child { border-radius: 18px 18px 0 0; }
+.notification-item:last-child { border-radius: 0 0 18px 18px; }
+
+.notification-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 17px 20px;
+  transition: background 0.2s ease;
+}
+
+.notification-item:not(:last-child) {
+  border-bottom: 1px solid #f4f6f9;
+}
+
+.notification-item:hover { background: #fafbff; }
+
+/* UNREAD — tinted row + gradient marker */
+.notification-item.unread {
+  background: linear-gradient(90deg, #f5f7ff 0%, #ffffff 46%);
+}
+
+.notification-item.unread::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
+.notification-item.unread:hover {
+  background: linear-gradient(90deg, #eef2ff 0%, #ffffff 52%);
+}
+
+/* =========================================================
+   ICON
+   Inline tint stays; we add a ring so it reads as a badge.
+   ========================================================= */
+
+.notification-icon {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 13px;
+
+  /*
+   * SOLID coloured tile per notification type.
+   *
+   * The JSX sets an inline `backgroundColor` (a 20% tint) and
+   * `color: typeColor`. Inline styles beat stylesheet rules, so the only
+   * way to change the background is !important — and using currentColor
+   * means it becomes THAT notification's own type colour, not one fixed
+   * shade. New types get the right colour automatically.
+   */
+  background: currentColor !important;
+
+  box-shadow: 0 5px 13px rgba(15, 23, 42, 0.16);
+}
+
+/* the glyph flips to white so it reads on the solid tile */
+.notification-icon svg {
+  width: 19px;
+  height: 19px;
+  color: #fff !important;
+  stroke: #fff !important;
+}
+
+/* read rows: same colour, dialled back */
+.notification-item:not(.unread) .notification-icon {
+  opacity: 0.55;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
+}
+
+/* =========================================================
+   CONTENT
+   ========================================================= */
+
+.notification-content { flex: 1; min-width: 0; cursor: pointer; }
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.notification-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.notification-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.notification-item:not(.unread) .notification-type {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.unread-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+}
+
+.notification-time {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #a0aec0;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.notification-title {
+  margin: 0 0 5px;
+  color: #0f172a;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.notification-item:not(.unread) .notification-title {
+  color: #475569;
+  font-weight: 500;
+}
+
+.notification-message {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.notification-message.collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notification-message.expanded { display: block; overflow: visible; }
+
+.expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #6366f1;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.expand-btn:hover { text-decoration: underline; }
+.expand-btn svg { flex-shrink: 0; }
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.notification-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #e8ecf3;
+  border-radius: 10px;
+  background: #fff;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.action-btn svg { width: 16px; height: 16px; }
+
+.read-btn:hover {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.delete-btn:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+/* =========================================================
+   TOOLTIPS
+   The buttons used native title="" attributes, whose tooltip
+   renders BELOW the cursor and covered the message text.
+   These are driven by data-tip and sit ABOVE the button.
+   ========================================================= */
+
+.action-btn[data-tip] { position: relative; }
+
+/* label */
+.action-btn[data-tip]::after {
+  content: attr(data-tip);
+
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(3px);
+
+  padding: 5px 9px;
+  border-radius: 7px;
+
+  background: #1f2937;
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* little arrow */
+.action-btn[data-tip]::before {
+  content: "";
+
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%) translateY(3px);
+
+  border: 5px solid transparent;
+  border-top-color: #1f2937;
+
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.action-btn[data-tip]:hover::after,
+.action-btn[data-tip]:focus-visible::after,
+.action-btn[data-tip]:hover::before,
+.action-btn[data-tip]:focus-visible::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* the row must not clip a tooltip that sits above it */
+.notification-item { overflow: visible; }
+.notification-item:hover { z-index: 5; }
+
+/* the first row's tooltip would otherwise be cut by the list's
+   rounded overflow — flip it below for that row only */
+.notification-item:first-child .action-btn[data-tip]::after {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
+
+.notification-item:first-child .action-btn[data-tip]::before {
+  bottom: auto;
+  top: calc(100% + 3px);
+  border-top-color: transparent;
+  border-bottom-color: #1f2937;
+}
+
+/* =========================================================
+   STATES
+   ========================================================= */
+
+.notifications-empty,
+.notifications-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 300px;
+  padding: 52px 20px;
+  border: 1px dashed #dbe1ea;
+  border-radius: 18px;
+  background: #fff;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.notifications-error {
+  border-style: solid;
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.empty-icon {
+  width: 66px;
+  height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  color: #a5b4fc;
+}
+
+.error-icon { color: #dc2626; }
+
+.notifications-empty h3 {
+  margin: 6px 0 0;
+  color: #334155;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.notifications-empty p {
+  margin: 0;
+  max-width: 340px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin-top: 6px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.notifications-loading {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #64748b;
+}
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: ntfSpin 0.75s linear infinite;
+}
+
+@keyframes ntfSpin { to { transform: rotate(360deg); } }
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .notifications-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px 18px;
+  }
+
+  .notifications-title { font-size: 19px; }
+  .notifications-actions { width: 100%; }
+  .mark-all-btn { flex: 1; justify-content: center; min-height: 42px; }
+
+  .notification-item { flex-wrap: wrap; gap: 13px; padding: 15px 16px; }
+  .notification-icon { width: 38px; height: 38px; }
+
+  .notification-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .notification-actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 2px;
+  }
+}
+
+@media (max-width: 420px) {
+  .notification-title { font-size: 13.5px; }
+  .notification-message { font-size: 12.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-item, .action-btn, .mark-all-btn { transition: none; }
+}

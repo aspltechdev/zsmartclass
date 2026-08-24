@@ -17,10 +17,12 @@ import {
   Clock,
   AlertCircle,
   Save,
+  GraduationCap,
   Layers,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminCourses.css";
+import "./AdminShared.css";
 
 /* =========================================================
    FALLBACK IMAGE
@@ -51,9 +53,14 @@ const getImageUrl = (path) => {
     return path;
   }
 
-  const baseUrl =
-    api.defaults?.baseURL?.replace(/\/$/, "") ||
-    "http://localhost:5000";
+  // `api.defaults.baseURL` ends with `/api`, but uploaded files are served
+  // from the server root (e.g. http://localhost:5000/uploads/x.jpg).
+  // Leaving `/api` on produces a 404 and falls back to the placeholder.
+  const baseUrl = (
+    api.defaults?.baseURL || "http://localhost:5000/api"
+  )
+    .replace(/\/$/, "")
+    .replace(/\/api$/, "");
 
   const cleanPath = path.startsWith("/")
     ? path
@@ -1143,13 +1150,9 @@ function AdminCourses() {
 
       <div className="courses-header">
         <div className="courses-heading-row">
-          <div className="courses-heading-icon">
-            <BookOpen size={22} />
-          </div>
-
           <div>
             <h1>
-              Course Management
+              <GraduationCap size={29} />  Course Management
             </h1>
 
             <p>

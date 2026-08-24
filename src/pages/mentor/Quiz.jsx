@@ -6,7 +6,8 @@ import {
   ClipboardList, Plus, Edit, Trash2, X, Save, ArrowLeft, Check,
 } from "lucide-react";
 import api from "../../services/api";
-import "./Modules.css";
+import "./Quiz.css";
+import "./MentorShared.css";
 
 const EMPTY_OPTION = () => ({ text: "", isCorrect: false });
 const EMPTY_QUESTION = () => ({

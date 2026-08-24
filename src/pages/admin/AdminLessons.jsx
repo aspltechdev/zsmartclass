@@ -4,10 +4,11 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
   FileText, Plus, Edit, Trash2, X, Save, ArrowLeft, Play,
-  Video, File, Link as LinkIcon, RefreshCw,
+  Video, File, Link as LinkIcon, RefreshCw, Upload,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminLessons.css";
+import "./AdminShared.css";
 
 const VIDEO_TYPES = ["VIDEO", "DOCUMENT", "LINK", "FILE"];
 
@@ -33,9 +34,19 @@ function AdminLessons() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
 
   useEffect(() => { fetchModules(); }, []);
   useEffect(() => { if (moduleId) loadModule(moduleId); else setLoading(false); }, [moduleId]);
+
+  // Navigating in from Modules keeps the previous scroll position, which left
+  // the header (and "Add Lesson") hidden above the fold. Reset it on entry and
+  // whenever the selected module changes.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document.querySelector(".admin-content")?.scrollTo({ top: 0, behavior: "auto" });
+  }, [moduleId]);
 
   const fetchModules = async () => {
     try {
@@ -74,6 +85,35 @@ function AdminLessons() {
     setFormErrors({}); setShowModal(true);
   };
 
+  // Upload a video file to our own server and store the returned URL.
+  // Self-hosted files play in the native <video> element — no YouTube branding.
+  const handleVideoUpload = async (file) => {
+    if (!file) return;
+    const data = new FormData();
+    data.append("video", file);
+    try {
+      setUploading(true);
+      setUploadPct(0);
+      const res = await api.post("/lessons/upload-video", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (e) => {
+          if (e.total) setUploadPct(Math.round((e.loaded * 100) / e.total));
+        },
+      });
+      const url = res.data?.data?.url;
+      if (url) {
+        // absolute URL so the <video> tag resolves it from the API server
+        const base = (api.defaults?.baseURL || "").replace(/\/$/, "").replace(/\/api$/, "");
+        setForm((prev) => ({ ...prev, videoUrl: `${base}${url}`, videoType: "VIDEO" }));
+      }
+    } catch (err) {
+      setFormErrors({ submit: err.response?.data?.message || "Video upload failed." });
+    } finally {
+      setUploading(false);
+      setUploadPct(0);
+    }
+  };
+
   const saveLesson = async () => {
     if (!form.title.trim()) { setFormErrors({ title: "Lesson title is required" }); return; }
     try {
@@ -109,19 +149,50 @@ function AdminLessons() {
   const typeColor = (t) => ({ VIDEO: "#3b82f6", DOCUMENT: "#10b981",
     LINK: "#f59e0b", FILE: "#8b5cf6" }[t] || "#64748b");
 
+  // A direct video file (self-hosted / CDN / S3) can play in a native <video>
+  // element — no third-party branding at all, and the browser's own menu gives
+  // playback speed, quality (for adaptive sources), PiP and fullscreen.
+  const isDirectVideo = (url) =>
+    !!url && /\.(mp4|webm|ogg|ogv|mov|m4v)(\?.*)?$/i.test(url.trim());
+
   const getEmbedUrl = (url) => {
     if (!url) return null;
-    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-    if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
+
+    // YouTube — strip as much branding/related content as the embed API allows,
+    // while keeping the controls bar so the quality (gear) menu stays available.
+    //   rel=0            related videos limited to this channel
+    //   modestbranding=1 minimise the YouTube logo
+    //   iv_load_policy=3 hide annotations / cards
+    //   controls=1       keep the control bar (needed for the quality setting)
+    //   fs=1             allow fullscreen
+    //   playsinline=1    don't force native fullscreen on mobile
+    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/);
+    if (yt) {
+      const params = new URLSearchParams({
+        rel: "0",
+        modestbranding: "1",
+        iv_load_policy: "3",
+        controls: "1",
+        fs: "1",
+        playsinline: "1",
+        disablekb: "0",
+      });
+      return `https://www.youtube-nocookie.com/embed/${yt[1]}?${params.toString()}`;
+    }
+
+    // Vimeo — hide title, byline and portrait (channel/owner chrome)
     const vm = url.match(/(?:vimeo\.com\/)(\d+)/);
-    if (vm) return `https://player.vimeo.com/video/${vm[1]}`;
+    if (vm) {
+      return `https://player.vimeo.com/video/${vm[1]}?title=0&byline=0&portrait=0&dnt=1`;
+    }
+
     return url;
   };
 
   // No module chosen yet — let the mentor pick one.
   if (!moduleId) {
     return (
-      <div className="modules-page">
+      <div className="lessons-page">
         <div className="page-header">
           <div><h1>Lessons</h1><p className="subtitle">Pick a module to manage its lessons</p></div>
           <button className="refresh-btn" onClick={() => navigate("/admin/modules")}>
@@ -149,14 +220,14 @@ function AdminLessons() {
 
   if (loading) {
     return (
-      <div className="modules-page">
+      <div className="lessons-page">
         <div className="loading-state"><div className="spinner"></div><p>Loading lessons...</p></div>
       </div>
     );
   }
 
   return (
-    <div className="modules-page">
+    <div className="lessons-page">
       <div className="page-header">
         <div>
           <button className="back-link" onClick={() => navigate("/admin/modules")}>
@@ -170,7 +241,7 @@ function AdminLessons() {
 
       {error && <div className="error-text">{error}</div>}
 
-      <div className="modules-container">
+      <div className="lessons-container">
         {lessons.length === 0 ? (
           <div className="empty-state">
             <FileText size={48} />
@@ -191,7 +262,6 @@ function AdminLessons() {
                     <span className="lesson-type-icon">{typeIcon(lesson.videoType)}</span>
                     {lesson.videoType || "VIDEO"}
                   </span>
-                  {lesson.isPreview && <span className="preview-badge">Free preview</span>}
                 </div>
                 <div className="lesson-actions">
                   {lesson.videoUrl && (
@@ -237,11 +307,40 @@ function AdminLessons() {
                   {VIDEO_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+              <div className="form-group full-width">
+                <label>Upload Video <span className="label-tag">recommended</span></label>
+                <label className="video-upload-box">
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                    onChange={(e) => handleVideoUpload(e.target.files?.[0])}
+                    disabled={uploading}
+                  />
+                  {uploading ? (
+                    <span className="upload-progress">
+                      Uploading… {uploadPct}%
+                      <span className="upload-bar">
+                        <span className="upload-bar-fill" style={{ width: `${uploadPct}%` }} />
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="upload-cta">
+                      <Upload size={18} />
+                      Choose a video file (MP4 / WebM)
+                    </span>
+                  )}
+                </label>
+                <span className="field-hint">
+                  Uploaded videos play in a clean player with no channel name, logo or
+                  “Watch on YouTube”. Max 500MB.
+                </span>
+              </div>
+
               <div className="form-group">
                 <label>Content URL</label>
                 <input value={form.videoUrl} placeholder="YouTube / Vimeo / direct link"
                        onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} />
-                <span className="field-hint">YouTube and Vimeo links embed automatically.</span>
+                <span className="field-hint">Direct video files (.mp4 / .webm) play in a clean, branding-free player. YouTube &amp; Vimeo links embed, but YouTube always shows its own channel name and logo.</span>
               </div>
               <div className="form-group">
                 <label>Attachment URL</label>
@@ -252,13 +351,6 @@ function AdminLessons() {
                 <label>Position</label>
                 <input type="number" min="1" value={form.position}
                        onChange={(e) => setForm({ ...form, position: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="toggle-label">
-                  <input type="checkbox" checked={form.isPreview}
-                         onChange={(e) => setForm({ ...form, isPreview: e.target.checked })} />
-                  Free preview lesson
-                </label>
               </div>
             </div>
             <div className="modal-footer">
@@ -281,8 +373,23 @@ function AdminLessons() {
             <div className="modal-body preview-body">
               {preview.videoUrl ? (
                 <div className="preview-container">
-                  <iframe className="preview-iframe" src={getEmbedUrl(preview.videoUrl)}
-                          title={preview.title} allowFullScreen />
+                  {isDirectVideo(preview.videoUrl) ? (
+                    /* Self-hosted file: clean native player, zero branding */
+                    <video
+                      className="preview-iframe"
+                      src={preview.videoUrl}
+                      controls
+                      controlsList="nodownload"
+                      playsInline
+                      preload="metadata"
+                    />
+                  ) : (
+                    <iframe className="preview-iframe" src={getEmbedUrl(preview.videoUrl)}
+                            title={preview.title}
+                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            referrerPolicy="strict-origin-when-cross-origin"
+                            allowFullScreen />
+                  )}
                 </div>
               ) : (
                 <div className="preview-empty"><p>No content URL for this lesson.</p></div>

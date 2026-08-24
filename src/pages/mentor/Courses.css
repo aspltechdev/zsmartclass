@@ -1,350 +1,166 @@
-/* src/pages/mentor/Courses.css
-   Complete, self-contained stylesheet for the Mentor Courses page. */
+/* =========================================================
+   MENTOR — COURSES
+   Page-specific only; shared kit handles the rest.
+   ========================================================= */
 
 .mentor-courses {
-  padding: 24px 28px;
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
 .courses-container {
-  max-width: 1280px;
-  margin: 0 auto;
-}
-
-/* ==========================================
-   Header
-   ========================================== */
-.courses-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
+  width: 100%;
 }
 
 .course-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #111827;
   margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #0f172a;
 }
 
-.course-subtitle {
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin: 6px 0 0;
-  line-height: 1.5;
-}
-
-.header-buttons {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.view-btn-header {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #374151;
-  border-radius: 10px;
-  padding: 9px 14px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.view-btn-header:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
-}
-
-.view-btn-header:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-/* ==========================================
-   Info / description box
-   ========================================== */
+/* info strip */
 .description-box {
-  background: #eef2ff;
-  border: 1px solid #e0e7ff;
-  color: #4338ca;
+  padding: 12px 15px;
+  margin-bottom: 4px;
+  border: 1px solid #c7d2fe;
+  border-left: 4px solid #6366f1;
   border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 0.87rem;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 13.5px;
   line-height: 1.5;
 }
 
-/* ==========================================
-   Filters
-   ========================================== */
-.course-meta {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.category-select,
-.form-select {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 0.87rem;
-  color: #374151;
-  background: #ffffff;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.category-select:focus,
-.form-select:focus {
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
-}
-
-/* ==========================================
-   Course grid
-   ========================================== */
+/* ---------- Course grid ---------- */
 .view-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.25rem;
+  gap: 16px;
 }
 
 .course-card {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border: 1px solid #eef0f3;
-  border-radius: 14px;
-  padding: 1.15rem 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  gap: 12px;
+  padding: 18px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .course-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px);
 }
 
 .course-card-header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
 }
 
 .course-card-header h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #111827;
   margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .course-info {
   flex: 1;
+  min-width: 0;
 }
 
 .course-category {
-  font-size: 0.78rem;
-  color: #7c3aed;
-  font-weight: 600;
   margin: 0 0 6px;
-  text-transform: capitalize;
+  color: #6366f1;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.course-card .course-subtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .course-stats {
   display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin: 12px 0;
+  align-items: center;
+  gap: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f1f5f9;
 }
 
-.module-count,
-.lesson-count {
+.module-count {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.78rem;
-  color: #6b7280;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .module-view-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   width: 100%;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 0.87rem;
-  font-weight: 600;
-  color: #ffffff;
-  background: linear-gradient(135deg, #7c3aed, #6366f1);
-  cursor: pointer;
-  transition: box-shadow 0.15s ease;
+  margin-top: auto;
 }
 
-.module-view-btn:hover {
-  box-shadow: 0 5px 14px rgba(124, 58, 237, 0.35);
-}
-
-/* Status badges — scoped to the course card so another page's
-   `.status-badge` (e.g. the absolutely-positioned one on the mentor
-   dashboard) can't pull this out of the card header. */
-.course-card .status-badge {
-  position: static;
-  flex-shrink: 0;
-  align-self: flex-start;
-  font-size: 0.66rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 999px;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.course-card .status-badge.published {
-  background: #ecfdf5;
-  color: #047857;
-}
-
-.course-card .status-badge.draft {
-  background: #fffbeb;
-  color: #b45309;
-}
-
-.course-card .status-badge.archived {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-/* Empty states */
-.no-courses,
-.no-modules {
-  padding: 48px 16px;
-  text-align: center;
-  color: #9ca3af;
-  font-size: 0.9rem;
-  background: #ffffff;
-  border: 1px dashed #e5e7eb;
-  border-radius: 14px;
-}
-
-/* ==========================================
-   Modal / popup
-   ========================================== */
-.popup-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 24, 39, 0.55);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 40px 20px;
-  overflow-y: auto;
-  z-index: 9999;
-}
-
-.popup {
-  background: #ffffff;
+.no-courses {
+  padding: 48px 20px;
+  border: 1px dashed #cbd5e1;
   border-radius: 16px;
-  width: 100%;
-  max-width: 520px;
-  margin: auto;
-  padding: 1.5rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  background: #fff;
+  color: #94a3b8;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* ---------- Module management popup ---------- */
+.popup {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
 }
 
 .popup-large {
-  max-width: 640px;
+  width: min(820px, 100%);
 }
 
-.popup-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid #f0f0f3;
-}
-
-/* ==========================================
-   Modules section (inside modal)
-   ========================================== */
-.modules-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 1.25rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #f0f0f3;
+.modules-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #111827;
   margin: 0;
-}
-
-.modules-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.add-module-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 16px;
-  font-size: 0.87rem;
-  font-weight: 600;
-  color: #ffffff;
-  background: linear-gradient(135deg, #7c3aed, #6366f1);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: box-shadow 0.15s ease, opacity 0.15s ease;
-}
-
-.add-module-btn:hover {
-  box-shadow: 0 5px 14px rgba(124, 58, 237, 0.35);
-}
-
-.add-module-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow: none;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .position-hint {
-  font-size: 0.78rem;
-  color: #9ca3af;
   margin: 0 0 14px;
-  line-height: 1.5;
+  color: #94a3b8;
+  font-size: 12px;
 }
 
 .modules-list {
@@ -354,49 +170,55 @@
 }
 
 .module-item {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #f9fafb;
-  padding: 12px 14px;
-  transition: border-color 0.15s ease;
-}
-
-.module-item:hover {
-  border-color: #d1d5db;
+  padding: 14px 16px;
 }
 
 .module-item-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
 }
 
 .module-info {
   min-width: 0;
+  flex: 1;
 }
 
 .module-info h4 {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: #111827;
   margin: 0 0 4px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ==========================================
-   Responsive
-   ========================================== */
-@media (max-width: 640px) {
-  .mentor-courses {
-    padding: 16px;
-  }
+.lesson-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.no-modules {
+  padding: 34px 16px;
+  border: 1px dashed #e2e8f0;
+  border-radius: 12px;
+  background: #fafbfc;
+  color: #94a3b8;
+  text-align: center;
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
   .view-grid {
     grid-template-columns: 1fr;
   }
-  .popup {
-    padding: 1.15rem;
+
+  .course-title {
+    font-size: 21px;
   }
 }

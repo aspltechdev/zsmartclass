@@ -17,7 +17,7 @@ exports.create = async (req, res) => {
 
     } catch (err) {
 
-        res.status(400).json({
+        res.status(err.statusCode || 400).json({
             success: false,
             message: err.message
         });
@@ -28,25 +28,25 @@ exports.create = async (req, res) => {
 
 // Get All
 exports.getAll = async (req, res) => {
-
     try {
 
-        const data = await assignmentService.getAll();
+        // Students must only see assignments for courses they're enrolled in,
+        // together with their own submission. Mentors/admins see everything.
+        const role = (req.user?.role || "").toUpperCase();
 
-        res.json({
-            success: true,
-            data
-        });
+        const data =
+            role === "STUDENT"
+                ? await assignmentService.getForStudent(req.user.id)
+                : await assignmentService.getAll();
+
+        res.status(200).json({ success: true, data });
 
     } catch (err) {
-
-        res.status(500).json({
+        res.status(err.statusCode || 400).json({
             success: false,
             message: err.message
         });
-
     }
-
 };
 
 // Get By Id
@@ -63,7 +63,7 @@ exports.getById = async (req, res) => {
 
     } catch (err) {
 
-        res.status(404).json({
+        res.status(err.statusCode || 404).json({
             success: false,
             message: err.message
         });
@@ -89,7 +89,7 @@ exports.update = async (req, res) => {
 
     } catch (err) {
 
-        res.status(400).json({
+        res.status(err.statusCode || 400).json({
             success: false,
             message: err.message
         });
@@ -99,7 +99,7 @@ exports.update = async (req, res) => {
 };
 
 // Delete
-exports.delete = async (req, res) => {
+exports.remove = async (req, res) => {
 
     try {
 
@@ -111,7 +111,7 @@ exports.delete = async (req, res) => {
 
     } catch (err) {
 
-        res.status(400).json({
+        res.status(err.statusCode || 400).json({
             success: false,
             message: err.message
         });
@@ -121,7 +121,7 @@ exports.delete = async (req, res) => {
 };
 
 // Submit Assignment
-exports.submitAssignment = async (req, res) => {
+exports.submit = async (req, res) => {
 
     try {
 
@@ -142,7 +142,7 @@ exports.submitAssignment = async (req, res) => {
 
     } catch (err) {
 
-        res.status(400).json({
+        res.status(err.statusCode || 400).json({
             success: false,
             message: err.message
         });
@@ -167,11 +167,48 @@ exports.getSubmissions = async (req, res) => {
 
     } catch (err) {
 
-        res.status(400).json({
+        res.status(err.statusCode || 400).json({
             success: false,
             message: err.message
         });
 
     }
 
+};
+
+/* =========================================================
+   MY SUBMISSIONS  (student)
+========================================================= */
+exports.getMySubmissions = async (req, res) => {
+    try {
+        const data = await assignmentService.getMySubmissions(req.user.id);
+        res.status(200).json({ success: true, data });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+/* =========================================================
+   GRADE A SUBMISSION  (mentor / admin)
+========================================================= */
+exports.gradeSubmission = async (req, res) => {
+    try {
+        const data = await assignmentService.gradeSubmission(
+            req.params.submissionId,
+            req.body
+        );
+        res.status(200).json({
+            success: true,
+            message: "Submission graded.",
+            data
+        });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message
+        });
+    }
 };

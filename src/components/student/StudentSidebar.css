@@ -1,208 +1,299 @@
+/* =========================================================
+   ZSMARTCLASS — STUDENT SIDEBAR (LIGHT THEME)
+
+   IMPORTANT: every rule is scoped under .student-sidebar.
+   The markup uses .sidebar-nav / .sidebar-footer / .logout-btn —
+   the SAME names as the admin and mentor sidebars. CSS is global,
+   so without scoping the three panels would restyle each other.
+   ========================================================= */
+
 .student-sidebar {
+  --sb-bg: #ffffff;
+  --sb-border: #eef0f4;
+  --sb-text: #64748b;
+  --sb-text-hover: #111827;
+  --sb-active-bg: #eef2ff;
+  --sb-active-text: #4f46e5;
+  --sb-hover-bg: #f6f7fb;
+
   position: fixed;
   top: 0;
   left: 0;
-  bottom: 0;
-  width: 260px;
-  background: #ffffff;
-  border-right: 1px solid #e8ecf1;
+  z-index: 999;
+
+  width: var(--admin-sidebar-width, 260px);
+  height: 100vh;
+
   display: flex;
   flex-direction: column;
-  z-index: 1000;
+
+  background: var(--sb-bg);
+  border-right: 1px solid var(--sb-border);
+
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+
   transition: width 0.3s ease, transform 0.3s ease;
-  overflow: hidden;
-  height: 100vh;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
 }
 
-.sidebar-header {
-  padding: 20px 16px;
-  border-bottom: 1px solid #e8ecf1;
-  min-height: 72px;
+/* =========================================================
+   HEADER / LOGO
+   ========================================================= */
+
+.student-sidebar .sidebar-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   flex-shrink: 0;
+  height: var(--admin-header-height, 68px);
+  padding: 0 20px;
+  border-bottom: 1px solid var(--sb-border);
 }
 
-.logo-container {
+.student-sidebar .logo-container {
   display: flex;
   align-items: center;
   gap: 12px;
-  overflow: hidden;
-  width: 100%;
+  min-width: 0;
 }
 
-.logo-icon {
-  width: 36px;
-  height: 36px;
-  background: #1976d2;
-  color: white;
-  border-radius: 8px;
+.student-sidebar .logo-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
   font-size: 18px;
-  flex-shrink: 0;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.logo-text {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a2e;
+.student-sidebar .logo-icon svg { color: #fff; }
+
+.student-sidebar .logo-text { min-width: 0; }
+
+.student-sidebar .logo-text h2,
+.student-sidebar .logo-text > span:first-child {
+  display: block;
+  margin: 0;
+  color: var(--admin-text, #111827);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
   white-space: nowrap;
 }
 
-.sidebar-nav {
-  flex: 1;
-  padding: 16px 12px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.student-sidebar .logo-text p,
+.student-sidebar .logo-text > span:last-child {
+  display: block;
+  margin: 2px 0 0;
+  color: #a0aec0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.nav-item {
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+.student-sidebar .sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.student-sidebar .sidebar-nav::-webkit-scrollbar { width: 6px; }
+.student-sidebar .sidebar-nav::-webkit-scrollbar-thumb {
+  background: #dfe3ec;
+  border-radius: 999px;
+}
+.student-sidebar .sidebar-nav::-webkit-scrollbar-thumb:hover { background: #cbd2e0; }
+
+.student-sidebar .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 10px 12px;
+  margin-bottom: 2px;
   border-radius: 8px;
-  color: #5a5a7a;
-  text-decoration: none;
-  font-size: 14px;
+  color: var(--sb-text);
+  font-size: 13px;
   font-weight: 500;
-  transition: all 0.15s ease;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  width: 100%;
-  min-height: 44px;
-  position: relative;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.nav-item:hover {
-  background: #f0f4ff;
-  color: #1976d2;
+.student-sidebar .nav-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: #94a3b8;
+  transition: color 0.2s ease;
 }
 
-.nav-item.active {
-  background: #e8eeff;
-  color: #1976d2;
+.student-sidebar .nav-icon svg { width: 19px; height: 19px; }
+
+.student-sidebar .nav-label { min-width: 0; }
+
+.student-sidebar .nav-item:hover {
+  background: var(--sb-hover-bg);
+  color: var(--sb-text-hover);
 }
 
-.nav-item.active::before {
-  content: '';
+.student-sidebar .nav-item:hover .nav-icon { color: #6366f1; }
+
+.student-sidebar .nav-item.active {
+  background: var(--sb-active-bg);
+  color: var(--sb-active-text);
+  font-weight: 600;
+}
+
+.student-sidebar .nav-item.active .nav-icon { color: var(--sb-active-text); }
+
+/* active indicator bar */
+.student-sidebar .nav-item.active::before {
+  content: "";
   position: absolute;
-  left: 0;
+  left: -12px;
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
-  height: 24px;
-  background: #1976d2;
-  border-radius: 0 3px 3px 0;
+  height: 20px;
+  border-radius: 0 6px 6px 0;
+  background: #6366f1;
 }
 
-.nav-icon {
+/* =========================================================
+   FOOTER / LOGOUT
+   ========================================================= */
+
+.student-sidebar .sidebar-footer {
   flex-shrink: 0;
-  min-width: 20px;
+  padding: 12px;
+  border-top: 1px solid var(--sb-border);
 }
 
-.nav-label {
-  white-space: nowrap;
+.student-sidebar .logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border, #e5e7eb);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--admin-text-secondary, #475569);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.sidebar-footer {
-  padding: 16px 12px;
-  border-top: 1px solid #e8ecf1;
+.student-sidebar .logout-btn svg {
   flex-shrink: 0;
+  color: var(--admin-text-muted, #94a3b8);
+  transition: color 0.2s ease;
 }
 
-.logout-btn {
-  color: #dc3545;
+.student-sidebar .logout-btn:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
 }
 
-.logout-btn:hover {
-  background: #fff0f0;
-  color: #dc3545;
-}
+.student-sidebar .logout-btn:hover svg { color: #dc2626; }
+
+/* =========================================================
+   COLLAPSED RAIL (desktop)
+   ========================================================= */
 
 .student-sidebar.collapsed {
-  width: 72px;
+  width: var(--admin-sidebar-collapsed-width, 76px);
 }
 
-.student-sidebar.collapsed .logo-text {
-  display: none;
-}
+.student-sidebar.collapsed .sidebar-header { justify-content: center; padding: 0; }
+.student-sidebar.collapsed .logo-text,
+.student-sidebar.collapsed .nav-label,
+.student-sidebar.collapsed .logout-btn span { display: none; }
 
-.student-sidebar.collapsed .nav-label {
-  display: none;
-}
-
-.student-sidebar.collapsed .nav-item {
+.student-sidebar.collapsed .nav-item,
+.student-sidebar.collapsed .logout-btn {
   justify-content: center;
-  padding: 10px;
+  padding-left: 0;
+  padding-right: 0;
 }
 
-.student-sidebar.collapsed .sidebar-header {
-  justify-content: center;
-  padding: 20px 0;
+/* tooltip when collapsed */
+.student-sidebar.collapsed .nav-item::after {
+  content: attr(data-title);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #1f2937;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+  transition: opacity 0.2s ease;
+  z-index: 10;
 }
 
-.student-sidebar.collapsed .logo-container {
-  justify-content: center;
-}
+.student-sidebar.collapsed .nav-item:hover::after { opacity: 1; }
 
-@media (max-width: 768px) {
+/* =========================================================
+   MOBILE DRAWER
+   ========================================================= */
+
+@media (max-width: 900px) {
   .student-sidebar {
     transform: translateX(-100%);
-    width: 280px;
+    box-shadow: none;
   }
 
   .student-sidebar.mobile-open {
     transform: translateX(0);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
   }
 
-  .student-sidebar.collapsed {
-    width: 280px;
-  }
+  /* never collapse to a rail on mobile */
+  .student-sidebar.collapsed { width: var(--admin-sidebar-width, 260px); }
+  .student-sidebar.collapsed .logo-text,
+  .student-sidebar.collapsed .nav-label,
+  .student-sidebar.collapsed .logout-btn span { display: block; }
 
-  .student-sidebar.collapsed .logo-text {
-    display: block;
-  }
-
-  .student-sidebar.collapsed .nav-label {
-    display: block;
-  }
-
-  .student-sidebar.collapsed .nav-item {
+  .student-sidebar.collapsed .nav-item,
+  .student-sidebar.collapsed .logout-btn {
     justify-content: flex-start;
-    padding: 10px 14px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   .student-sidebar.collapsed .sidebar-header {
-    justify-content: flex-start;
-    padding: 20px 16px;
-  }
-
-  .student-sidebar.collapsed .logo-container {
-    justify-content: flex-start;
+    justify-content: space-between;
+    padding: 0 20px;
   }
 }
 
-.sidebar-nav::-webkit-scrollbar {
-  width: 4px;
-}
-
-.sidebar-nav::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb {
-  background: #d0d5e0;
-  border-radius: 2px;
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: #b0b5c0;
+@media (prefers-reduced-motion: reduce) {
+  .student-sidebar,
+  .student-sidebar .nav-item,
+  .student-sidebar .logout-btn { transition: none; }
 }

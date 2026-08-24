@@ -16,21 +16,48 @@ function resolveFont(fontFamily, bold) {
   return bold ? 'Helvetica-Bold' : 'Helvetica';
 }
 
+/**
+ * The certificate shows the heading on two lines: a small accent "eyebrow"
+ * above a large title (e.g. "CERTIFICATE OF" / "COMPLETION").
+ *
+ * The admin template stores ONE header string, so split it sensibly:
+ *   "Certificate of Completion" -> eyebrow "CERTIFICATE OF", title "COMPLETION"
+ *   "Achievement Award"         -> title only (no eyebrow)
+ * This keeps the designer's Header Text meaningful without a schema change.
+ */
+function splitHeader(header) {
+  const raw = (header || '').trim();
+
+  if (!raw) {
+    return { eyebrow: 'CERTIFICATE OF', title: 'COMPLETION' };
+  }
+
+  // Split on the last standalone "of" / "for" / "in"
+  const m = raw.match(/^(.*\b(?:of|for|in))\s+(.+)$/i);
+  if (m) {
+    return {
+      eyebrow: m[1].toUpperCase(),
+      title: m[2].toUpperCase()
+    };
+  }
+
+  // No natural split — render it all as the title.
+  return { eyebrow: '', title: raw.toUpperCase() };
+}
+
 class CertificatePdfGenerator {
-  
+
   constructor() {
-    // UPDATED: Store badge.png in the SAME directory as this file (src/utils/)
+    // Store badge.png in the SAME directory as this file (src/utils/)
     this.badgeImagePath = path.join(__dirname, 'badge.png');
   }
 
   /**
-   * Custom helper to draw the Logo EXACTLY like the uploaded image.
-   * No external images needed.
+   * Draw the brand logo (gradient rounded square + "Z") with the wordmark.
    */
   drawLogoWithText(doc, x, y, size = 50) {
-    const radius = size * 0.22; 
+    const radius = size * 0.22;
 
-    // 1. Draw the background square with rounded corners
     doc.save();
     doc.path(`M ${x + radius} ${y} 
              L ${x + size - radius} ${y} 
@@ -43,19 +70,17 @@ class CertificatePdfGenerator {
              A ${radius} ${radius} 0 0 1 ${x + radius} ${y} 
              Z`);
 
-    // 2. Apply the exact purple-blue gradient background
     const gradient = doc.linearGradient(x, y, x + size, y + size);
-    gradient.stop(0, '#7A8BF5'); // Top-left light blue-purple
-    gradient.stop(1, '#7048C6'); // Bottom-right deep purple
+    gradient.stop(0, '#7A8BF5');
+    gradient.stop(1, '#7048C6');
     doc.fill(gradient);
 
-    // 3. Draw the white Serif "Z" using Times-Roman to look exactly like the image
     const cx = x + (size / 2);
     const cy = y + (size / 2);
     const charSize = size * 0.55;
-    
+
     doc.fillColor('#ffffff')
-       .font('Times-Roman') 
+       .font('Times-Roman')
        .fontSize(charSize)
        .text('Z', cx - (charSize / 3), cy - (charSize / 2.2), {
          width: size,
@@ -64,33 +89,29 @@ class CertificatePdfGenerator {
 
     doc.restore();
 
-    // 4. Add "ZSmartClass" to the RIGHT of the logo
-    const textX = x + size + 12; 
-    const textY = y + (size / 2) - 9; 
+    const textX = x + size + 12;
+    const textY = y + (size / 2) - 9;
 
     doc.fillColor('#1a1a2e')
        .font('Helvetica-Bold')
        .fontSize(18)
-       .text('ZSmartClass', textX, textY, {
-         align: 'left'
-       });
+       .text('ZSmartClass', textX, textY, { align: 'left' });
   }
 
   /**
-   * Generate Certificate PDF matching the template design exactly
+   * Generate the certificate PDF, honouring the course's template.
    */
   async generateCertificatePDF(data) {
     const {
       studentName,
       courseTitle,
-      instructorName,
       certificateNo,
       issueDate,
       qrCodeDataUrl,
       template
     } = data;
 
-    // Use template values or defaults
+    // ---- Template values (fall back to the defaults) --------------------
     const textColor = template?.textColor || '#1a1a2e';
     const accentColor = template?.borderColor || '#667eea';
     const backgroundColor = template?.backgroundColor || '#ffffff';
@@ -98,9 +119,11 @@ class CertificatePdfGenerator {
     const fontBold = resolveFont(template?.fontFamily, true);
     const fontRegular = resolveFont(template?.fontFamily, false);
 
+    // Header Text from the designer now actually prints (previously hardcoded)
+    const { eyebrow, title } = splitHeader(template?.header);
+
     return new Promise((resolve, reject) => {
       try {
-        // Create a new PDF document (A4 Landscape)
         const doc = new PDFDocument({
           layout: 'landscape',
           size: 'A4',
@@ -116,77 +139,58 @@ class CertificatePdfGenerator {
         });
         doc.on('error', reject);
 
-        // Page dimensions (A4 Landscape: 842 x 595 points)
+        // A4 landscape: 842 x 595 points
         const pageWidth = 842;
         const pageHeight = 595;
 
-        // ==========================================
-        // Background
-        // ==========================================
-        doc.rect(0, 0, pageWidth, pageHeight)
-           .fill(backgroundColor);
+        // ---- Background ----
+        doc.rect(0, 0, pageWidth, pageHeight).fill(backgroundColor);
 
-        // ==========================================
-        // Border
-        // ==========================================
+        // ---- Border ----
         doc.rect(30, 30, pageWidth - 60, pageHeight - 60)
            .lineWidth(2)
            .stroke(accentColor);
 
-        // ==========================================
-        // Top Left Corner Logo & Text
-        // ==========================================
+        // ---- Top-left logo ----
         this.drawLogoWithText(doc, 50, 45, 50);
 
-        // ==========================================
-        // Top Right Corner Badge (PNG) - Same directory as this file
-        // ==========================================
-        const badgeX = pageWidth - 70 - 100; // 30px padding from right, minus 100px badge width
-        const badgeY = 35; // Align with top logo
-        const badgeWidth = 100; // Adjust width of the badge as needed
+        // ---- Top-right badge ----
+        const badgeX = pageWidth - 70 - 100;
+        const badgeY = 35;
+        const badgeWidth = 100;
 
         try {
-          // Check if the badge file exists in the 'utils' folder before trying to place it
           if (fs.existsSync(this.badgeImagePath)) {
-            doc.image(this.badgeImagePath, badgeX, badgeY, {
-              width: badgeWidth,
-              // height will auto-scale based on width
-            });
+            doc.image(this.badgeImagePath, badgeX, badgeY, { width: badgeWidth });
           } else {
-            // If the file doesn't exist, just log a warning. The PDF will still be generated!
             console.warn(`⚠️  Badge not found at: ${this.badgeImagePath}. Put your badge.png next to certificatePdf.js`);
           }
         } catch (error) {
           console.error('Error placing badge image:', error.message);
         }
 
-        // ==========================================
-        // Header: "CERTIFICATE OF"
-        // ==========================================
-        doc.fontSize(18)
-           .fillColor(accentColor)
-           .font(fontBold)
-           .text('CERTIFICATE OF', 0, 65, {
-             width: pageWidth,
-             align: 'center',
-             letterSpacing: 3
-           });
+        // ---- Heading (from the template's Header Text) ----
+        if (eyebrow) {
+          doc.fontSize(18)
+             .fillColor(accentColor)
+             .font(fontBold)
+             .text(eyebrow, 0, 65, {
+               width: pageWidth,
+               align: 'center',
+               letterSpacing: 3
+             });
+        }
 
-        // ==========================================
-        // Main Title: "COMPLETION"
-        // ==========================================
         doc.fontSize(42)
            .fillColor(textColor)
            .font(fontBold)
-           .text('COMPLETION', 0, 90, {
+           .text(title, 0, eyebrow ? 90 : 78, {
              width: pageWidth,
              align: 'center',
              letterSpacing: 2
            });
 
-        // ==========================================
-        // Subtitle
-        // ==========================================
+        // ---- Subtitle ----
         doc.fontSize(18)
            .fillColor('#64748b')
            .font(fontRegular)
@@ -195,9 +199,7 @@ class CertificatePdfGenerator {
              align: 'center'
            });
 
-        // ==========================================
-        // Student Name
-        // ==========================================
+        // ---- Student name ----
         doc.fontSize(32)
            .fillColor(textColor)
            .font(fontBold)
@@ -206,9 +208,7 @@ class CertificatePdfGenerator {
              align: 'center'
            });
 
-        // ==========================================
-        // Completion Text
-        // ==========================================
+        // ---- Completion line ----
         doc.fontSize(18)
            .fillColor('#64748b')
            .font(fontRegular)
@@ -217,9 +217,7 @@ class CertificatePdfGenerator {
              align: 'center'
            });
 
-        // ==========================================
-        // Course Name
-        // ==========================================
+        // ---- Course name ----
         doc.fontSize(26)
            .fillColor(accentColor)
            .font(fontBold)
@@ -228,165 +226,97 @@ class CertificatePdfGenerator {
              align: 'center'
            });
 
-        // ==========================================
-        // Description
-        // ==========================================
+        // ---- Description ----
+        // (the second line previously repeated "and a commitment to")
         doc.fontSize(14)
            .fillColor('#94a3b8')
            .font(fontRegular)
            .text(
              'This professional has demonstrated initiative and a commitment to',
-             0, 310, {
-               width: pageWidth,
-               align: 'center'
-             }
+             0, 310, { width: pageWidth, align: 'center' }
            )
            .text(
-             'and a commitment to deepening their skills and advancing their career. Well done!',
-             0, 325, {
-               width: pageWidth,
-               align: 'center'
-             }
+             'deepening their skills and advancing their career. Well done!',
+             0, 328, { width: pageWidth, align: 'center' }
            );
 
-        // ==========================================
-        // Footer Section
-        // ==========================================
+        // ---- Divider ----
         doc.moveTo(100, 395)
            .lineTo(742, 395)
            .lineWidth(1)
            .stroke('#e2e8f0');
 
-        // Date and Certificate ID
-        const formattedDate = new Date(issueDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
+        // ---- Date + certificate id ----
+        const formattedDate = issueDate
+          ? new Date(issueDate).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'long', day: 'numeric'
+            })
+          : 'N/A';
 
-        doc.fontSize(11)
-           .fillColor('#64748b')
-           .font(fontRegular)
-           .text('Date of issue:', 100, 415, {
-             width: 150,
-             align: 'left'
-           });
+        doc.fontSize(11).fillColor('#64748b').font(fontRegular)
+           .text('Date of issue:', 100, 415, { width: 150, align: 'left' });
 
-        doc.fontSize(11)
-           .fillColor(textColor)
-           .font(fontBold)
-           .text(formattedDate || 'N/A', 180, 415, {
-             width: 200,
-             align: 'left'
-           });
+        doc.fontSize(11).fillColor(textColor).font(fontBold)
+           .text(formattedDate, 180, 415, { width: 200, align: 'left' });
 
-        doc.fontSize(11)
-           .fillColor('#64748b')
-           .font(fontRegular)
-           .text('Certificate id:', 100, 435, {
-             width: 150,
-             align: 'left'
-           });
+        doc.fontSize(11).fillColor('#64748b').font(fontRegular)
+           .text('Certificate id:', 100, 435, { width: 150, align: 'left' });
 
-        doc.fontSize(11)
-           .fillColor(textColor)
-           .font(fontBold)
-           .text(certificateNo || 'N/A', 180, 435, {
-             width: 200,
-             align: 'left'
-           });
+        doc.fontSize(11).fillColor(textColor).font(fontBold)
+           .text(certificateNo || 'N/A', 180, 435, { width: 200, align: 'left' });
 
-        // ==========================================
-        // QR Code and Seal - Side by side
-        // ==========================================
-        // QR Code
+        // ---- QR code (kept black for reliable scanning) ----
         if (qrCodeDataUrl) {
           try {
             if (qrCodeDataUrl.startsWith('data:image')) {
-              const qrCodeBuffer = Buffer.from(
-                qrCodeDataUrl.split(',')[1],
-                'base64'
-              );
-              doc.image(qrCodeBuffer, 630, 410, {
-                width: 80,
-                height: 80
-              });
+              const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
+              doc.image(qrCodeBuffer, 630, 410, { width: 80, height: 80 });
             }
             doc.fontSize(7)
                .fillColor('#94a3b8')
                .font(fontRegular)
-               .text('Scan to verify', 630, 495, {
-                 width: 80,
-                 align: 'center'
-               });
+               .text('Scan to verify', 630, 495, { width: 80, align: 'center' });
           } catch (qrError) {
             console.error('Error adding QR code to PDF:', qrError);
           }
         }
 
-        // ==========================================
-        // Seal / Badge
-        // ==========================================
+        // ---- Seal ----
         const sealX = 550;
         const sealY = 450;
         const sealRadius = 40;
 
-        // Outer circle
-        doc.circle(sealX, sealY, sealRadius)
-           .lineWidth(2)
-           .stroke(accentColor);
+        doc.circle(sealX, sealY, sealRadius).lineWidth(2).stroke(accentColor);
+        doc.circle(sealX, sealY, sealRadius - 5).lineWidth(1).stroke(accentColor);
 
-        // Inner circle
-        doc.circle(sealX, sealY, sealRadius - 5)
-           .lineWidth(1)
-           .stroke(accentColor);
-
-        // Seal text
         doc.fontSize(7)
            .fillColor(textColor)
            .font(fontBold)
            .text('ZSMARTCLASS', sealX - 30, sealY - 12, {
-             width: 60,
-             align: 'center',
-             letterSpacing: 1
+             width: 60, align: 'center', letterSpacing: 1
            });
 
-        // "COMPLETED" badge inside seal
         doc.fontSize(6)
            .fillColor('#020202')
            .font(fontBold)
-           .text('COMPLETED', sealX - 22, sealY + 8, {
-             width: 44,
-             align: 'center'
-           });
+           .text('COMPLETED', sealX - 22, sealY + 8, { width: 44, align: 'center' });
 
-        // Small award icon
-        doc.circle(sealX, sealY - 20, 4)
-           .fill(accentColor);
+        doc.circle(sealX, sealY - 20, 4).fill(accentColor);
 
-        // ==========================================
-        // Footer Text
-        // ==========================================
+        // ---- Footer (from the template) ----
         doc.fontSize(9)
            .fillColor('#94a3b8')
            .font(fontRegular)
-           .text(footerText, 0, 540, {
-             width: pageWidth,
-             align: 'center'
-           });
+           .text(footerText, 0, 540, { width: pageWidth, align: 'center' });
 
         doc.fontSize(7)
            .fillColor('#cbd5e1')
            .font(fontRegular)
            .text(
              `Verify at: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-certificate/${certificateNo}`,
-             0, 558, {
-               width: pageWidth,
-               align: 'center'
-             }
+             0, 558, { width: pageWidth, align: 'center' }
            );
 
-        // Finalize PDF
         doc.end();
 
       } catch (error) {
@@ -395,9 +325,6 @@ class CertificatePdfGenerator {
     });
   }
 
-  /**
-   * Save certificate to file system
-   */
   saveCertificateToFile(certificateNo, pdfBuffer) {
     try {
       const certificatesDir = path.join(__dirname, '../../public/certificates');
@@ -415,36 +342,21 @@ class CertificatePdfGenerator {
     }
   }
 
-  /**
-   * Get saved certificate file path
-   */
   getCertificatePath(certificateNo) {
     const filePath = path.join(
-      __dirname,
-      '../../public/certificates',
-      `${certificateNo}.pdf`
+      __dirname, '../../public/certificates', `${certificateNo}.pdf`
     );
-
-    if (fs.existsSync(filePath)) {
-      return filePath;
-    }
-
-    return null;
+    return fs.existsSync(filePath) ? filePath : null;
   }
 
-  /**
-   * Delete certificate file
-   */
   deleteCertificateFile(certificateNo) {
     try {
       const filePath = this.getCertificatePath(certificateNo);
-
       if (filePath && fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
         console.log(`Certificate deleted: ${filePath}`);
         return true;
       }
-
       return false;
     } catch (error) {
       console.error('Error deleting certificate file:', error.message);
@@ -453,12 +365,11 @@ class CertificatePdfGenerator {
   }
 }
 
-// Export as a function
 const generator = new CertificatePdfGenerator();
-module.exports = function(data) {
+module.exports = function (data) {
   return generator.generateCertificatePDF(data);
 };
 module.exports.CertificatePdfGenerator = CertificatePdfGenerator;
-module.exports.generateCertificatePDF = function(data) {
+module.exports.generateCertificatePDF = function (data) {
   return generator.generateCertificatePDF(data);
 };

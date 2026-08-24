@@ -1,196 +1,128 @@
-/* src/pages/mentor/Dashboard.css
-   Complete, self-contained stylesheet for the Mentor Dashboard. */
+/* =========================================================
+   MENTOR — DASHBOARD
+   Page-specific only. Buttons, stat cards, states and
+   responsive rules come from MentorShared.css
+   ========================================================= */
 
 .dashboard-container {
-  padding: 24px 28px;
-  max-width: 1280px;
-  margin: 0 auto;
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* ==========================================
-   Welcome banner
-   ========================================== */
-.dashboard-welcome {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+/* ---------- Welcome banner ---------- */
+.welcome-section {
+  padding: 24px 26px;
+  margin-bottom: 24px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(99, 102, 241, 0.28);
 }
 
 .welcome-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 18px;
   flex-wrap: wrap;
-  gap: 1.5rem;
 }
 
-.welcome-text h1 {
-  color: #ffffff;
-  font-size: 1.6rem;
-  font-weight: 700;
+.welcome-content h1 {
   margin: 0;
+  color: #fff !important;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
 }
 
-.welcome-text p {
-  color: #b8c1d9;
-  font-size: 0.95rem;
-  margin: 0.4rem 0 0;
+.welcome-content p {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
 }
 
 .welcome-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .welcome-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  border: none;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 10px;
-  padding: 0.7rem 1.2rem;
-  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.05s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
 }
 
-.welcome-btn:active {
-  transform: translateY(1px);
+.welcome-btn:hover {
+  background: rgba(255, 255, 255, 0.26);
 }
 
-.welcome-btn.primary {
-  background: linear-gradient(135deg, #7c3aed, #6366f1);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+/* the shared kit gives .welcome-btn.primary the gradient — override
+   so it reads as white-on-purple inside the banner */
+.welcome-section .welcome-btn.primary {
+  background: #fff !important;
+  border-color: #fff !important;
+  color: #4f46e5 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18) !important;
 }
 
-.welcome-btn.primary:hover {
-  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.45);
+.welcome-section .welcome-btn.primary:hover {
+  background: #f5f3ff !important;
 }
 
-.welcome-btn.secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.welcome-btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-/* ==========================================
-   Error banner
-   ========================================== */
-.dashboard-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
-  font-size: 14px;
-}
-
-/* ==========================================
-   Stat cards
-   ========================================== */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
-  margin-bottom: 1.75rem;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: #ffffff;
-  border: 1px solid #eef0f3;
-  border-radius: 14px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-}
-
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.stat-content h3 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-  line-height: 1.1;
-}
-
-.stat-content p {
-  font-size: 0.85rem;
-  color: #6b7280;
-  margin: 0.25rem 0 0;
-}
-
-/* ==========================================
-   Status cards / two-column rows
-   ========================================== */
+/* ---------- Status cards ---------- */
 .status-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
-  margin-bottom: 1.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .status-card {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  background: #ffffff;
-  border: 1px solid #eef0f3;
-  border-radius: 14px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.status-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.09);
 }
 
 .status-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.status-icon svg {
-  width: 20px;
-  height: 20px;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #6366f1;
 }
 
 .status-card.draft .status-icon {
@@ -204,168 +136,152 @@
 }
 
 .status-card.total-modules .status-icon {
-  background: #eef2ff;
-  color: #4338ca;
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.status-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .status-info h4 {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #111827;
   margin: 0;
-  line-height: 1.1;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
 }
 
 .status-info p {
-  font-size: 0.82rem;
-  color: #6b7280;
-  margin: 0.2rem 0 0;
+  margin: 3px 0 0;
+  color: #64748b;
+  font-size: 12.5px;
 }
 
-/* Scoped to .status-card so this absolute positioning can't leak into
-   other mentor pages that also use a `.status-badge`. */
-.status-card .status-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 999px;
-  letter-spacing: 0.02em;
-}
-
-.status-card .draft-badge {
+.status-badge.draft-badge {
   background: #fffbeb;
   color: #b45309;
 }
 
-.status-card .published-badge {
+.status-badge.published-badge {
   background: #ecfdf5;
   color: #047857;
 }
 
-.status-card .content-badge {
-  background: #eef2ff;
-  color: #4338ca;
+.status-badge.content-badge {
+  background: #f5f3ff;
+  color: #7c3aed;
 }
 
-/* ==========================================
-   Quick actions / panels
-   ========================================== */
+/* ---------- Quick actions / panels ---------- */
 .quick-actions-section {
-  background: #ffffff;
-  border: 1px solid #eef0f3;
-  border-radius: 14px;
-  padding: 1.25rem 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  margin-bottom: 1.75rem;
+  padding: 18px 20px;
+  margin-bottom: 20px;
 }
 
 .quick-actions-section.full-width {
-  width: 100%;
+  grid-column: 1 / -1;
 }
 
 .section-header {
-  margin-bottom: 1rem;
+  margin-bottom: 14px;
 }
 
 .section-header h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #111827;
   margin: 0;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
 }
 
 .quick-action-btn {
-  display: flex;
+  min-height: 92px !important;
+  display: flex !important;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 1.1rem 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fafbff;
-  color: #374151;
-  font-size: 0.85rem;
-  font-weight: 600;
+  gap: 9px;
+  padding: 14px 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #475569 !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
+  box-shadow: none !important;
+}
+
+.quick-action-btn svg {
+  color: #f3f3f7;
+  transition: transform 0.2s ease;
 }
 
 .quick-action-btn:hover {
-  border-color: #7c3aed;
-  background: #f5f3ff;
-  color: #6d28d9;
+  background: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: #4338ca !important;
   transform: translateY(-2px);
 }
 
-.quick-action-btn.add-btn svg {
-  color: #7c3aed;
+.quick-action-btn:hover svg {
+  transform: translateY(-2px);
+  color: #4338ca;
 }
 
-/* ==========================================
-   Loading state
-   ========================================== */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  gap: 16px;
-  color: #64748b;
+.dashboard-error {
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
   font-size: 14px;
 }
 
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #7c3aed;
-  border-radius: 50%;
-  animation: mentor-spin 0.8s linear infinite;
-}
-
-@keyframes mentor-spin {
-  to {
-    transform: rotate(360deg);
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .welcome-section {
+    padding: 20px;
   }
-}
 
-/* ==========================================
-   Responsive
-   ========================================== */
-@media (max-width: 1024px) {
-  .stats-grid,
+  .welcome-content h1 {
+    font-size: 20px;
+  }
+
+  .welcome-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .welcome-actions {
+    width: 100%;
+  }
+
+  .welcome-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
   .status-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .quick-actions-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .dashboard-container {
-    padding: 16px;
-  }
-  .dashboard-welcome {
-    padding: 1.5rem;
-  }
-  .stats-grid,
-  .status-grid,
-  .quick-actions-grid {
     grid-template-columns: 1fr;
   }
-  .welcome-text h1 {
-    font-size: 1.3rem;
+
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,304 +1,590 @@
-﻿import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+﻿// src/pages/student/Dashboard.jsx
 
 import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  AlertCircle,
+  ArrowRight,
+  Bell,
   BookOpen,
-  Award,
-  Clock,
-  ChevronRight,
+  Loader2,
+  PlayCircle,
   TrendingUp,
-  Calendar
-} from 'lucide-react';
+  Flame,
+  Trophy,
+  Clock3,
+  Target,
+  CalendarDays,
+  GraduationCap,
+  Sparkles,
+  ChevronRight
+} from "lucide-react";
 
-// Single source of truth for HTTP: base URL + auth token are handled inside
-// api.js (interceptor), so pages never touch localStorage/sessionStorage or
-// hardcode a host. No per-domain "dashboard.service" wrapper in between.
-import api from '../../services/api';
+import { useNavigate } from "react-router-dom";
 
-import './Dashboard.css';
+import api from "../../services/api";
 
-/**
- * Progress model (see backend progress.service.js):
- *   progress = completed lessons ÷ total course lessons, in [0, 100].
- * The backend recomputes it on every lesson completion and stores it on the
- * Enrollment row, so each enrollment in `recentCourses` already carries a
- * `progress` number. We read that directly instead of re-deriving from
- * watchedSeconds/durationSeconds (which nothing populates -> always 0%).
- */
-const clampPct = (value) => {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(100, Math.round(n)));
-};
+import "./Dashboard.css";
+import "./StudentShared.css";
 
-const enrollmentProgress = (enrollment) => clampPct(enrollment?.progress);
+function Dashboard() {
+  const navigate = useNavigate();
 
-const Dashboard = () => {
-
-  const [dashboardData, setDashboardData] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [courseProgress, setCourseProgress] = useState({});
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
-  // ==========================================
-  // FETCH DASHBOARD
-  // ==========================================
+  /* =========================================================
+     HELPERS
+  ========================================================= */
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const unwrap = (response) => {
+    return response?.data?.data ?? response?.data ?? null;
+  };
 
-  const fetchDashboardData = async () => {
+  const getArray = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.results)) return data.results;
+    return [];
+  };
+
+  const formatTime = (seconds) => {
+    const value = Math.max(0, Math.floor(Number(seconds) || 0));
+    const hours = Math.floor(value / 3600);
+    const minutes = Math.floor((value % 3600) / 60);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
+  /* =========================================================
+     PROFILE
+  ========================================================= */
+
+  const loadProfile = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      // GET /dashboard/student  ->  { success, data: {...} }
-      const res = await api.get('/dashboard/student');
-      const body = res.data;
-
-      if (!body?.success) {
-        setError(body?.message || 'Failed to load dashboard data');
-        return;
-      }
-
-      setDashboardData(body.data);
+      const response = await api.get("/users/me");
+      const data = unwrap(response);
+      if (data) setProfile(data);
     } catch (err) {
-      console.error('Dashboard error:', err);
-      setError(err.response?.data?.message || 'Something went wrong');
-    } finally {
-      setLoading(false);
+      console.error("Dashboard profile error:", err);
     }
   };
 
-  // ==========================================
-  // LOADING
-  // ==========================================
+  /* =========================================================
+     COURSES
+  ========================================================= */
+
+  const loadCourses = async () => {
+    try {
+      const response = await api.get("/enrollments/my-courses");
+      const data = unwrap(response);
+      const enrolledCourses = getArray(data);
+
+      // Sort by newest first
+      enrolledCourses.sort((a, b) => {
+        const dateA = new Date(a?.enrolledAt || a?.createdAt || 0).getTime();
+        const dateB = new Date(b?.enrolledAt || b?.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+
+      setCourses(enrolledCourses);
+
+      // Fetch progress for each course
+      const progressRequests = await Promise.all(
+        enrolledCourses.map(async (enrollment) => {
+          const courseId = Number(enrollment?.courseId || enrollment?.course?.id);
+
+          if (!Number.isInteger(courseId)) return null;
+
+          try {
+            // ✅ FIX: Use player/course endpoint (returns 200, not 400)
+            const progressResponse = await api.get(
+              `/player/course/${courseId}/progress`
+            );
+
+            const payload = unwrap(progressResponse) || {};
+            const lessonMap = payload.lessons || {};
+            const lessonList = Object.values(lessonMap);
+
+            const completedLessons = lessonList.filter(
+              (item) => item?.completed
+            ).length;
+
+            const overall = Number(payload.overallProgress || 0);
+
+            // Derive total lessons from percentage
+            const derivedTotal = overall > 0 && completedLessons > 0
+              ? Math.round(completedLessons / (overall / 100))
+              : 0;
+
+            const totalLessons =
+              Number(payload.totalLessons) ||
+              Number(enrollment?.course?.totalLessons) ||
+              derivedTotal ||
+              lessonList.length;
+
+            const watchedSeconds = lessonList.reduce(
+              (sum, item) => sum + (Number(item?.watchedSeconds) || 0),
+              0
+            );
+
+            return {
+              courseId,
+              data: {
+                progress: overall,
+                completedLessons,
+                totalLessons,
+                watchedSeconds,
+              },
+            };
+          } catch (err) {
+            console.error(`Progress error for course ${courseId}:`, err);
+            return {
+              courseId,
+              data: {
+                progress: Number(enrollment?.progress || 0),
+                completedLessons: 0,
+                totalLessons: Number(enrollment?.course?.totalLessons || 0),
+                watchedSeconds: 0,
+              },
+            };
+          }
+        })
+      );
+
+      const progressMap = {};
+      progressRequests.forEach((item) => {
+        if (!item) return;
+        progressMap[item.courseId] = item.data;
+      });
+
+      setCourseProgress(progressMap);
+    } catch (err) {
+      console.error("Dashboard courses error:", err);
+      setCourses([]);
+    }
+  };
+
+  /* =========================================================
+     NOTIFICATIONS
+  ========================================================= */
+
+  const loadNotifications = async () => {
+    try {
+      const response = await api.get("/notifications");
+      const list = getArray(unwrap(response));
+      setNotifications(list);
+    } catch (err) {
+      console.error("Dashboard notifications error:", err);
+      setNotifications([]);
+    }
+  };
+
+  /* =========================================================
+     INITIAL LOAD
+  ========================================================= */
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadDashboard = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        await Promise.all([
+          loadProfile(),
+          loadCourses(),
+          loadNotifications(),
+        ]);
+      } catch (err) {
+        console.error("Dashboard loading error:", err);
+        if (mounted) {
+          setError("Unable to load dashboard data.");
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadDashboard();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* =========================================================
+     DERIVED DATA
+  ========================================================= */
+
+  const getCourseProgress = (enrollment) => {
+    const courseId = Number(enrollment?.courseId || enrollment?.course?.id);
+    const saved = courseProgress[courseId];
+    const value = saved?.progress ?? enrollment?.progress ?? 0;
+    return Math.min(100, Math.max(0, Math.round(Number(value) || 0)));
+  };
+
+  const dashboardCourses = useMemo(() => {
+    return courses.map((enrollment) => {
+      const course = enrollment?.course || {};
+      const courseId = Number(enrollment?.courseId || course?.id);
+      const progress = getCourseProgress(enrollment);
+      const progressData = courseProgress[courseId] || {};
+
+      return {
+        ...enrollment,
+        id: courseId,
+        course,
+        title: course?.title || enrollment?.courseTitle || "Untitled Course",
+        thumbnail: course?.thumbnail || enrollment?.thumbnail || "/default-course.jpg",
+        instructor: course?.createdBy || course?.instructor || enrollment?.instructor || null,
+        progress,
+        completedLessons: Number(progressData?.completedLessons || 0),
+        totalLessons: Number(progressData?.totalLessons || course?.totalLessons || 0),
+        watchedSeconds: Number(progressData?.watchedSeconds || 0),
+      };
+    });
+  }, [courses, courseProgress]);
+
+  const continueCourses = useMemo(() => {
+    return dashboardCourses
+      .filter((course) => Number(course.progress) < 100)
+      .sort((a, b) => Number(b.progress) - Number(a.progress))
+      .slice(0, 3);
+  }, [dashboardCourses]);
+
+  const recentCourses = useMemo(() => {
+    return dashboardCourses.slice(0, 4);
+  }, [dashboardCourses]);
+
+  const overallProgress = useMemo(() => {
+    if (dashboardCourses.length === 0) return 0;
+    const total = dashboardCourses.reduce(
+      (sum, course) => sum + Number(course.progress || 0),
+      0
+    );
+    return Math.round(total / dashboardCourses.length);
+  }, [dashboardCourses]);
+
+  const unreadNotifications = notifications.filter(
+    (notification) => !notification?.read && !notification?.isRead
+  ).length;
+
+  /* =========================================================
+     DERIVED GREETING VALUES
+  ========================================================= */
+
+  const firstName = (profile?.name || "there").split(" ")[0];
+  const hour = new Date().getHours();
+  const greetingLabel =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  const todayLabel = new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  const progressValues = Object.values(courseProgress || {});
+
+  const totalWatchedSeconds = progressValues.reduce(
+    (sum, p) => sum + (Number(p?.watchedSeconds) || 0),
+    0
+  );
+
+  const totalWatchLabel =
+    totalWatchedSeconds >= 3600
+      ? `${Math.floor(totalWatchedSeconds / 3600)}h ${Math.floor(
+          (totalWatchedSeconds % 3600) / 60
+        )}m`
+      : `${Math.floor(totalWatchedSeconds / 60)}m`;
+
+  const inProgressCount = progressValues.filter(
+    (p) =>
+      (Number(p?.completedLessons) || 0) > 0 &&
+      (Number(p?.completedLessons) || 0) < (Number(p?.totalLessons) || 0)
+  ).length;
+
+  const completedCourses = progressValues.filter(
+    (p) => Number(p?.progress || 0) >= 100
+  ).length;
+
+  /* =========================================================
+     HANDLERS
+  ========================================================= */
+
+  const handleContinue = (course) => {
+    const courseId = Number(course?.courseId || course?.id || course?.course?.id);
+    if (!Number.isInteger(courseId)) return;
+    navigate(`/student/player/${courseId}`);
+  };
+
+  /* =========================================================
+     LOADING
+  ========================================================= */
 
   if (loading) {
     return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading your dashboard...</p>
+      <div className="student-dashboard-page">
+        <div className="student-dashboard-loading">
+          <Loader2 size={38} className="dashboard-spinner" />
+          <p>Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
 
-  // ==========================================
-  // ERROR
-  // ==========================================
-
-  if (error) {
-    return (
-      <div className="dashboard-error">
-        <div className="error-icon">⚠️</div>
-        <h3>Unable to load dashboard</h3>
-        <p>{error}</p>
-        <button onClick={fetchDashboardData} className="retry-btn">
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // NO COURSES
-  // ==========================================
-
-  if (!dashboardData || dashboardData.myCourses === 0) {
-    return (
-      <div className="dashboard-empty">
-        <div className="empty-icon">📚</div>
-        <h2>Welcome to Your Learning Dashboard</h2>
-        <p>
-          You haven't enrolled in any courses yet. An admin will grant you
-          access — check back once you've been enrolled.
-        </p>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // DERIVED VALUES
-  // ==========================================
-
-  const recentCourses = dashboardData.recentCourses || [];
-
-  const overallProgress =
-    recentCourses.length > 0
-      ? clampPct(
-          recentCourses.reduce(
-            (sum, enrollment) => sum + enrollmentProgress(enrollment),
-            0
-          ) / recentCourses.length
-        )
-      : 0;
-
-  const completedCourses = dashboardData.completedCourses || 0;
-
-  const inProgressCourses = Math.max(
-    0,
-    dashboardData.myCourses - completedCourses
-  );
-
-  // ==========================================
-  // RENDER
-  // ==========================================
+  /* =========================================================
+     MAIN
+  ========================================================= */
 
   return (
-    <div className="dashboard-container">
+    <div className="student-dashboard-page">
+      <div className="student-dashboard-container">
 
-      {/* ====================================== WELCOME ====================================== */}
-      <div className="dashboard-welcome">
-        <div>
-          <h1 className="dashboard-title">Dashboard</h1>
-          <p className="dashboard-subtitle">
-            Welcome back! Continue your learning journey.
-          </p>
-        </div>
+        {/* =================================================
+            ERROR
+        ================================================= */}
 
-        <div className="welcome-date">
-          <Calendar size={16} />
-          <span>
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </span>
-        </div>
-      </div>
-
-      {/* ====================================== STATS ====================================== */}
-      <div className="stats-grid">
-
-        {/* ENROLLED */}
-        <div className="stat-card">
-          <div className="stat-icon-wrapper enrolled">
-            <BookOpen size={22} />
+        {error && (
+          <div className="dashboard-error">
+            <AlertCircle size={18} />
+            <span>{error}</span>
           </div>
-          <div className="stat-info">
-            <span className="stat-value">{dashboardData.myCourses}</span>
-            <span className="stat-label">Enrolled Courses</span>
+        )}
+
+        {/* =================================================
+            GREETING HERO
+        ================================================= */}
+
+        <section className="dashboard-hero">
+          <div className="dashboard-hero-text">
+            <span className="dashboard-hero-eyebrow">{greetingLabel}</span>
+            <h1>
+              Hello, {firstName}
+              <span className="wave">👋</span>
+            </h1>
+            <p>
+              {inProgressCount > 0
+                ? `You have ${inProgressCount} course${inProgressCount === 1 ? "" : "s"} in progress. Keep it going!`
+                : "Ready to start learning today?"}
+            </p>
+            <div className="dashboard-hero-meta">
+              <span>
+                <CalendarDays size={14} />
+                {todayLabel}
+              </span>
+              <span>
+                <Clock3 size={14} />
+                {totalWatchLabel} watched
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* COMPLETED */}
-        <div className="stat-card">
-          <div className="stat-icon-wrapper completed">
-            <Award size={22} />
+          {/* REMOVED LESSONS DONE AND LESSONS LEFT FROM HERE */}
+        </section>
+
+        {/* =================================================
+            SUMMARY CARDS
+        ================================================= */}
+
+        <section className="dashboard-summary-grid">
+          <div className="dashboard-summary-card">
+            <div className="dashboard-summary-icon blue">
+              <BookOpen size={20} />
+            </div>
+            <div>
+              <span>Enrolled Courses</span>
+              <strong>{dashboardCourses.length}</strong>
+            </div>
           </div>
-          <div className="stat-info">
-            <span className="stat-value">{completedCourses}</span>
-            <span className="stat-label">Completed</span>
+
+          <div className="dashboard-summary-card">
+            <div className="dashboard-summary-icon purple">
+              <TrendingUp size={20} />
+            </div>
+            <div>
+              <span>Overall Progress</span>
+              <strong>{overallProgress}%</strong>
+            </div>
           </div>
-        </div>
 
-        {/* OVERALL PROGRESS */}
-        <div className="stat-card">
-          <div className="stat-icon-wrapper progress">
-            <TrendingUp size={22} />
+          <div className="dashboard-summary-card">
+            <div className="dashboard-summary-icon green">
+              <Trophy size={20} />
+            </div>
+            <div>
+              <span>Completed</span>
+              <strong>{completedCourses}</strong>
+            </div>
           </div>
-          <div className="stat-info">
-            <span className="stat-value">{overallProgress}%</span>
-            <span className="stat-label">Overall Progress</span>
+
+          <div className="dashboard-summary-card">
+            <div className="dashboard-summary-icon orange">
+              <Bell size={20} />
+            </div>
+            <div>
+              <span>Unread</span>
+              <strong>{unreadNotifications}</strong>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* IN PROGRESS */}
-        <div className="stat-card">
-          <div className="stat-icon-wrapper in-progress">
-            <Clock size={22} />
+        {/* =================================================
+            CONTINUE LEARNING
+        ================================================= */}
+
+        <section className="dashboard-section">
+          <div className="dashboard-section-header">
+            <div>
+              <span className="dashboard-section-label">KEEP LEARNING</span>
+              <h2>Continue Learning</h2>
+            </div>
+            <button
+              type="button"
+              className="dashboard-text-button"
+              onClick={() => navigate("/student/my-courses")}
+            >
+              View all
+              <ChevronRight size={15} />
+            </button>
           </div>
-          <div className="stat-info">
-            <span className="stat-value">{inProgressCourses}</span>
-            <span className="stat-label">In Progress</span>
-          </div>
-        </div>
-      </div>
 
-      {/* ====================================== RECENT COURSES ====================================== */}
-      <div className="recent-section">
-        <div className="section-header">
-          <h2>Recent Courses</h2>
-          <Link to="/student/my-courses" className="view-all">
-            View All
-            <ChevronRight size={16} />
-          </Link>
-        </div>
-
-        <div className="recent-grid">
-          {recentCourses.length > 0 ? (
-            recentCourses.map((enrollment) => {
-              const courseProgress = enrollmentProgress(enrollment);
-
-              return (
-                <div key={enrollment.id} className="recent-card">
-
-                  {/* THUMBNAIL */}
-                  <div className="recent-card-thumbnail">
-                    {enrollment.course?.thumbnail ? (
-                      <img
-                        src={enrollment.course.thumbnail}
-                        alt={enrollment.course.title}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="thumbnail-placeholder">
-                        <BookOpen size={28} />
-                      </div>
-                    )}
-
-                    {enrollment.completed && (
-                      <span className="completed-badge">
-                        <Award size={12} />
-                        Completed
-                      </span>
-                    )}
+          {continueCourses.length === 0 ? (
+            <div className="dashboard-empty-card">
+              <BookOpen size={32} />
+              <h3>No courses in progress</h3>
+              <p>Start a course to see your progress here.</p>
+            </div>
+          ) : (
+            <div className="dashboard-progress-list">
+              {continueCourses.map((course) => (
+                <div className="dashboard-progress-card" key={course.id}>
+                  <div className="dashboard-course-image">
+                    <img
+                      src={course.thumbnail}
+                      alt={course.title}
+                      onError={(event) => {
+                        event.currentTarget.src = "/default-course.jpg";
+                      }}
+                    />
                   </div>
 
-                  {/* BODY */}
-                  <div className="recent-card-body">
-                    <h4 className="recent-card-title">
-                      {enrollment.course?.title || 'Course'}
-                    </h4>
+                  <div className="dashboard-progress-content">
+                    <div className="dashboard-course-tag">Continue Learning</div>
+                    <h4>{course.title}</h4>
 
-                    <div className="recent-card-meta">
-                      <span>
-                        <Calendar size={14} />
-                        {enrollment.enrolledAt
-                          ? new Date(enrollment.enrolledAt).toLocaleDateString()
-                          : 'N/A'}
-                      </span>
-                    </div>
-
-                    {/* COMPLETED-LESSONS PROGRESS */}
-                    <div className="recent-card-progress">
-                      <div className="mini-progress">
+                    <div className="dashboard-course-progress">
+                      <div className="dashboard-course-progress-top">
+                        <span>Your Progress</span>
+                        <strong>{course.progress}%</strong>
+                      </div>
+                      <div className="dashboard-progress-track">
                         <div
-                          className="mini-progress-fill"
-                          style={{ width: `${courseProgress}%` }}
+                          className="dashboard-progress-fill"
+                          style={{ width: `${course.progress}%` }}
                         />
                       </div>
-                      <span className="mini-progress-text">
-                        {courseProgress}%
-                      </span>
+                      <div className="dashboard-course-progress-bottom">
+                        <span>
+                          {course.completedLessons} of {course.totalLessons || 0} lessons
+                        </span>
+                        <span>{formatTime(course.watchedSeconds)} watched</span>
+                      </div>
                     </div>
+
+                    <button
+                      type="button"
+                      className="dashboard-continue-button"
+                      onClick={() => handleContinue(course)}
+                    >
+                      <PlayCircle size={16} />
+                      Continue
+                      <ArrowRight size={15} />
+                    </button>
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            <div className="no-recent-courses">
-              <p>No recent courses</p>
+              ))}
             </div>
           )}
-        </div>
+        </section>
+
+        {/* =================================================
+            RECENT COURSES
+        ================================================= */}
+
+        <section className="dashboard-section">
+          <div className="dashboard-section-header">
+            <div>
+              <span className="dashboard-section-label">RECENT ACTIVITY</span>
+              <h2>Recent Courses</h2>
+            </div>
+            <button
+              type="button"
+              className="dashboard-text-button"
+              onClick={() => navigate("/student/my-courses")}
+            >
+              View all
+              <ChevronRight size={15} />
+            </button>
+          </div>
+
+          {recentCourses.length === 0 ? (
+            <div className="dashboard-empty-card">
+              <BookOpen size={30} />
+              <h3>No enrolled courses</h3>
+              <p>Your recent courses will appear here.</p>
+            </div>
+          ) : (
+            <div className="recent-course-grid">
+              {recentCourses.map((course) => (
+                <button
+                  type="button"
+                  className="recent-course-card"
+                  key={course.id}
+                  onClick={() => handleContinue(course)}
+                >
+                  <div className="recent-course-image">
+                    <img
+                      src={course.thumbnail}
+                      alt={course.title}
+                      onError={(event) => {
+                        event.currentTarget.src = "/default-course.jpg";
+                      }}
+                    />
+                  </div>
+                  <div className="recent-course-content">
+                    <h3>{course.title}</h3>
+                    <div className="recent-course-progress-text">
+                      <span>Progress</span>
+                      <strong>{course.progress}%</strong>
+                    </div>
+                    <div className="recent-course-track">
+                      <div style={{ width: `${course.progress}%` }} />
+                    </div>
+                  </div>
+                  <ArrowRight size={16} className="recent-course-arrow" />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
       </div>
     </div>
   );
-};
+}
 
 export default Dashboard;

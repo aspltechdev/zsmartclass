@@ -4,6 +4,7 @@
 /* Enrollments Page Container */
 /* ========================================== */
 .enrollments-page {
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -128,41 +129,54 @@
 /* ========================================== */
 .enrollment-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
 
-.stat-card {
+.enrollments-page .stat-card {
+  position: relative;
+  min-width: 0;
+  min-height: 118px;
+  height: 118px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s;
+  gap: 16px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.stat-card:hover {
+.enrollments-page .stat-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transform: translateY(-2px);
 }
 
-.stat-card svg {
-  color: #667eea;
-  flex-shrink: 0;
+.enrollments-page .stat-card > svg {
+  width: 48px !important;
+  height: 48px !important;
+  flex: 0 0 48px;
+  padding: 12px;
+  box-sizing: border-box;
+  border-radius: 13px !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  background: var(--sc-color, #6366f1) !important;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
 }
 
-.stat-card h3 {
+.enrollments-page .stat-card h3 {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
   color: #1a1a2e;
 }
 
-.stat-card p {
+.enrollments-page .stat-card p {
   margin: 0;
   font-size: 0.8125rem;
   color: #64748b;
@@ -171,20 +185,11 @@
 /* ========================================== */
 /* Stats Card Color Variants */
 /* ========================================== */
-.stat-card:nth-child(1) { border-top: 3px solid #7c3aed; }
-.stat-card:nth-child(1) svg { color: #7c3aed; }
-
-.stat-card:nth-child(2) { border-top: 3px solid #d97706; }
-.stat-card:nth-child(2) svg { color: #d97706; }
-
-.stat-card:nth-child(3) { border-top: 3px solid #2563eb; }
-.stat-card:nth-child(3) svg { color: #2563eb; }
-
-.stat-card:nth-child(4) { border-top: 3px solid #059669; }
-.stat-card:nth-child(4) svg { color: #059669; }
-
-.stat-card:nth-child(5) { border-top: 3px solid #f59e0b; }
-.stat-card:nth-child(5) svg { color: #f59e0b; }
+.enrollments-page .stat-card:nth-child(1) { --sc-color: #6366f1; }
+.enrollments-page .stat-card:nth-child(2) { --sc-color: #f59e0b; }
+.enrollments-page .stat-card:nth-child(3) { --sc-color: #2563eb; }
+.enrollments-page .stat-card:nth-child(4) { --sc-color: #10b981; }
+.enrollments-page .stat-card:nth-child(5) { --sc-color: #ec4899; }
 
 /* ========================================== */
 /* Reminder Settings Panel */
@@ -450,7 +455,7 @@
 /* ========================================== */
 /* Table */
 /* ========================================== */
-.table-wrapper {
+.enrollments-page .table-wrapper {
   background: #ffffff;
   border-radius: 12px;
   overflow: hidden;
@@ -1399,10 +1404,12 @@
     width: 100%;
   }
 
+  /* NOTE: display:block here broke table-layout:fixed and forced the
+     horizontal scrollbar — the table now stays a real table and its
+     columns fit the container. */
   .enrollment-table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+    display: table;
+    white-space: normal;
   }
 
   .modal-content {
@@ -1674,4 +1681,410 @@
 
 @media (max-width: 640px) {
   .course-block-count { display: none; }
+}
+
+/* ==========================================================================
+   ENROLLMENTS — CONSOLIDATED OVERRIDES
+   One authoritative block. (Previously these were five separate appended
+   sections whose !important rules were overriding each other.)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. TABLE — fits the container, never scrolls sideways on desktop
+   -------------------------------------------------------------------------- */
+
+.enrollments-page .table-wrapper,
+.enrollments-page .course-block-table,
+.enrollments-page .course-block,
+.enrollments-page .course-group {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.enrollments-page .enrollment-table {
+  display: table;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+  white-space: normal;
+}
+
+/* fixed column widths: Student | Enrolled | Progress | Status | Cert | Actions */
+.enrollments-page .enrollment-table th:nth-child(1),
+.enrollments-page .enrollment-table td:nth-child(1) { width: 28%; }
+.enrollments-page .enrollment-table th:nth-child(2),
+.enrollments-page .enrollment-table td:nth-child(2) { width: 14%; }
+.enrollments-page .enrollment-table th:nth-child(3),
+.enrollments-page .enrollment-table td:nth-child(3) { width: 18%; }
+.enrollments-page .enrollment-table th:nth-child(4),
+.enrollments-page .enrollment-table td:nth-child(4) { width: 16%; }
+.enrollments-page .enrollment-table th:nth-child(5),
+.enrollments-page .enrollment-table td:nth-child(5) { width: 12%; }
+.enrollments-page .enrollment-table th:nth-child(6),
+.enrollments-page .enrollment-table td:nth-child(6) { width: 12%; }
+
+.enrollments-page .enrollment-table th,
+.enrollments-page .enrollment-table td {
+  padding: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+/* the actions cell must stay visible so button tooltips aren't clipped */
+.enrollments-page .enrollment-table td:last-child,
+.enrollments-page .enrollment-table th:last-child {
+  overflow: visible;
+  text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   2. STUDENT CELL — avatar + truncating name/email
+   -------------------------------------------------------------------------- */
+
+.enrollments-page .student-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.enrollments-page .student-cell > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.enrollments-page .student-cell span,
+.enrollments-page .student-cell strong,
+.enrollments-page .student-cell small,
+.enrollments-page .student-cell p {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.enrollments-page .student-avatar {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   3. ROW ACTIONS — uniform 34px icon buttons
+   -------------------------------------------------------------------------- */
+
+.enrollments-page .row-actions {
+  display: inline-flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.enrollments-page .enrollment-table .action-btn,
+.enrollments-page .row-actions .action-btn {
+  position: relative;
+  flex: 0 0 34px;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  z-index: 1;
+}
+
+.enrollments-page .action-btn:hover { z-index: 5; }
+.enrollments-page .action-btn.view:hover {
+  background: #ecfeff; border-color: #a5f3fc; color: #0e7490;
+}
+.enrollments-page .action-btn.remind:hover {
+  background: #fff7ed; border-color: #fed7aa; color: #ea580c;
+}
+
+/* --------------------------------------------------------------------------
+   4. AUTO-REMINDER PANEL
+   -------------------------------------------------------------------------- */
+
+.enrollments-page .reminder-settings-panel {
+  padding: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.enrollments-page .settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 22px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbff;
+}
+
+.enrollments-page .settings-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.enrollments-page .settings-header h3 svg { color: #6366f1; }
+
+.enrollments-page .settings-header .close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.enrollments-page .settings-header .close-btn:hover {
+  background: #fef2f2; border-color: #fecaca; color: #dc2626;
+}
+
+.enrollments-page .settings-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px 22px;
+  padding: 22px;
+}
+
+.enrollments-page .settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.enrollments-page .settings-row > label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.enrollments-page .settings-row select {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: #111827;
+  cursor: pointer;
+}
+
+.enrollments-page .settings-row select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.enrollments-page .settings-row select:disabled {
+  background: #f8fafc; color: #94a3b8; cursor: not-allowed;
+}
+
+/* toggle switch */
+.enrollments-page .toggle-label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.enrollments-page .toggle-label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+  border: none;
+  border-radius: 999px;
+  background: #cbd5e1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.enrollments-page .toggle-label input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.enrollments-page .toggle-label input[type="checkbox"]:checked { background: #6366f1; }
+.enrollments-page .toggle-label input[type="checkbox"]:checked::after { transform: translateX(18px); }
+.enrollments-page .toggle-label span { white-space: nowrap; }
+
+.enrollments-page .status-text { font-size: 13px; font-weight: 600; }
+.enrollments-page .status-active { color: #047857; }
+.enrollments-page .status-inactive { color: #b45309; }
+.enrollments-page .last-run,
+.enrollments-page .running { font-size: 12px; color: #94a3b8; }
+
+.enrollments-page .settings-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.enrollments-page .reminder-result {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
+}
+.enrollments-page .reminder-result.success { background: #ecfdf5; color: #047857; }
+.enrollments-page .reminder-result.error { background: #fef2f2; color: #b91c1c; }
+
+/* --------------------------------------------------------------------------
+   5. ENROLLMENT DETAILS MODAL
+   -------------------------------------------------------------------------- */
+
+.view-content {
+  width: min(980px, 100%);
+  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+}
+
+.view-content .view-body {
+  padding: 20px 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.view-content .view-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.view-content .view-header h3 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.view-content .course-badge {
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.view-content .view-details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.view-content .view-detail-item {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #eef0f4;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.view-content .view-detail-item label {
+  display: block;
+  margin-bottom: 6px;
+  color: #94a3b8;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.view-content .view-detail-item > span {
+  display: block;
+  color: #111827;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+   6. RESPONSIVE
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .view-content .view-details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 820px) {
+  /* fixed widths stop working this narrow — scroll instead of squashing */
+  .enrollments-page .table-wrapper,
+  .enrollments-page .course-block-table {
+    overflow-x: auto;
+  }
+  .enrollments-page .enrollment-table {
+    table-layout: auto;
+    min-width: 640px;
+  }
+}
+
+@media (max-width: 640px) {
+  .enrollments-page .settings-body { grid-template-columns: 1fr; }
+  .view-content .view-details-grid { grid-template-columns: 1fr; }
 }

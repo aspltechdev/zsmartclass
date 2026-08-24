@@ -23,9 +23,11 @@ import {
   Zap,
   ChevronDown,
   BookOpen,
+  UserCheck,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminEnrollments.css";
+import "./AdminShared.css";
 
 function AdminEnrollments() {
   const [enrollments, setEnrollments] = useState([]);
@@ -461,7 +463,7 @@ function AdminEnrollments() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1>Enrollment Management</h1>
+          <h1><UserCheck size={29}/>  Enrollment Management</h1>
           <p className="subtitle">View and manage all student enrollments</p>
         </div>
         <div className="header-actions">

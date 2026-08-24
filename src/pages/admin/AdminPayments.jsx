@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminPayments.css";
+import "./AdminShared.css";
 
 const BRAND = "ZsmartClass";
 
@@ -377,6 +378,7 @@ function AdminPayments() {
                 <th>Method</th>
                 <th>Date</th>
                 <th>Status</th>
+                <th>Actions</th>
                 <th></th>
               </tr>
             </thead>

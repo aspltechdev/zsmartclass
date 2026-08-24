@@ -1,3 +1,12 @@
+// src/routes/assignment.routes.js
+//
+// This router did not exist, so every call to /api/assignments returned 404
+// and the student + mentor Assignment pages could never load data.
+//
+// MOUNT IT in app.js alongside the others:
+//     const assignmentRoutes = require("./routes/assignment.routes");
+//     app.use("/api/assignments", assignmentRoutes);
+
 const express = require("express");
 const router = express.Router();
 
@@ -6,11 +15,41 @@ const assignmentController = require("../controllers/assignment.controller");
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
-// =========================
-// Mentor
-// =========================
+/* =========================================================
+   STUDENT + MENTOR + ADMIN
+   List assignments. Students see the ones for courses they
+   are enrolled in, along with their own submission.
+========================================================= */
+router.get(
+    "/",
+    authMiddleware,
+    assignmentController.getAll
+);
 
-// Create Assignment
+/* =========================================================
+   MY SUBMISSIONS  (student)
+   Declared BEFORE "/:id" so "my-submissions" isn't captured
+   as an id parameter.
+========================================================= */
+router.get(
+    "/my-submissions",
+    authMiddleware,
+    roleMiddleware("STUDENT"),
+    assignmentController.getMySubmissions
+);
+
+/* =========================================================
+   SINGLE ASSIGNMENT
+========================================================= */
+router.get(
+    "/:id",
+    authMiddleware,
+    assignmentController.getById
+);
+
+/* =========================================================
+   CREATE  (mentor / admin)
+========================================================= */
 router.post(
     "/",
     authMiddleware,
@@ -18,21 +57,9 @@ router.post(
     assignmentController.create
 );
 
-// Get All Assignments
-router.get(
-    "/",
-    authMiddleware,
-    assignmentController.getAll
-);
-
-// Get One Assignment
-router.get(
-    "/:id",
-    authMiddleware,
-    assignmentController.getById
-);
-
-// Update Assignment
+/* =========================================================
+   UPDATE  (mentor / admin)
+========================================================= */
 router.put(
     "/:id",
     authMiddleware,
@@ -40,20 +67,44 @@ router.put(
     assignmentController.update
 );
 
-// Delete Assignment
+/* =========================================================
+   DELETE  (mentor / admin)
+========================================================= */
 router.delete(
     "/:id",
     authMiddleware,
     roleMiddleware("MENTOR", "ADMIN"),
-    assignmentController.delete
+    assignmentController.remove
 );
 
-// Get Submissions
+/* =========================================================
+   SUBMIT  (student)
+========================================================= */
+router.post(
+    "/:id/submit",
+    authMiddleware,
+    roleMiddleware("STUDENT"),
+    assignmentController.submit
+);
+
+/* =========================================================
+   SUBMISSIONS FOR AN ASSIGNMENT  (mentor / admin)
+========================================================= */
 router.get(
     "/:id/submissions",
     authMiddleware,
     roleMiddleware("MENTOR", "ADMIN"),
     assignmentController.getSubmissions
+);
+
+/* =========================================================
+   GRADE A SUBMISSION  (mentor / admin)
+========================================================= */
+router.put(
+    "/submissions/:submissionId/grade",
+    authMiddleware,
+    roleMiddleware("MENTOR", "ADMIN"),
+    assignmentController.gradeSubmission
 );
 
 module.exports = router;

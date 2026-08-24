@@ -14,10 +14,12 @@ import {
   Save,
   Calendar,
   Upload,
+  FolderTree,
 } from "lucide-react";
 import api from "../../services/api";
 import { createPortal } from "react-dom";
 import "./AdminCategories.css";
+import "./AdminShared.css";
 
 // Render overlays into <body> so `position: fixed` escapes any transformed/
 // filtered ancestor in AdminLayout (which otherwise mis-centers & clips them).
@@ -449,10 +451,8 @@ function AdminCategories() {
 
       <div className="page-header">
         <div>
-          <span className="header-eyebrow">
-            ADMINISTRATION
-          </span>
-          <h1>Category Management</h1>
+          <h1>
+          <FolderTree size={25}/>  Category Management</h1>
           <p className="subtitle">
             Organize your courses into categories
           </p>
@@ -472,7 +472,7 @@ function AdminCategories() {
       ====================================================== */}
 
       <div className="category-stats">
-        <div className="stat-card">
+        <div className="stat-card sc-purple">
           <Layers size={24} />
 
           <div>

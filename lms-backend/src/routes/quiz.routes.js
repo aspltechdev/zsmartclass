@@ -43,6 +43,12 @@ router.get(
   quizController.getModuleQuizzes
 );
 
+router.post(
+  "/:quizId/attempts",
+  authMiddleware,
+  quizController.submitQuizAttempt
+);
+
 router.get(
   "/:quizId/marks",
   authMiddleware,

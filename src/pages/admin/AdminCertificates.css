@@ -4,6 +4,7 @@
 /* Certificates Page Container */
 /* ========================================== */
 .certificates-page {
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -130,39 +131,54 @@
 /* ========================================== */
 .certificate-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
 
-.stat-card {
+.certificates-page .stat-card {
+  position: relative;
+  min-width: 0;
+  min-height: 118px;
+  height: 118px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  gap: 16px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.stat-card:hover {
+.certificates-page .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
-.stat-card svg {
-  flex-shrink: 0;
+.certificates-page .stat-card > svg {
+  width: 48px !important;
+  height: 48px !important;
+  flex: 0 0 48px;
+  padding: 12px;
+  box-sizing: border-box;
+  border-radius: 13px !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  background: var(--sc-color, #6366f1) !important;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
 }
 
-.stat-card h3 {
+.certificates-page .stat-card h3 {
   font-size: 24px;
   font-weight: 700;
   color: #1a1a2e;
   margin: 0;
 }
 
-.stat-card p {
+.certificates-page .stat-card p {
   font-size: 12px;
   color: #94a3b8;
   margin: 0;
@@ -170,9 +186,9 @@
   letter-spacing: 0.3px;
 }
 
-.pending-card svg { color: #f59e0b; }
-.active-card svg { color: #10b981; }
-.rejected-card svg { color: #ef4444; }
+.certificates-page .pending-card  { --sc-color: #f59e0b; }
+.certificates-page .active-card   { --sc-color: #10b981; }
+.certificates-page .rejected-card { --sc-color: #ef4444; }
 .total-card svg { color: #667eea; }
 
 /* ========================================== */
@@ -1056,8 +1072,10 @@
 /* ========================================== */
 /* Template Preview */
 /* ========================================== */
+/* margin removed: inside the two-column designer the preview is a grid
+   column, not a block below the form. */
 .template-preview-section {
-  margin-top: 20px;
+  margin-top: 0;
 }
 
 .template-preview-section h4 {
@@ -1635,5 +1653,201 @@
   .template-preview-full {
     padding: 16px;
     min-height: 250px;
+  }
+}
+.certificates-page .total-card { --sc-color: #6366f1; }
+
+
+/* =========================================================
+   TEMPLATE DESIGNER — settings (left) | live preview (right)
+   The JSX now wraps the settings in .template-settings, so this is a
+   simple two-child flex row (no fragile grid auto-placement).
+   ========================================================= */
+
+.template-modal {
+  width: min(1200px, 100%) !important;
+  max-width: 1200px !important;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+.template-modal .modal-header,
+.template-modal .modal-footer { flex-shrink: 0; }
+.template-modal .modal-header { padding: 14px 22px; }
+.template-modal .modal-header h2 { font-size: 17px; }
+.template-modal .modal-footer { padding: 12px 22px; }
+
+.template-modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 22px;
+  padding: 18px 22px;
+  overflow: hidden;
+}
+
+/* ---------- LEFT: settings ---------- */
+.template-modal .template-settings {
+  flex: 0 0 44%;
+  max-width: 44%;
+  min-width: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.template-modal .template-course-info {
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.template-modal .template-course-info h3 {
+  margin: 0 0 3px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+.template-modal .template-course-info p {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.template-modal .form-group { margin-bottom: 12px; }
+
+.template-modal .form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.template-modal .form-group input[type="text"],
+.template-modal .form-group select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  color: #111827;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.template-modal .form-group input[type="text"]:focus,
+.template-modal .form-group select:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* two fields per row */
+.template-modal .form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.template-modal .form-row .form-group { min-width: 0; }
+
+/* colour swatch + hex on one line */
+.template-modal .color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.template-modal .color-picker-wrapper input[type="color"] {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 3px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.template-modal .color-picker-wrapper input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* active-template checkbox */
+.template-modal .checkbox-label {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 0;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  cursor: pointer;
+}
+.template-modal .checkbox-label input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+.template-modal .form-group small {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ---------- RIGHT: live preview ---------- */
+.template-modal .template-preview-section {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0 !important;
+  padding: 14px;
+  border: 1px solid #eef0f4;
+  border-radius: 14px;
+  background: #fafbfc;
+  overflow-y: auto;
+}
+
+.template-modal .template-preview-section h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.template-modal .template-preview-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.template-modal .template-preview-note svg { flex-shrink: 0; margin-top: 1px; }
+
+/* ---------- narrow screens: stack ---------- */
+@media (max-width: 1000px) {
+  .template-modal .modal-body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .template-modal .template-settings,
+  .template-modal .template-preview-section {
+    flex: 0 0 auto;
+    max-width: 100%;
+    width: 100%;
+    overflow: visible;
   }
 }

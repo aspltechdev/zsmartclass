@@ -111,7 +111,7 @@ class PlayerService {
 
     const completedLessonIds = progress?.completedLessons?.map(cl => cl.lessonId) || [];
     const lastAccessedLessonId = progress?.lastAccessedLessonId;
-    const overallProgress = progress?.overallProgress || 0;
+    const overallProgress = 0;
 
     // 4. Build lesson tree with lock status and completion status
     const moduleTree = modules.map(module => {
@@ -996,6 +996,238 @@ class PlayerService {
       completedAt: progress.completedAt
     };
   }
+
+  /* =======================================================
+     SAVE WATCH TIME
+     Called by the student CoursePlayer every few seconds.
+     Uses LessonProgress + Enrollment (the models that exist);
+     a lesson counts as completed at >= 90% watched.
+  ======================================================= */
+  async saveWatchTime(userId, lessonId, payload = {}) {
+
+    const studentId = Number(userId);
+    const lId = Number(lessonId);
+
+    const watchedSeconds = Math.max(0, Math.floor(Number(payload.watchedSeconds) || 0));
+    const durationSeconds = Math.max(0, Math.floor(Number(payload.durationSeconds) || 0));
+    const lastPosition = Math.max(0, Math.floor(Number(payload.lastPosition) || 0));
+
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lId },
+      select: { id: true, moduleId: true }
+    });
+
+    if (!lesson) {
+      const err = new Error("Lesson not found.");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    /*
+     * Treat a lesson as finished at >= 95%, or within 3 seconds of the end.
+     * A video that plays to 2:32 of 2:33 is finished in every practical
+     * sense — without this it sticks at 98% and never completes.
+     */
+    const nearEnd =
+      durationSeconds > 0 &&
+      (watchedSeconds >= durationSeconds * 0.95 ||
+        durationSeconds - watchedSeconds <= 3);
+
+    const existing = await prisma.lessonProgress.findFirst({
+      where: { studentId, lessonId: lId },
+      // no explicit select — avoids failing when durationSeconds is absent
+    });
+
+    const completed = nearEnd || existing?.completed || false;
+
+    // Core fields — these columns always exist.
+    const core = {
+      // a resume must never lower the recorded total
+      watchedSeconds: Math.max(existing?.watchedSeconds || 0, watchedSeconds),
+      completed,
+      watchedAt: new Date()
+    };
+
+    // Optional fields — present only after the lastPosition/durationSeconds
+    // migration. If those columns are missing Prisma rejects the WHOLE write,
+    // so retry with the core fields rather than losing every bit of progress.
+    const extended = {
+      ...core,
+      lastPosition,
+      durationSeconds: durationSeconds || existing?.durationSeconds || 0
+    };
+
+    const write = async (payloadData) => {
+      if (existing) {
+        return prisma.lessonProgress.update({
+          where: { id: existing.id },
+          data: payloadData
+        });
+      }
+      return prisma.lessonProgress.create({
+        data: { studentId, lessonId: lId, ...payloadData }
+      });
+    };
+
+    let data = extended;
+
+    try {
+      await write(extended);
+    } catch (err) {
+      const missingColumn =
+        err?.name === "PrismaClientValidationError" ||
+        /Unknown arg|lastPosition|durationSeconds/i.test(err?.message || "");
+
+      if (!missingColumn) throw err;
+
+      console.warn(
+        "[player] lastPosition/durationSeconds columns are missing — saving " +
+          "core progress only. Run the LessonProgress migration for resume."
+      );
+
+      data = core;
+      await write(core);
+    }
+
+    /* ---- recalculate the course's overall progress ---- */
+
+    const assignments = await prisma.courseModuleAssignment.findMany({
+      where: { moduleId: lesson.moduleId },
+      select: { courseId: true }
+    });
+
+    const courseIds = [...new Set(assignments.map((a) => a.courseId))];
+    let overallProgress = 0;
+
+    for (const courseId of courseIds) {
+      const courseAssignments = await prisma.courseModuleAssignment.findMany({
+        where: { courseId },
+        select: { moduleId: true }
+      });
+
+      const moduleIds = [...new Set(courseAssignments.map((a) => a.moduleId))];
+
+      const lessons = moduleIds.length
+        ? await prisma.lesson.findMany({
+            where: { moduleId: { in: moduleIds } },
+            select: { id: true }
+          })
+        : [];
+
+      const lessonIds = lessons.map((l) => l.id);
+      const total = lessonIds.length;
+
+      const done = total
+        ? await prisma.lessonProgress.count({
+            where: { studentId, lessonId: { in: lessonIds }, completed: true }
+          })
+        : 0;
+
+      const percent = total ? Math.round((done / total) * 100) : 0;
+      overallProgress = percent;
+
+      await prisma.enrollment.updateMany({
+        where: { userId: studentId, courseId },
+        data: { progress: percent, completed: percent === 100 }
+      });
+    }
+
+    return {
+      lessonProgress: {
+        lessonId: lId,
+        watchedSeconds: data.watchedSeconds,
+        lastPosition: data.lastPosition ?? lastPosition,
+        durationSeconds: data.durationSeconds ?? durationSeconds,
+        completed: data.completed,
+        // snap the reported percentage to 100 once complete
+        percentage: data.completed
+          ? 100
+          : durationSeconds
+          ? Math.min(99, Math.round((data.watchedSeconds / durationSeconds) * 100))
+          : 0
+      },
+      overallProgress
+    };
+  }
+
+
+    /* =======================================================
+     BULK COURSE PROGRESS
+     Returns progress for EVERY lesson in a course in one call.
+  ======================================================= */
+  async getCourseLessonProgress(userId, courseId) {
+    const studentId = Number(userId);
+    const cId = Number(courseId);
+
+    const result = { lessons: {}, overallProgress: 0 };
+
+    if (!studentId || !cId) return result;
+
+    try {
+      const assignments = await prisma.courseModuleAssignment.findMany({
+        where: { courseId: cId },
+        select: { moduleId: true }
+      });
+
+      const moduleIds = [...new Set(assignments.map((a) => a.moduleId))];
+      if (moduleIds.length === 0) return result;
+
+      const lessons = await prisma.lesson.findMany({
+        where: { moduleId: { in: moduleIds } },
+        select: { id: true }
+      });
+
+      const lessonIds = lessons.map((l) => l.id);
+      if (lessonIds.length === 0) return result;
+
+      // No `select` — tolerates lastPosition/durationSeconds not existing yet.
+      const rows = await prisma.lessonProgress.findMany({
+        where: { studentId, lessonId: { in: lessonIds } }
+      });
+
+      let completedCount = 0;
+
+      rows.forEach((row) => {
+        const watched = Number(row.watchedSeconds) || 0;
+        const duration = Number(row.durationSeconds) || 0;
+        const completed = !!row.completed;
+
+        if (completed) completedCount += 1;
+
+        result.lessons[row.lessonId] = {
+          lessonId: row.lessonId,
+          watchedSeconds: watched,
+          lastPosition: Number(row.lastPosition) || 0,
+          durationSeconds: duration,
+          completed,
+          percentage: completed
+            ? 100
+            : duration
+            ? Math.min(99, Math.round((watched / duration) * 100))
+            : 0
+        };
+      });
+
+      // Progress = completed lessons / total lessons in the course.
+      // `lessonIds` is every lesson under this course's modules (resolved via
+      // CourseModuleAssignment above), so this is the true denominator — not
+      // just the lessons the student has already touched.
+      const totalLessons = lessonIds.length;
+
+      result.totalLessons = totalLessons;
+      result.completedLessons = completedCount;
+      result.overallProgress =
+        totalLessons > 0
+          ? Math.round((completedCount / totalLessons) * 100)
+          : 0;
+
+    } catch (err) {
+      console.error("getCourseLessonProgress failed:", err.message);
+    }
+
+    return result;
+  }
+
 }
 
 module.exports = new PlayerService();

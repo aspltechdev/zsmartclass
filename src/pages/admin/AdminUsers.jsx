@@ -32,6 +32,7 @@ import {
 
 import api from "../../services/api";
 import "./AdminUsers.css";
+import "./AdminShared.css";
 
 const ROLES = {
   ADMIN: {
@@ -599,12 +600,8 @@ function AdminUsers() {
 
       <header className="users-header">
         <div>
-          <span className="header-eyebrow">
-            ADMINISTRATION
-          </span>
-
-          <h1>User Management</h1>
-
+          <h1>
+            <Users size={25}/> User Management</h1>
           <p>
             Manage administrators, mentors and students
             from one place.

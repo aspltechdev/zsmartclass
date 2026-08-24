@@ -9,14 +9,19 @@ import {
   Users,
   Percent,
   CheckCircle,
+  Layers,
 } from "lucide-react";
 import api from "../../services/api";
 import "./QuizMarks.css";
+import "./MentorShared.css";
 
 const PASS_MARK = 40; // percent
 
 function QuizMarks() {
-  const [modules, setModules] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [allModules, setAllModules] = useState([]);
+  const [filteredModules, setFilteredModules] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedModule, setSelectedModule] = useState("");
   const [moduleQuizzes, setModuleQuizzes] = useState([]);
   const [quizMarks, setQuizMarks] = useState([]);
@@ -24,40 +29,116 @@ function QuizMarks() {
   const [search, setSearch] = useState("");
   const [quizFilter, setQuizFilter] = useState("all");
 
-  const [loadingModules, setLoadingModules] = useState(true);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [loadingModules, setLoadingModules] = useState(false);
   const [loadingMarks, setLoadingMarks] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchModules();
+    fetchCourses();
+    fetchAllModules();
   }, []);
 
-  const fetchModules = async () => {
+  const fetchCourses = async () => {
     try {
-      setLoadingModules(true);
+      setLoadingCourses(true);
       setError("");
-      const res = await api.get("/modules");
-      setModules(res.data?.data || res.data || []);
+      const res = await api.get("/courses");
+      setCourses(res.data?.data || res.data || []);
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Couldn't load modules. Please refresh or check the server."
+          "Couldn't load courses. Please refresh or check the server."
       );
-      setModules([]);
+      setCourses([]);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
+  const fetchAllModules = async () => {
+    try {
+      const res = await api.get("/modules");
+      const modules = res.data?.data || res.data || [];
+      console.log("All modules:", modules);
+      setAllModules(modules);
+    } catch (err) {
+      console.error("Error fetching modules:", err);
+      setAllModules([]);
+    }
+  };
+
+  // Fetch modules for a specific course using the course API
+  const fetchModulesForCourse = async (courseId) => {
+    if (!courseId) {
+      setFilteredModules([]);
+      return;
+    }
+
+    try {
+      setLoadingModules(true);
+      setError("");
+      
+      // Get course details which includes its modules
+      const res = await api.get(`/courses/${courseId}`);
+      const courseData = res.data?.data || res.data;
+      
+      // The course data should have a 'modules' array from the getById response
+      const modules = courseData.modules || [];
+      console.log(`Modules for course ${courseId}:`, modules);
+      setFilteredModules(modules);
+      
+      // Auto-select first module if available
+      if (modules.length === 1) {
+        setSelectedModule(String(modules[0].id));
+        await loadModuleData(String(modules[0].id));
+      } else if (modules.length === 0) {
+        setError(`No modules found for "${courseData.title || 'this course'}".`);
+      }
+    } catch (err) {
+      console.error("Error fetching modules for course:", err);
+      
+      // Fallback: Try to filter from all modules using the junction table
+      // Since we can't directly query the junction table, we'll use the available modules
+      // and check if they have any course association
+      const fallbackModules = allModules.filter((m) => {
+        // Check if module has a courseId that matches
+        if (m.courseId !== null && m.courseId !== undefined) {
+          return String(m.courseId) === String(courseId);
+        }
+        return false;
+      });
+      
+      if (fallbackModules.length > 0) {
+        setFilteredModules(fallbackModules);
+        if (fallbackModules.length === 1) {
+          setSelectedModule(String(fallbackModules[0].id));
+          await loadModuleData(String(fallbackModules[0].id));
+        }
+      } else {
+        setError(
+          err.response?.data?.message ||
+            "Couldn't load modules for this course. Please ensure the course has modules assigned."
+        );
+        setFilteredModules([]);
+      }
     } finally {
       setLoadingModules(false);
     }
   };
 
+  const selectedCourseData = useMemo(
+    () => courses.find((c) => String(c.id) === String(selectedCourse)),
+    [courses, selectedCourse]
+  );
+
   const selectedModuleData = useMemo(
-    () => modules.find((m) => String(m.id) === String(selectedModule)),
-    [modules, selectedModule]
+    () => filteredModules.find((m) => String(m.id) === String(selectedModule)),
+    [filteredModules, selectedModule]
   );
 
   /**
    * Load the quizzes for a module, then their marks.
-   * Quizzes come from /quizzes/module/:moduleId — there is no "list all
-   * quizzes" endpoint, so we always scope by module.
    */
   const loadModuleData = async (moduleId) => {
     if (!moduleId) {
@@ -79,7 +160,7 @@ function QuizMarks() {
         return;
       }
 
-      // Fetch every quiz's marks in parallel; one failure shouldn't blank the page.
+      // Fetch every quiz's marks in parallel
       const results = await Promise.all(
         quizzes.map(async (quiz) => {
           try {
@@ -109,6 +190,22 @@ function QuizMarks() {
     }
   };
 
+  const handleCourseChange = async (e) => {
+    const courseId = e.target.value;
+    setSelectedCourse(courseId);
+    setSelectedModule("");
+    setSearch("");
+    setQuizFilter("all");
+    setQuizMarks([]);
+    setModuleQuizzes([]);
+    setError("");
+    setFilteredModules([]);
+
+    if (courseId) {
+      await fetchModulesForCourse(courseId);
+    }
+  };
+
   const handleModuleChange = async (e) => {
     const moduleId = e.target.value;
     setSelectedModule(moduleId);
@@ -116,15 +213,23 @@ function QuizMarks() {
     setQuizFilter("all");
     setQuizMarks([]);
     setModuleQuizzes([]);
+    setError("");
     await loadModuleData(moduleId);
   };
 
   const handleRefresh = async () => {
-    await fetchModules();
-    if (selectedModule) await loadModuleData(selectedModule);
+    setError("");
+    await fetchCourses();
+    await fetchAllModules();
+    if (selectedCourse) {
+      await fetchModulesForCourse(selectedCourse);
+      if (selectedModule) {
+        await loadModuleData(selectedModule);
+      }
+    }
   };
 
-  // ---- value helpers (tolerant of shape differences) ----
+  // ---- value helpers ----
   const studentName = (m) => m.student?.name || m.user?.name || "Unknown Student";
   const studentEmail = (m) => m.student?.email || m.user?.email || "—";
   const obtained = (m) => Number(m.obtainedMarks ?? m.marks ?? 0);
@@ -187,46 +292,100 @@ function QuizMarks() {
         </div>
       </div>
 
-      {/* Module selector */}
-      <div className="module-selector-wrapper">
-        <BookOpen size={20} />
-        <select
-          value={selectedModule}
-          onChange={handleModuleChange}
-          disabled={loadingModules}
-        >
-          <option value="">
-            {loadingModules ? "Loading Modules..." : "Select Module"}
-          </option>
-          {modules.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.title || `Module ${m.id}`}
+      {/* Course & Module selectors */}
+      <div className="selector-group">
+        <div className="module-selector-wrapper">
+          <Layers size={20} />
+          <select
+            value={selectedCourse}
+            onChange={handleCourseChange}
+            disabled={loadingCourses}
+          >
+            <option value="">
+              {loadingCourses ? "Loading Courses..." : "Select Course"}
             </option>
-          ))}
-        </select>
-        <ChevronDown size={18} />
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title || `Course ${c.id}`}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={18} />
+        </div>
+
+        <div className="module-selector-wrapper">
+          <BookOpen size={20} />
+          <select
+            value={selectedModule}
+            onChange={handleModuleChange}
+            disabled={!selectedCourse || loadingModules}
+          >
+            <option value="">
+              {loadingModules
+                ? "Loading Modules..."
+                : !selectedCourse
+                ? "Select a course first"
+                : filteredModules.length === 0
+                ? "No modules available"
+                : "Select Module"}
+            </option>
+            {filteredModules.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title || `Module ${m.id}`}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={18} />
+        </div>
       </div>
 
       {error && <div className="quiz-marks-error">{error}</div>}
 
-      {/* No modules */}
-      {!loadingModules && modules.length === 0 && (
+      {/* No courses */}
+      {!loadingCourses && courses.length === 0 && (
         <div className="quiz-marks-empty">
-          <BookOpen size={46} />
-          <h2>No Modules Found</h2>
-          <p>Create a module first, then add quizzes to it.</p>
-          <button className="refresh-button" onClick={fetchModules}>
-            <RefreshCw size={16} /> Refresh Modules
+          <Layers size={46} />
+          <h2>No Courses Found</h2>
+          <p>Create a course first, then add modules and quizzes to it.</p>
+          <button className="refresh-button" onClick={handleRefresh}>
+            <RefreshCw size={16} /> Refresh Courses
           </button>
         </div>
       )}
 
+      {/* No modules for selected course */}
+      {selectedCourse &&
+        !loadingModules &&
+        !loadingCourses &&
+        filteredModules.length === 0 &&
+        !error && (
+          <div className="quiz-marks-empty">
+            <BookOpen size={44} />
+            <h2>No Modules Found</h2>
+            <p>
+              No modules have been added to <strong>{selectedCourseData?.title}</strong> yet.
+            </p>
+          </div>
+        )}
+
       {/* Nothing selected yet */}
-      {!loadingModules && modules.length > 0 && !selectedModule && (
+      {!loadingCourses &&
+        courses.length > 0 &&
+        !selectedModule &&
+        selectedCourse &&
+        filteredModules.length > 0 && (
+          <div className="quiz-marks-empty">
+            <Trophy size={44} />
+            <h2>Select a Module</h2>
+            <p>Choose a module above to see how students performed on its quizzes.</p>
+          </div>
+        )}
+
+      {!selectedCourse && courses.length > 0 && !loadingCourses && (
         <div className="quiz-marks-empty">
           <Trophy size={44} />
-          <h2>Select a Module</h2>
-          <p>Choose a module above to see how students performed on its quizzes.</p>
+          <h2>Select a Course</h2>
+          <p>Choose a course above to see its modules and quiz performance.</p>
         </div>
       )}
 
@@ -235,7 +394,14 @@ function QuizMarks() {
           <div className="selected-module-header">
             <div>
               <h2>{selectedModuleData?.title || "Selected Module"}</h2>
-              <p>Students who attempted quizzes in this module.</p>
+              <p>
+                {selectedCourseData?.title && (
+                  <>
+                    Course: <strong>{selectedCourseData.title}</strong> ·{" "}
+                  </>
+                )}
+                Students who attempted quizzes in this module.
+              </p>
             </div>
             <div className="module-quiz-count">
               {moduleQuizzes.length}{" "}
@@ -273,7 +439,7 @@ function QuizMarks() {
             <button
               className="refresh-button"
               onClick={handleRefresh}
-              disabled={loadingMarks}
+              disabled={loadingMarks || loadingModules}
             >
               <RefreshCw size={17} className={loadingMarks ? "spin" : ""} />
               Refresh
@@ -283,28 +449,36 @@ function QuizMarks() {
           {/* Stats */}
           <div className="quiz-marks-stats">
             <div className="stat-card">
-              <div className="stat-icon"><Trophy size={22} /></div>
+              <div className="stat-icon">
+                <Trophy size={22} />
+              </div>
               <div>
                 <strong>{stats.attempts}</strong>
                 <span>ATTEMPTS</span>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon blue"><Users size={22} /></div>
+              <div className="stat-icon blue">
+                <Users size={22} />
+              </div>
               <div>
                 <strong>{stats.uniqueStudents}</strong>
                 <span>STUDENTS</span>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon amber"><Percent size={22} /></div>
+              <div className="stat-icon amber">
+                <Percent size={22} />
+              </div>
               <div>
                 <strong>{stats.avg}%</strong>
                 <span>AVERAGE SCORE</span>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon green"><CheckCircle size={22} /></div>
+              <div className="stat-icon green">
+                <CheckCircle size={22} />
+              </div>
               <div>
                 <strong>{stats.passRate}%</strong>
                 <span>PASS RATE</span>

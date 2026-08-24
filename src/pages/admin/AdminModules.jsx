@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminModules.css";
+import "./AdminShared.css";
 
 const EMPTY_FORM = {
   title: "",
@@ -246,7 +247,7 @@ function AdminModules() {
 
       <div className="page-header">
         <div className="page-heading">
-          <h1>Module Management</h1>
+          <h1><Layers size={26}/>   Module Management</h1>
           <p className="subtitle">
             Create and manage modules that contain your lessons.
           </p>

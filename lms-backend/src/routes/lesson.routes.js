@@ -6,6 +6,7 @@ const lessonController = require("../controllers/lesson.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
+const upload = require("../middleware/upload.middleware");
 
 // ==========================================
 // PUBLIC ROUTES
@@ -23,6 +24,15 @@ router.get("/:id", lessonController.getById);
 // ==========================================
 // PROTECTED ROUTES (Admin & Mentor)
 // ==========================================
+
+// Upload a lesson video (multipart field name: "video")
+router.post(
+    "/upload-video",
+    authMiddleware,
+    roleMiddleware("ADMIN", "MENTOR"),
+    upload.single("video"),
+    lessonController.uploadVideo
+);
 
 // Create lesson
 router.post(

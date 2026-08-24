@@ -943,7 +943,17 @@ class ReportService {
                 this._drawStatBox(doc, doc.page.margins.left + (boxWidth + 12) * 2, y, boxWidth, 'Avg. Rating', `${overview.reviews.averageRating}/5`);
                 y += 90;
 
-                y = this._drawSectionTitle(doc, 'Breakdown', y);
+                // ---- derived figures used by the summary + insights ----
+                const totalEnr = overview.enrollments.total || 0;
+                const doneEnr = overview.enrollments.completed || 0;
+                const progEnr = overview.enrollments.inProgress || 0;
+                const notStarted = Math.max(0, totalEnr - doneEnr - progEnr);
+                const completionRate = totalEnr ? Math.round((doneEnr / totalEnr) * 100) : 0;
+                const arpu = overview.users.students
+                    ? Math.round((overview.revenue || 0) / overview.users.students)
+                    : 0;
+
+                y = this._drawSectionTitle(doc, 'Key metrics', y);
                 y = this._drawTable(doc, {
                     startY: y,
                     columns: [
@@ -952,17 +962,55 @@ class ReportService {
                     ],
                     rows: [
                         { metric: 'Students', value: overview.users.students },
-                        { metric: 'Mentors', value: overview.users.mentors },
-                        { metric: 'Admins', value: overview.users.admins },
                         { metric: 'Published courses', value: overview.courses.published },
                         { metric: 'Draft courses', value: overview.courses.draft },
-                        { metric: 'Archived courses', value: overview.courses.archived },
-                        { metric: 'Completed enrollments', value: overview.enrollments.completed },
-                        { metric: 'In-progress enrollments', value: overview.enrollments.inProgress },
+                        { metric: 'Total enrollments', value: totalEnr },
+                        { metric: 'Completed', value: doneEnr },
+                        { metric: 'In progress', value: progEnr },
+                        { metric: 'Not started', value: notStarted },
+                        { metric: 'Completion rate', value: `${completionRate}%` },
+                        { metric: 'Revenue per student', value: `INR ${arpu.toLocaleString('en-IN')}` },
+                        { metric: 'Certificates issued', value: overview.certificates.active },
                         { metric: 'Pending certificate requests', value: overview.certificates.pending },
-                        { metric: 'Total reviews', value: overview.reviews.total },
+                        { metric: 'Average rating', value: `${overview.reviews.averageRating}/5` },
                     ],
                 });
+
+                // ---- Insights: the "so what" behind the numbers ----
+                const insights = [];
+                if (totalEnr > 0 && completionRate < 30) {
+                    insights.push(`Completion is ${completionRate}%. ${notStarted} enrolled learner(s) have not started yet - consider a reminder campaign.`);
+                } else if (completionRate >= 60) {
+                    insights.push(`Strong completion rate of ${completionRate}% across ${totalEnr} enrollments.`);
+                }
+                if (overview.courses.draft > 0) {
+                    insights.push(`${overview.courses.draft} course(s) remain in draft and are not visible to students.`);
+                }
+                if (overview.certificates.pending > 0) {
+                    insights.push(`${overview.certificates.pending} certificate request(s) are awaiting verification.`);
+                }
+                if (!overview.revenue) {
+                    insights.push('No completed payments recorded for this period.');
+                }
+
+                if (insights.length) {
+                    if (y > doc.page.height - doc.page.margins.bottom - 120) {
+                        doc.addPage();
+                        y = doc.page.margins.top;
+                    }
+                    y += 8;
+                    y = this._drawSectionTitle(doc, 'Insights', y);
+
+                    insights.forEach((line) => {
+                        const h = doc.heightOfString(line, { width: contentWidth - 26 }) + 16;
+                        doc.roundedRect(doc.page.margins.left, y, contentWidth, h, 6)
+                           .fillAndStroke('#f8fafc', '#e2e8f0');
+                        doc.circle(doc.page.margins.left + 12, y + h / 2, 3).fill('#6366f1');
+                        doc.fillColor('#334155').fontSize(9.5).font('Helvetica')
+                           .text(line, doc.page.margins.left + 24, y + 8, { width: contentWidth - 36 });
+                        y += h + 8;
+                    });
+                }
             }
         } catch (err) {
             doc.fillColor('#ef4444').fontSize(11).text(`Error building report: ${err.message}`, doc.page.margins.left, y);

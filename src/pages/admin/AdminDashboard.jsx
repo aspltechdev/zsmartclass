@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   Users,
+  Crown,
   GraduationCap,
   BookOpen,
   CreditCard,
@@ -17,6 +18,7 @@ import {
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import "./AdminDashboard.css";
+import "./AdminShared.css";
 
 // Chart.js imports
 import {
@@ -229,7 +231,7 @@ function AdminDashboard() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-title">
-        <h1>Welcome Back, {user?.name || "Admin"} 👋</h1>
+        <h1><Crown size={25}/>  Welcome Back, {user?.name || "Admin"}👋</h1>
         <p>Here's what's happening with your platform today.</p>
       </div>
 

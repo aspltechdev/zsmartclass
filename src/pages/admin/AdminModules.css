@@ -3,6 +3,7 @@
    ========================================================= */
 
 .modules-page {
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
   width: 100%;
   min-height: 100vh;
   padding: 2rem;
@@ -57,11 +58,7 @@
   border: none;
   border-radius: 10px;
 
-  background: linear-gradient(
-    135deg,
-    #7c3aed,
-    #6366f1
-  );
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
 
   color: #ffffff;
 
@@ -125,18 +122,19 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-
   margin-bottom: 1.5rem;
 }
 
-.stat-card {
+.modules-page .stat-card {
   position: relative;
 
   display: flex;
   align-items: center;
   gap: 15px;
 
-  min-height: 100px;
+  min-height: 118px;
+  height: 118px;
+  min-width: 0;
   padding: 18px;
 
   background: #ffffff;
@@ -157,7 +155,7 @@
     box-shadow 0.15s ease;
 }
 
-.stat-card:hover {
+.modules-page .stat-card:hover {
   transform: translateY(-2px);
 
   box-shadow:
@@ -165,9 +163,10 @@
 }
 
 
+
 /* Different stat icon backgrounds */
 
-.stat-icon {
+.modules-page .stat-icon {
   width: 48px;
   height: 48px;
 
@@ -185,12 +184,8 @@
 
 /* Purple icon background */
 
-.stat-icon-purple {
-  background: linear-gradient(
-    135deg,
-    #7c3aed,
-    #6366f1
-  );
+.modules-page .stat-icon-purple {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
 
   color: #ffffff !important;
 }
@@ -198,7 +193,7 @@
 
 /* Blue icon background */
 
-.stat-icon-blue {
+.modules-page .stat-icon-blue {
   background: linear-gradient(
     135deg,
     #2563eb,
@@ -211,7 +206,7 @@
 
 /* Force SVG to white */
 
-.stat-icon svg {
+.modules-page .stat-icon svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
 }
@@ -219,8 +214,8 @@
 
 /* Prevent any inherited border */
 
-.stat-card::before,
-.stat-card::after {
+.modules-page .stat-card::before,
+.modules-page .stat-card::after {
   display: none !important;
   content: none !important;
   border: none !important;
@@ -283,7 +278,7 @@
 }
 
 .search-box:focus-within {
-  border-color: #7c3aed;
+  border-color: #6366f1;
 
   box-shadow:
     0 0 0 3px rgba(124, 58, 237, 0.1);
@@ -456,14 +451,16 @@
 
   border-radius: 12px;
 
-  background:
-    linear-gradient(
-      135deg,
-      #ede9fe,
-      #e0e7ff
-    );
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
 
-  color: #6366f1;
+  color: #ffffff;
+
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
+}
+
+.module-icon svg {
+  color: #ffffff;
+  stroke: #ffffff;
 }
 
 .module-card-title {
@@ -703,7 +700,7 @@
 
   background: #f5f3ff;
 
-  color: #7c3aed;
+  color: #6366f1;
 }
 
 .empty-state h3 {
@@ -773,7 +770,7 @@
   height: 36px;
 
   border: 3px solid #e2e8f0;
-  border-top-color: #7c3aed;
+  border-top-color: #6366f1;
 
   border-radius: 50%;
 
@@ -793,6 +790,7 @@
    ========================================================= */
 
 .modal {
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
   position: fixed;
 
   inset: 0;
@@ -983,7 +981,7 @@
 
 .form-group input:focus,
 .form-group textarea:focus {
-  border-color: #7c3aed;
+  border-color: #6366f1;
 
   box-shadow:
     0 0 0 3px rgba(124, 58, 237, 0.12);
@@ -1074,7 +1072,7 @@
   background:
     linear-gradient(
       135deg,
-      #7c3aed,
+      #6366f1,
       #6366f1
     );
 
@@ -1090,15 +1088,15 @@
 }
 
 .btn-danger {
-  border: 1px solid transparent;
+  border: 1px solid #fecaca;
 
-  background: #dc2626;
+  background: #fef2f2;
 
-  color: #ffffff;
+  color: #dc2626;
 }
 
 .btn-danger:hover {
-  background: #b91c1c;
+  background: #fee2e2;
 }
 
 .btn-cancel:disabled,
@@ -1116,15 +1114,19 @@
 
 .confirm-content {
   display: flex;
+  flex-direction: column;
+  align-items: center;
 
   gap: 14px;
 
-  padding: 22px;
+  padding: 28px 24px 22px;
+
+  text-align: center;
 }
 
 .confirm-icon {
-  width: 46px;
-  height: 46px;
+  width: 56px;
+  height: 56px;
 
   flex-shrink: 0;
 
@@ -1132,7 +1134,8 @@
   align-items: center;
   justify-content: center;
 
-  border-radius: 12px;
+  /* circular + centred above the message, matching the other pages */
+  border-radius: 50%;
 
   background: #fef2f2;
 
@@ -1141,6 +1144,7 @@
 
 .confirm-body {
   min-width: 0;
+  text-align: center;
 }
 
 .confirm-body h3 {

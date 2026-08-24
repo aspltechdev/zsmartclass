@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import "./Courses.css";
+import "./MentorShared.css";
 
 function Courses() {
   const [courses, setCourses] = useState([]);
@@ -187,8 +188,9 @@ function Courses() {
               display: "flex",
               alignItems: "center",
               gap: 8,
-              flex: 1,
-              minWidth: 220,
+              flex: "1 1 240px",
+              minWidth: 0,
+              overflow: "hidden",
               background: "#fff",
               border: "1px solid #e5e7eb",
               borderRadius: 10,
@@ -204,8 +206,13 @@ function Courses() {
               style={{
                 border: "none",
                 outline: "none",
+                boxShadow: "none",
                 padding: "10px 0",
-                width: "100%",
+                // flex + min-width:0 instead of width:100% — with the icon
+                // beside it, 100% overflowed the rounded wrapper
+                flex: 1,
+                minWidth: 0,
+                minHeight: "auto",
                 fontSize: 14,
                 background: "transparent",
               }}

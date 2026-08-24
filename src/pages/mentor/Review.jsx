@@ -17,6 +17,7 @@ import {
 
 import api from "../../services/api";
 import "./Review.css";
+import "./MentorShared.css";
 
 function MentorReviews() {
   const [reviews, setReviews] = useState([]);
@@ -180,9 +181,6 @@ function MentorReviews() {
 
   // =====================================================
   // MARK REVIEW AS READ
-  //
-  // IMPORTANT:
-  // Backend uses PATCH /reviews/:id/read
   // =====================================================
 
   const markAsRead = async (review) => {
@@ -221,18 +219,6 @@ function MentorReviews() {
   };
 
   // =====================================================
-  // OPEN REVIEW
-  // =====================================================
-
-  const handleOpenReview = async (review) => {
-    setSelectedReview(review);
-
-    if (!review.isRead) {
-      await markAsRead(review);
-    }
-  };
-
-  // =====================================================
   // OPEN REPLY MODAL
   // =====================================================
 
@@ -256,10 +242,6 @@ function MentorReviews() {
 
   // =====================================================
   // SEND / UPDATE REPLY
-  //
-  // IMPORTANT:
-  // Backend uses PATCH /reviews/:id/reply
-  // NOT PUT
   // =====================================================
 
   const handleSendReply = async () => {
@@ -277,21 +259,11 @@ function MentorReviews() {
     try {
       setSubmittingReply(true);
 
-      console.log(
-        "Sending reply for review:",
-        selectedReview.id
-      );
-
       const response = await api.patch(
         `/reviews/${selectedReview.id}/reply`,
         {
           reply: trimmedReply,
         }
-      );
-
-      console.log(
-        "Reply response:",
-        response.data
       );
 
       const updatedReview =
@@ -341,64 +313,12 @@ function MentorReviews() {
         error
       );
 
-      console.error(
-        "Response:",
-        error.response?.data
-      );
-
       alert(
         error.response?.data?.message ||
           "Failed to send reply"
       );
     } finally {
       setSubmittingReply(false);
-    }
-  };
-
-  // =====================================================
-  // DELETE REVIEW
-  // =====================================================
-
-  const handleDeleteReview = async (reviewId) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this review?"
-    );
-
-    if (!confirmDelete) {
-      return;
-    }
-
-    try {
-      await api.delete(
-        `/reviews/${reviewId}`
-      );
-
-      setReviews((prev) =>
-        prev.filter(
-          (review) => review.id !== reviewId
-        )
-      );
-
-      if (
-        selectedReview &&
-        selectedReview.id === reviewId
-      ) {
-        setSelectedReview(null);
-      }
-
-      alert(
-        "Review deleted successfully."
-      );
-    } catch (error) {
-      console.error(
-        "Failed to delete review:",
-        error
-      );
-
-      alert(
-        error.response?.data?.message ||
-          "Failed to delete review"
-      );
     }
   };
 
@@ -734,11 +654,6 @@ function MentorReviews() {
                         ? "unread-review"
                         : ""
                     }`}
-                    onClick={() =>
-                      handleOpenReview(
-                        review
-                      )
-                    }
                   >
 
                     {/* UNREAD DOT */}
@@ -854,17 +769,6 @@ function MentorReviews() {
                     >
 
                       <button
-                        className="review-view-btn"
-                        onClick={() =>
-                          handleOpenReview(
-                            review
-                          )
-                        }
-                      >
-                        View
-                      </button>
-
-                      <button
                         className="review-reply-btn"
                         onClick={() =>
                           handleOpenReply(
@@ -893,258 +797,6 @@ function MentorReviews() {
         )}
 
       </div>
-
-      {/* ================================================= */}
-      {/* REVIEW DETAILS MODAL */}
-      {/* ================================================= */}
-
-      {selectedReview &&
-        !showReplyModal && (
-
-          <div
-            className="review-modal-overlay"
-            onClick={() =>
-              setSelectedReview(null)
-            }
-          >
-
-            <div
-              className="review-detail-modal"
-              onClick={(e) =>
-                e.stopPropagation()
-              }
-            >
-
-              {/* HEADER */}
-
-              <div className="review-modal-header">
-
-                <div>
-
-                  <h2>
-                    Review Details
-                  </h2>
-
-                  <p>
-                    Review #{selectedReview.id}
-                  </p>
-
-                </div>
-
-                <button
-                  onClick={() =>
-                    setSelectedReview(null)
-                  }
-                  className="modal-close-btn"
-                >
-                  <X size={20} />
-                </button>
-
-              </div>
-
-              {/* BODY */}
-
-              <div className="review-detail-body">
-
-                {/* STUDENT */}
-
-                <div className="detail-section">
-
-                  <h4>
-                    <User size={17} />
-                    Student
-                  </h4>
-
-                  <div className="detail-student">
-
-                    <div className="student-avatar large">
-
-                      {(
-                        selectedReview.user?.name ||
-                        selectedReview.user?.username ||
-                        "S"
-                      )
-                        .charAt(0)
-                        .toUpperCase()}
-
-                    </div>
-
-                    <div>
-
-                      <strong>
-                        {selectedReview.user?.name ||
-                          selectedReview.user?.username ||
-                          "Student"}
-                      </strong>
-
-                      <span>
-                        {selectedReview.user?.email ||
-                          "No email"}
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* COURSE */}
-
-                <div className="detail-section">
-
-                  <h4>
-                    <BookOpen size={17} />
-                    Course
-                  </h4>
-
-                  <div className="course-detail-box">
-
-                    {selectedReview.course
-                      ?.title ||
-                      "Course"}
-
-                  </div>
-
-                </div>
-
-                {/* RATING */}
-
-                <div className="detail-section">
-
-                  <h4>
-                    Rating
-                  </h4>
-
-                  <div className="detail-rating">
-
-                    {renderStars(
-                      selectedReview.rating
-                    )}
-
-                    <strong>
-                      {selectedReview.rating} / 5
-                    </strong>
-
-                  </div>
-
-                </div>
-
-                {/* STUDENT REVIEW */}
-
-                <div className="detail-section">
-
-                  <h4>
-                    Student Review
-                  </h4>
-
-                  <div className="student-review-text">
-
-                    {selectedReview.comment ||
-                      "No comment provided."}
-
-                  </div>
-
-                  <small>
-                    Posted{" "}
-                    {formatDateTime(
-                      selectedReview.createdAt
-                    )}
-                  </small>
-
-                </div>
-
-                {/* MENTOR REPLY */}
-
-                {selectedReview.reply && (
-
-                  <div className="mentor-reply-section">
-
-                    <div className="mentor-reply-header">
-
-                      <h4>
-
-                        <MessageSquare
-                          size={17}
-                        />
-
-                        Your Reply
-
-                      </h4>
-
-                      <span>
-                        {formatDateTime(
-                          selectedReview.repliedAt
-                        )}
-                      </span>
-
-                    </div>
-
-                    <div className="mentor-reply-text">
-
-                      {selectedReview.reply}
-
-                    </div>
-
-                  </div>
-
-                )}
-
-              </div>
-
-              {/* FOOTER */}
-
-              <div className="review-modal-footer">
-
-                <button
-                  className="detail-delete-btn"
-                  onClick={() =>
-                    handleDeleteReview(
-                      selectedReview.id
-                    )
-                  }
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </button>
-
-                <div className="modal-footer-right">
-
-                  <button
-                    className="detail-close-btn"
-                    onClick={() =>
-                      setSelectedReview(null)
-                    }
-                  >
-                    Close
-                  </button>
-
-                  <button
-                    className="detail-reply-btn"
-                    onClick={() =>
-                      handleOpenReply(
-                        selectedReview
-                      )
-                    }
-                  >
-                    <MessageSquare
-                      size={17}
-                    />
-
-                    {selectedReview.reply
-                      ? "Edit Reply"
-                      : "Reply to Student"}
-
-                  </button>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        )}
 
       {/* ================================================= */}
       {/* REPLY MODAL */}
@@ -1313,4 +965,4 @@ function MentorReviews() {
   );
 }
 
-export default MentorReviews;
+export default MentorReviews; 

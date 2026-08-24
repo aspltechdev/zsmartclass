@@ -1,41 +1,76 @@
 const express = require("express");
 const router = express.Router();
 
-const progressController = require("../controllers/progress.controller");
+const playerController = require("../controllers/player.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
-// Mark Lesson as Completed
-router.post(
-    "/complete",
-    authMiddleware,
-    roleMiddleware("STUDENT"),
-    progressController.markCompleted
-);
-
-// Get Lesson Progress
-router.get(
-    "/lesson/:lessonId",
-    authMiddleware,
-    roleMiddleware("STUDENT"),
-    progressController.getLessonProgress
-);
-
-// Get Course Progress
+// ============================================
+// Course Player
+// Get complete course with modules & lessons
+// ============================================
 router.get(
     "/course/:courseId",
     authMiddleware,
     roleMiddleware("STUDENT"),
-    progressController.getCourseProgress
+    playerController.getCoursePlayer
 );
 
-// Continue Learning
+// ============================================
+// Open Lesson
+// ============================================
 router.get(
-    "/continue-learning",
+    "/lesson/:lessonId",
     authMiddleware,
     roleMiddleware("STUDENT"),
-    progressController.continueLearning
+    playerController.getLesson
+);
+
+// ============================================
+// Mark Lesson Completed
+// ============================================
+router.post(
+    "/lesson/:lessonId/watch-time",
+    authMiddleware,
+    playerController.saveWatchTime
+);
+
+router.post(
+    "/complete/:lessonId",
+    authMiddleware,
+    roleMiddleware("STUDENT"),
+    playerController.markCompleted
+);
+
+// ============================================
+// Continue Learning
+// ============================================
+router.get(
+    "/continue/:courseId",
+    authMiddleware,
+    roleMiddleware("STUDENT"),
+    playerController.continueLearning
+);
+
+// ============================================
+// Previous Lesson
+// ============================================
+router.get(
+    "/previous/:lessonId",
+    authMiddleware,
+    roleMiddleware("STUDENT"),
+    playerController.previousLesson
+);
+
+// ============================================
+// Next Lesson
+// ============================================
+router.get(
+    "/next/:lessonId",
+    authMiddleware,
+    roleMiddleware("STUDENT"),
+    playerController.nextLesson
 );
 
 module.exports = router;

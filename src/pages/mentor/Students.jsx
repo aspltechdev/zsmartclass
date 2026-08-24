@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import "./Students.css";
+import "./MentorShared.css";
 
 function Students() {
   const [enrollments, setEnrollments] = useState([]);

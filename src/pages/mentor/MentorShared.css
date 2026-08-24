@@ -1,0 +1,1198 @@
+/* ==========================================================================
+   src/pages/mentor/MentorShared.css
+   ONE consistency layer for every mentor page — mirrors AdminShared.css.
+
+   HOW TO USE — in each mentor page, import this AFTER the page's own CSS:
+       import "./Courses.css";
+       import "./MentorShared.css";   <-- must be LAST so it wins
+
+   WHY IT'S SCOPED TO .mentor-content
+   Mentor and admin pages share 13 class names (.modal, .add-btn, .stat-card,
+   .page-header, .modules-page, .spinner …). Vite bundles all CSS globally, so
+   without scoping the two panels silently restyle each other. Every rule here
+   is prefixed with .mentor-content, and AdminShared.css is prefixed with
+   .admin-content, which keeps them isolated.
+   ========================================================================== */
+
+:root {
+  --m-font: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --m-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --m-primary: #6366f1;
+  --m-text: #0f172a;
+  --m-muted: #64748b;
+  --m-faint: #94a3b8;
+  --m-line: #e5e7eb;
+
+  --m-blue: #2563eb;
+  --m-green: #10b981;
+  --m-amber: #f59e0b;
+  --m-purple: #8b5cf6;
+  --m-cyan: #06b6d4;
+  --m-red: #ef4444;
+  --m-pink: #ec4899;
+}
+
+/* ==========================================================================
+   1. TYPOGRAPHY
+   ========================================================================== */
+.mentor-content,
+.mentor-content h1, .mentor-content h2, .mentor-content h3,
+.mentor-content h4, .mentor-content p, .mentor-content span,
+.mentor-content div, .mentor-content td, .mentor-content th,
+.mentor-content label, .mentor-content a,
+.mentor-content button, .mentor-content input,
+.mentor-content select, .mentor-content textarea {
+  font-family: var(--m-font);
+}
+
+.mentor-content h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--m-text);
+}
+
+.mentor-content .subtitle,
+.mentor-content .cert-subtitle,
+.mentor-content .std-subtitle,
+.mentor-content .course-subtitle {
+  color: var(--m-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* ==========================================================================
+   2. BUTTONS — one look everywhere
+   ========================================================================== */
+.mentor-content .add-btn,
+.mentor-content .submit-btn,
+.mentor-content .save-btn,
+.mentor-content .btn-save,
+.mentor-content .btn-primary,
+.mentor-content .btn-cancel,
+.mentor-content .btn-secondary,
+.mentor-content .btn-danger,
+.mentor-content .edit-btn,
+.mentor-content .delete-btn,
+.mentor-content .cert-btn,
+.mentor-content .add-module-btn,
+.mentor-content .module-view-btn,
+.mentor-content .view-btn-header,
+.mentor-content .std-refresh,
+.mentor-content .refresh-button,
+.mentor-content .welcome-btn,
+.mentor-content .review-reply-btn,
+.mentor-content .upload-btn,
+.mentor-content .read-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mentor-content button:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+.mentor-content button svg { flex-shrink: 0; }
+
+/* --- PRIMARY / ADD / SAVE / SUBMIT --- */
+.mentor-content .add-btn,
+.mentor-content .submit-btn,
+.mentor-content .save-btn,
+.mentor-content .btn-save,
+.mentor-content .btn-primary,
+.mentor-content .add-module-btn,
+.mentor-content .cert-btn.primary,
+.mentor-content .welcome-btn.primary,
+.mentor-content .review-reply-btn,
+.mentor-content .upload-btn {
+  background: var(--m-gradient) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+.mentor-content .add-btn:hover:not(:disabled),
+.mentor-content .submit-btn:hover:not(:disabled),
+.mentor-content .save-btn:hover:not(:disabled),
+.mentor-content .btn-save:hover:not(:disabled),
+.mentor-content .btn-primary:hover:not(:disabled),
+.mentor-content .add-module-btn:hover:not(:disabled),
+.mentor-content .cert-btn.primary:hover:not(:disabled),
+.mentor-content .review-reply-btn:hover:not(:disabled),
+.mentor-content .upload-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.42);
+  transform: translateY(-1px);
+}
+
+/* --- EDIT — soft indigo --- */
+.mentor-content .edit-btn {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+.mentor-content .edit-btn:hover:not(:disabled) { background: #e0e7ff !important; }
+
+/* --- DELETE / REJECT — soft red --- */
+.mentor-content .delete-btn,
+.mentor-content .btn-danger,
+.mentor-content .cert-btn.reject {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+  box-shadow: none !important;
+}
+.mentor-content .delete-btn:hover:not(:disabled),
+.mentor-content .btn-danger:hover:not(:disabled),
+.mentor-content .cert-btn.reject:hover:not(:disabled) { background: #fee2e2 !important; }
+
+/* --- APPROVE — soft green --- */
+.mentor-content .cert-btn.approve {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+.mentor-content .cert-btn.approve:hover:not(:disabled) { background: #d1fae5 !important; }
+
+/* --- CANCEL / SECONDARY / GHOST --- */
+.mentor-content .btn-cancel,
+.mentor-content .btn-secondary,
+.mentor-content .cert-btn.ghost,
+.mentor-content .view-btn-header,
+.mentor-content .std-refresh,
+.mentor-content .refresh-button,
+.mentor-content .read-btn {
+  background: #fff !important;
+  color: #475569 !important;
+  border-color: var(--m-line) !important;
+  box-shadow: none !important;
+}
+.mentor-content .btn-cancel:hover:not(:disabled),
+.mentor-content .btn-secondary:hover:not(:disabled),
+.mentor-content .cert-btn.ghost:hover:not(:disabled),
+.mentor-content .view-btn-header:hover:not(:disabled),
+.mentor-content .std-refresh:hover:not(:disabled),
+.mentor-content .refresh-button:hover:not(:disabled),
+.mentor-content .read-btn:hover:not(:disabled) {
+  background: #f8fafc !important;
+  border-color: #c7d2fe !important;
+  color: var(--m-primary) !important;
+}
+
+/* --- icon-only squares --- */
+.mentor-content .refresh-btn,
+.mentor-content .review-refresh-btn,
+.mentor-content .modal-close,
+.mentor-content .modal-close-btn,
+.mentor-content .detail-close-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--m-line) !important;
+  background: #fff !important;
+  color: #475569 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.mentor-content .refresh-btn:hover,
+.mentor-content .review-refresh-btn:hover {
+  background: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: var(--m-primary) !important;
+}
+.mentor-content .modal-close:hover,
+.mentor-content .modal-close-btn:hover,
+.mentor-content .detail-close-btn:hover {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
+
+/* row-level icon actions (lessons, modules, reviews) */
+.mentor-content .preview-lesson-btn,
+.mentor-content .edit-lesson-btn,
+.mentor-content .delete-lesson-btn,
+.mentor-content .review-view-btn,
+.mentor-content .module-nav-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--m-line) !important;
+  background: #fff !important;
+  color: #4b5563 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.mentor-content .preview-lesson-btn:hover {
+  background: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important;
+}
+.mentor-content .edit-lesson-btn:hover,
+.mentor-content .review-view-btn:hover {
+  background: #eef2ff !important; color: #4338ca !important; border-color: #c7d2fe !important;
+}
+.mentor-content .delete-lesson-btn:hover {
+  background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important;
+}
+
+/* back link — pill */
+.mentor-content .back-link {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px 7px 11px;
+  margin-bottom: 12px;
+  border: 1px solid var(--m-line);
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.mentor-content .back-link:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+  text-decoration: none;
+}
+.mentor-content .back-link svg { transition: transform 0.2s ease; }
+.mentor-content .back-link:hover svg { transform: translateX(-2px); }
+
+/* ==========================================================================
+   3. STAT CARDS — dashboard look, uniform 118px
+   ========================================================================== */
+.mentor-content .stat-card,
+.mentor-content .cert-stat,
+.mentor-content .std-stat,
+.mentor-content .review-stat-card {
+  position: relative;
+  min-width: 0;
+  min-height: 118px;
+  height: 118px;
+  box-sizing: border-box;
+  display: flex !important;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #fff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.mentor-content .stat-card:hover,
+.mentor-content .cert-stat:hover,
+.mentor-content .std-stat:hover,
+.mentor-content .review-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* soft decorative circle */
+.mentor-content .stat-card::after,
+.mentor-content .cert-stat::after,
+.mentor-content .std-stat::after,
+.mentor-content .review-stat-card::after {
+  content: "";
+  position: absolute;
+  right: -35px;
+  bottom: -45px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.04);
+  pointer-events: none;
+}
+
+/* coloured icon tile — inline styles from the JSX still win */
+.mentor-content .stat-icon,
+.mentor-content .cert-stat-icon,
+.mentor-content .std-stat-icon,
+.mentor-content .review-stat-icon {
+  width: 48px !important;
+  height: 48px !important;
+  flex: 0 0 48px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px !important;
+  color: #fff !important;
+  background: var(--m-stat, var(--m-primary));
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+  position: relative;
+  z-index: 1;
+}
+.mentor-content .stat-icon svg,
+.mentor-content .cert-stat-icon svg,
+.mentor-content .std-stat-icon svg,
+.mentor-content .review-stat-icon svg {
+  width: 22px; height: 22px; color: #fff;
+}
+
+/* tone helpers used by the pages */
+.mentor-content .indigo { --m-stat: var(--m-primary); }
+.mentor-content .blue   { --m-stat: var(--m-blue); }
+.mentor-content .green  { --m-stat: var(--m-green); }
+.mentor-content .amber  { --m-stat: var(--m-amber); }
+.mentor-content .purple { --m-stat: var(--m-purple); }
+.mentor-content .orange { --m-stat: #f97316; }
+
+/* value + label */
+.mentor-content .stat-content h3,
+.mentor-content .cert-stat-value,
+.mentor-content .std-stat-value,
+.mentor-content .stat-card strong {
+  display: block;
+  margin: 0 !important;
+  color: var(--m-text) !important;
+  font-size: 23px !important;
+  line-height: 1.25;
+  font-weight: 700 !important;
+  letter-spacing: -0.4px;
+  position: relative;
+  z-index: 1;
+}
+.mentor-content .stat-content p,
+.mentor-content .cert-stat-label,
+.mentor-content .std-stat-label,
+.mentor-content .stat-card span {
+  display: block;
+  margin: 5px 0 0 !important;
+  color: var(--m-muted) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  position: relative;
+  z-index: 1;
+}
+
+/* stat grids */
+.mentor-content .stats-grid,
+.mentor-content .cert-stats,
+.mentor-content .std-stats,
+.mentor-content .review-stats,
+.mentor-content .quiz-marks-stats,
+.mentor-content .module-stats {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+  gap: 16px !important;
+  margin-bottom: 24px !important;
+}
+
+/* ==========================================================================
+   4. MODALS
+   ========================================================================== */
+.mentor-content .modal,
+.mentor-content .modal-overlay,
+.mentor-content .popup-overlay,
+.mentor-content .cert-modal-overlay,
+.mentor-content .review-modal-overlay,
+body > .modal-overlay,
+body > .popup-overlay,
+body > .cert-modal-overlay,
+body > .review-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(15, 23, 42, 0.55) !important;
+  backdrop-filter: blur(2px);
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding: 40px 20px !important;
+  overflow-y: auto !important;
+  z-index: 9999 !important;
+  font-family: var(--m-font);
+  animation: mFadeIn 0.18s ease;
+}
+@keyframes mFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.mentor-content .modal-content,
+.mentor-content .popup,
+.mentor-content .cert-modal,
+.mentor-content .assignment-modal,
+.mentor-content .review-detail-modal,
+.mentor-content .reply-modal,
+body > .popup-overlay > .popup,
+body > .cert-modal-overlay > .cert-modal {
+  background: #fff !important;
+  border-radius: 16px !important;
+  margin: auto !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28) !important;
+  animation: mModalIn 0.22s ease;
+}
+@keyframes mModalIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mentor-content .modal-header,
+.mentor-content .modules-header,
+.mentor-content .cert-modal-header,
+.mentor-content .review-modal-header {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+.mentor-content .modal-header h2,
+.mentor-content .cert-modal-header h3 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--m-text) !important;
+}
+
+.mentor-content .modal-body,
+.mentor-content .cert-modal-body,
+.mentor-content .review-detail-body,
+.mentor-content .modules-section {
+  padding: 20px 22px !important;
+}
+
+.mentor-content .modal-footer,
+.mentor-content .popup-buttons,
+.mentor-content .cert-modal-footer,
+.mentor-content .review-modal-footer {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  padding: 16px 22px !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+/* ==========================================================================
+   5. FORMS
+   ========================================================================== */
+.mentor-content .form-group { margin-bottom: 16px; }
+
+.mentor-content label,
+.mentor-content .cert-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.mentor-content input[type="text"],
+.mentor-content input[type="email"],
+.mentor-content input[type="number"],
+.mentor-content input[type="date"],
+.mentor-content input[type="password"],
+.mentor-content select,
+.mentor-content textarea,
+.mentor-content .form-select,
+.mentor-content .cert-input,
+.mentor-content .category-select,
+.mentor-content .module-picker,
+.mentor-content .quiz-filter-select,
+.mentor-content .std-select,
+.mentor-content .review-filter {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--m-text);
+  outline: none;
+  transition: border 0.15s ease, box-shadow 0.15s ease;
+}
+.mentor-content input:focus,
+.mentor-content select:focus,
+.mentor-content textarea:focus {
+  border-color: var(--m-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.mentor-content textarea { resize: vertical; min-height: 90px; }
+
+.mentor-content .error-text,
+.mentor-content .quiz-marks-error,
+.mentor-content .cert-alert,
+.mentor-content .std-alert,
+.mentor-content .alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+}
+.mentor-content .cert-notice,
+.mentor-content .alert-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+}
+
+/* ==========================================================================
+   6. SEARCH / TOOLBARS
+   ========================================================================== */
+.mentor-content .toolbar,
+.mentor-content .cert-toolbar,
+.mentor-content .std-toolbar,
+.mentor-content .reviews-toolbar,
+.mentor-content .quiz-marks-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.mentor-content .search-box,
+.mentor-content .cert-search,
+.mentor-content .std-search,
+.mentor-content .review-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid var(--m-line);
+  border-radius: 10px;
+  padding: 0 13px;
+  color: var(--m-faint);
+}
+.mentor-content .search-box input,
+.mentor-content .cert-search input,
+.mentor-content .std-search input,
+.mentor-content .review-search input {
+  border: none !important;
+  outline: none;
+  padding: 11px 0 !important;
+  min-height: auto !important;
+  width: 100%;
+  font-size: 14px;
+  background: transparent;
+  color: var(--m-text);
+}
+
+/* ==========================================================================
+   7. CARDS / TABLES / BADGES
+   ========================================================================== */
+.mentor-content .course-card,
+.mentor-content .module-card,
+.mentor-content .cert-card,
+.mentor-content .std-course-block,
+.mentor-content .lesson-item,
+.mentor-content .module-item,
+.mentor-content .notification-card,
+.mentor-content .details-card,
+.mentor-content .quick-actions-section {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.mentor-content .course-card:hover,
+.mentor-content .module-card:hover,
+.mentor-content .cert-card:hover {
+  border-color: #d8dee8;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.07);
+}
+
+.mentor-content .view-grid,
+.mentor-content .module-grid,
+.mentor-content .cert-list,
+.mentor-content .reviews-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.mentor-content .cert-list,
+.mentor-content .reviews-list { grid-template-columns: 1fr; }
+
+.mentor-content .marks-table-container,
+.mentor-content .std-table-wrap,
+.mentor-content .assignment-table {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow-x: auto;
+}
+
+.mentor-content table { width: 100%; border-collapse: collapse; }
+.mentor-content thead th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--m-muted);
+  background: #fafafa;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef0f3;
+  white-space: nowrap;
+}
+.mentor-content tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+  color: #374151;
+}
+.mentor-content tbody tr:last-child td { border-bottom: none; }
+.mentor-content tbody tr:hover { background: #fafbff; }
+
+/* badges */
+.mentor-content .status-badge,
+.mentor-content .std-badge,
+.mentor-content .preview-badge,
+.mentor-content .lesson-type-badge,
+.mentor-content .replied-badge,
+.mentor-content .date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.mentor-content .status-badge.published,
+.mentor-content .std-badge.completed,
+.mentor-content .status-badge.pass { background: #ecfdf5; color: #047857; }
+.mentor-content .status-badge.draft,
+.mentor-content .std-badge.not-started { background: #fffbeb; color: #b45309; }
+.mentor-content .status-badge.archived { background: #f1f5f9; color: #64748b; }
+.mentor-content .std-badge.in-progress { background: #eef2ff; color: #4338ca; }
+.mentor-content .std-badge.expired,
+.mentor-content .status-badge.fail { background: #fef2f2; color: #b91c1c; }
+
+/* ==========================================================================
+   8. STATES
+   ========================================================================== */
+.mentor-content .empty-state,
+.mentor-content .cert-empty,
+.mentor-content .std-empty,
+.mentor-content .quiz-marks-empty,
+.mentor-content .no-courses,
+.mentor-content .no-modules,
+.mentor-content .reviews-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 240px;
+  padding: 48px 20px;
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  color: var(--m-faint);
+  text-align: center;
+}
+.mentor-content .empty-state h3,
+.mentor-content .cert-empty h3,
+.mentor-content .std-empty h3 {
+  margin: 4px 0 0;
+  color: #334155;
+  font-size: 17px;
+  font-weight: 600;
+}
+.mentor-content .empty-state svg,
+.mentor-content .cert-empty svg { color: #cbd5e1; }
+
+.mentor-content .spinner,
+.mentor-content .std-spinner,
+.mentor-content .reviews-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--m-primary);
+  border-radius: 50%;
+  animation: mSpin 0.75s linear infinite;
+}
+.mentor-content .button-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  display: inline-block;
+  animation: mSpin 0.7s linear infinite;
+}
+.mentor-content .spin,
+.mentor-content .spinning { animation: mSpin 0.8s linear infinite; }
+@keyframes mSpin { to { transform: rotate(360deg); } }
+
+.mentor-content .loading-state,
+.mentor-content .std-loading,
+.mentor-content .reviews-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 300px;
+  color: var(--m-muted);
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   9. PAGE HEADERS
+   ========================================================================== */
+.mentor-content .page-header,
+.mentor-content .courses-header,
+.mentor-content .cert-header,
+.mentor-content .std-header,
+.mentor-content .reviews-header,
+.mentor-content .quiz-marks-header,
+.mentor-content .assignment-header,
+.mentor-content .modules-header,
+.mentor-content .profile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.mentor-content .header-buttons,
+.mentor-content .cert-actions,
+.mentor-content .module-nav-actions,
+.mentor-content .profile-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   10. RESPONSIVE
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .mentor-content .stats-grid,
+  .mentor-content .cert-stats,
+  .mentor-content .std-stats,
+  .mentor-content .review-stats,
+  .mentor-content .quiz-marks-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .mentor-content .status-grid,
+  .mentor-content .profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .mentor-content .page-header,
+  .mentor-content .courses-header,
+  .mentor-content .cert-header,
+  .mentor-content .std-header,
+  .mentor-content .reviews-header,
+  .mentor-content .assignment-header,
+  .mentor-content .quiz-marks-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .mentor-content h1 { font-size: 21px; }
+
+  .mentor-content .header-buttons,
+  .mentor-content .cert-actions,
+  .mentor-content .profile-actions { width: 100%; }
+
+  .mentor-content .add-btn,
+  .mentor-content .submit-btn,
+  .mentor-content .std-refresh {
+    flex: 1 1 100%;
+    min-height: 44px;
+  }
+
+  .mentor-content .stats-grid,
+  .mentor-content .cert-stats,
+  .mentor-content .std-stats,
+  .mentor-content .review-stats,
+  .mentor-content .quiz-marks-stats {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .mentor-content .stat-card,
+  .mentor-content .cert-stat,
+  .mentor-content .std-stat {
+    min-height: 96px !important;
+    height: auto !important;
+    padding: 16px !important;
+  }
+
+  .mentor-content .view-grid,
+  .mentor-content .module-grid { grid-template-columns: 1fr; }
+
+  .mentor-content .search-box,
+  .mentor-content .cert-search,
+  .mentor-content .std-search { flex: 1 1 100%; min-width: 0; }
+
+  /* tables scroll with a hint */
+  .mentor-content .marks-table-container,
+  .mentor-content .std-table-wrap,
+  .mentor-content .assignment-table { overflow-x: auto; }
+  .mentor-content table { min-width: 620px; }
+  .mentor-content th, .mentor-content td {
+    padding: 11px 12px !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+
+  /* modals near full screen */
+  .mentor-content .modal,
+  .mentor-content .modal-overlay,
+  .mentor-content .popup-overlay,
+  .mentor-content .cert-modal-overlay,
+  body > .modal-overlay,
+  body > .popup-overlay,
+  body > .cert-modal-overlay { padding: 12px !important; }
+
+  .mentor-content .modal-content,
+  .mentor-content .popup,
+  .mentor-content .cert-modal,
+  .mentor-content .assignment-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 24px) !important;
+  }
+
+  .mentor-content .modal-footer,
+  .mentor-content .popup-buttons,
+  .mentor-content .cert-modal-footer {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+  }
+  .mentor-content .modal-footer > button,
+  .mentor-content .popup-buttons > button,
+  .mentor-content .cert-modal-footer > button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .mentor-content .cert-card,
+  .mentor-content .lesson-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .mentor-content .cert-card-actions,
+  .mentor-content .lesson-actions { justify-content: flex-start; }
+}
+
+@media (max-width: 480px) {
+  .mentor-content h1 { font-size: 19px; }
+  .mentor-content .cert-tabs,
+  .mentor-content .quiz-marks-toolbar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+}
+
+@media (hover: none) {
+  .mentor-content .stat-card:hover,
+  .mentor-content .cert-stat:hover,
+  .mentor-content .std-stat:hover,
+  .mentor-content .course-card:hover { transform: none !important; }
+}
+
+/* ==========================================================================
+   11. PORTALED MODALS  ← IMPORTANT
+   Courses, Lessons, Modules, Certificates and Quiz render their modals with
+   createPortal(..., document.body). Those nodes live OUTSIDE .mentor-content,
+   so none of the scoped rules above reach them. Everything in this section is
+   therefore written WITHOUT the .mentor-content prefix.
+
+   The class names used here (.popup, .cert-modal, .lesson-modal, .quiz-modal,
+   .module-item …) are mentor-specific, so this can't leak into the admin panel.
+   ========================================================================== */
+
+/* ---------- overlays ---------- */
+.popup-overlay,
+.cert-modal-overlay,
+.review-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  padding: 40px 20px;
+  overflow-y: auto;
+
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+
+  font-family: var(--m-font);
+  animation: mFadeIn 0.18s ease;
+}
+
+/* ---------- sheets ---------- */
+.popup,
+.cert-modal,
+.lesson-modal,
+.quiz-modal,
+.preview-modal,
+.confirm-modal,
+.assignment-modal,
+.review-detail-modal,
+.reply-modal {
+  margin: auto;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  animation: mModalIn 0.22s ease;
+  font-family: var(--m-font);
+}
+
+.popup { width: min(680px, 100%); }
+.popup-large { width: min(820px, 100%); }
+
+/* ---------- header / body / footer ---------- */
+.popup .modules-header,
+.cert-modal .cert-modal-header,
+.popup .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  padding: 18px 22px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.popup .section-title,
+.popup .modules-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.popup .modules-section,
+.cert-modal .cert-modal-body { padding: 20px 22px; }
+
+.popup .popup-buttons,
+.cert-modal .cert-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* ---------- buttons inside portaled modals ---------- */
+.popup button,
+.cert-modal button,
+.assignment-modal button,
+.review-detail-modal button,
+.reply-modal button {
+  font-family: var(--m-font);
+}
+
+.popup .view-btn-header,
+.cert-modal .cert-btn.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--m-line);
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.popup .view-btn-header:hover {
+  background: #f8fafc;
+  border-color: #c7d2fe;
+  color: var(--m-primary);
+}
+
+/* the header close button is icon-only */
+.popup .modules-header .view-btn-header {
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.popup .modules-header .view-btn-header:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.popup .add-module-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--m-gradient);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
+}
+
+.popup .add-module-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.42);
+  transform: translateY(-1px);
+}
+
+.popup .add-module-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ---------- form controls inside portaled modals ---------- */
+.popup select,
+.popup input,
+.popup textarea,
+.cert-modal input,
+.cert-modal textarea,
+.assignment-modal input,
+.assignment-modal select,
+.assignment-modal textarea,
+.reply-modal textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  font-family: var(--m-font);
+  font-size: 14px;
+  color: var(--m-text);
+  outline: none;
+  transition: border 0.15s ease, box-shadow 0.15s ease;
+}
+
+.popup select:focus,
+.popup input:focus,
+.popup textarea:focus,
+.cert-modal input:focus,
+.cert-modal textarea:focus {
+  border-color: var(--m-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ---------- module rows inside the popup ---------- */
+.popup .modules-list { display: flex; flex-direction: column; gap: 10px; }
+
+.popup .module-item {
+  padding: 14px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.popup .module-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.popup .module-info { flex: 1 1 auto; min-width: 0; }
+
+.popup .module-info h4 {
+  margin: 0 0 4px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup .lesson-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.popup .position-hint {
+  margin: 0 0 14px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.popup .no-modules {
+  padding: 34px 16px;
+  border: 1px dashed #e2e8f0;
+  border-radius: 12px;
+  background: #fafbfc;
+  color: #94a3b8;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 768px) {
+  .popup-overlay,
+  .cert-modal-overlay,
+  .review-modal-overlay { padding: 12px; }
+
+  .popup,
+  .popup-large,
+  .cert-modal,
+  .lesson-modal,
+  .quiz-modal,
+  .assignment-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 24px);
+  }
+
+  .popup .popup-buttons,
+  .cert-modal .cert-modal-footer { flex-direction: column-reverse; }
+
+  .popup .popup-buttons > button,
+  .cert-modal .cert-modal-footer > button { width: 100%; min-height: 44px; }
+}

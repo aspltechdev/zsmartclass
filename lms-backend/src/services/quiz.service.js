@@ -369,6 +369,176 @@ class QuizService {
     };
   }
 
+  // In src/services/quiz.service.js
+
+  // src/services/quiz.service.js
+
+async submitQuizAttempt(quizId, userId, data) {
+  // 1. Fetch the quiz with questions and options, AND the courseId
+  const quiz = await prisma.quiz.findUnique({
+    where: { id: Number(quizId) },
+    include: {
+      QuizQuestion: {
+        include: {
+          QuizOption: true,
+        },
+      },
+    },
+  });
+
+  if (!quiz) {
+    const err = new Error("Quiz not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const { answers, score, totalMarks, percentage } = data;
+  
+  // 2. Calculate Pass/Fail (Assuming 50% is the passing mark)
+  const passed = percentage >= 50;
+
+  // 3. Build the nested QuizAnswer data (Mapping Frontend indices to DB IDs)
+  const quizAnswersData = [];
+
+  for (const question of quiz.QuizQuestion) {
+    // Frontend sends keys as 0, 1, 2... based on question position.
+    // We map it to the DB position (1, 2, 3...) 
+    const userAnswerIndices = answers[question.position - 1] || [];
+
+    for (const optionIndex of userAnswerIndices) {
+      const selectedOption = question.QuizOption[optionIndex];
+
+      if (selectedOption) {
+        quizAnswersData.push({
+          questionId: question.id,
+          optionId: selectedOption.id,
+          isCorrect: selectedOption.isCorrect,
+        });
+      }
+    }
+  }
+
+  // 4. Create or Update the QuizMark with the 'passed' status
+  const mark = await prisma.quizMark.upsert({
+    where: {
+      quizId_studentId: {
+        quizId: Number(quizId),
+        studentId: Number(userId),
+      },
+    },
+    update: {
+      obtainedMarks: Number(score || 0),
+      totalMarks: Number(totalMarks || quiz.totalMarks),
+      percentage: Number(percentage || 0),
+      passed: passed,
+      // IMPORTANT: Delete old answers first, then recreate to avoid duplicates
+      QuizAnswer: {
+        deleteMany: {}, // Deletes all previous answers for this specific mark
+        create: quizAnswersData,
+      },
+    },
+    create: {
+      quizId: Number(quizId),
+      studentId: Number(userId),
+      obtainedMarks: Number(score || 0),
+      totalMarks: Number(totalMarks || quiz.totalMarks),
+      percentage: Number(percentage || 0),
+      passed: passed,
+      QuizAnswer: {
+        create: quizAnswersData,
+      },
+    },
+  });
+
+  // ==========================================
+  // 5. RECALCULATE COURSE PROGRESS
+  // ==========================================
+  
+  // Since the quiz is passed, recalculate the overall course progress
+  if (passed) {
+    const courseId = quiz.courseId;
+
+    // Get all modules assigned to this course, including their lessons and quizzes
+    const moduleAssignments = await prisma.courseModuleAssignment.findMany({
+      where: { courseId: Number(courseId) },
+      include: {
+        CourseModule: {
+          include: {
+            lessons: { select: { id: true } },
+            Quiz: { select: { id: true } },
+          },
+        },
+      },
+    });
+
+    // Get the student's progress for all lessons in this course
+    const lessonIds = moduleAssignments.flatMap(ma => 
+      ma.CourseModule.lessons.map(l => l.id)
+    );
+
+    const lessonProgresses = await prisma.lessonProgress.findMany({
+      where: {
+        studentId: Number(userId),
+        lessonId: { in: lessonIds },
+      },
+      select: { lessonId: true, completed: true },
+    });
+
+    const completedLessonIds = new Set(
+      lessonProgresses.filter(lp => lp.completed).map(lp => lp.lessonId)
+    );
+
+    // Get the student's passed quizzes for this course
+    const passedQuizIds = new Set(
+      await prisma.quizMark.findMany({
+        where: {
+          studentId: Number(userId),
+          passed: true,
+          quiz: { courseId: Number(courseId) },
+        },
+        select: { quizId: true },
+      }).then(marks => marks.map(m => m.quizId))
+    );
+
+    // Calculate overall progress
+    let totalTasks = 0;
+    let completedTasks = 0;
+
+    for (const assignment of moduleAssignments) {
+      // Count Lessons
+      for (const lesson of assignment.CourseModule.lessons) {
+        totalTasks++;
+        if (completedLessonIds.has(lesson.id)) completedTasks++;
+      }
+
+      // Count Quizzes
+      for (const quizItem of assignment.CourseModule.Quiz) {
+        totalTasks++;
+        if (passedQuizIds.has(quizItem.id)) completedTasks++;
+      }
+    }
+
+    const newCourseProgress = totalTasks > 0 
+      ? Math.round((completedTasks / totalTasks) * 100) 
+      : 0;
+
+    // Update the Enrollment table
+    await prisma.enrollment.updateMany({
+      where: {
+        userId: Number(userId),
+        courseId: Number(courseId),
+      },
+      data: {
+        progress: newCourseProgress,
+        completed: newCourseProgress === 100 ? true : false,
+      },
+    });
+  }
+
+  return mark;
+}
+
+
   async getQuizMarks(quizId, user) {
     await this._requireOwnership(quizId, user);
 

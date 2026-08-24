@@ -15,6 +15,7 @@ import {
   PlusCircle,
 } from "lucide-react";
 import "./Dashboard.css";
+import "./MentorShared.css";
 
 const EMPTY_STATS = {
   courses: 0,
@@ -136,15 +137,6 @@ function Dashboard() {
             <h1>Welcome back, {user?.name || "Mentor"} 👋</h1>
             <p>Manage course content — modules, lessons, and quizzes.</p>
           </div>
-          <div className="welcome-actions">
-            <button
-              className="welcome-btn primary"
-              onClick={() => navigate("/mentor/modules")}
-            >
-              <PlusCircle size={18} />
-              Create Module
-            </button>
-          </div>
         </div>
       </div>
 
@@ -190,41 +182,6 @@ function Dashboard() {
         })}
       </div>
 
-      {/* Course status */}
-      <div className="status-grid">
-        <div className="status-card draft">
-          <div className="status-icon">
-            <FileText />
-          </div>
-          <div className="status-info">
-            <h4>{stats.draftCourses}</h4>
-            <p>Draft Courses</p>
-          </div>
-          <span className="status-badge draft-badge">Draft</span>
-        </div>
-
-        <div className="status-card published">
-          <div className="status-icon">
-            <CheckCircle />
-          </div>
-          <div className="status-info">
-            <h4>{stats.publishedCourses}</h4>
-            <p>Published Courses</p>
-          </div>
-          <span className="status-badge published-badge">Published</span>
-        </div>
-
-        <div className="status-card total-modules">
-          <div className="status-icon">
-            <Award />
-          </div>
-          <div className="status-info">
-            <h4>{stats.modules + stats.lessons}</h4>
-            <p>Total Content Items</p>
-          </div>
-          <span className="status-badge content-badge">Content</span>
-        </div>
-      </div>
 
       {/* Quick actions */}
       <div className="quick-actions-section full-width">

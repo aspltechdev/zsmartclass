@@ -1,97 +1,163 @@
-﻿import React, { useState, useEffect } from 'react';
-import { Menu, ChevronLeft, Bell, User, LogOut } from 'lucide-react';  // Removed Settings
-import './StudentHeader.css';
+﻿// src/components/student/StudentHeader.jsx
+import { useState, useEffect, useRef } from "react";
+import { Bell, LogOut, Menu, ChevronRight, User, ChevronDown , PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import "./StudentHeader.css";
 
-const StudentHeader = ({ onMenuClick, onToggleSidebar, onLogout }) => {
-  const [user, setUser] = useState(null);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
+const PAGE_LABELS = {
+  dashboard: "Dashboard",
+  courses: "My Courses",
+  lessons: "Lessons",
+  students: "Students",
+  certificates: "Certificates",
+  earnings: "Earnings",
+  reviews: "Reviews",
+  assignments: "Assignments",
+  quiz: "Quiz",
+  profile: "Profile",
+  notifications: "Notifications",
+  player: "Course Player",
+  "my-courses": "My Courses",
+  course: "Course",
+};
+
+function StudentHeader({ collapsed = false, onToggleCollapse, onToggleMobile }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef(null);
+
+  /*
+   * Walk the URL backwards and use the last NON-numeric segment.
+   * Routes like /student/player/22 would otherwise show the raw id ("22")
+   * in the breadcrumb instead of a readable page name.
+   */
+  const segments = location.pathname.split("/").filter(Boolean);
+  const pageKey =
+    [...segments].reverse().find((seg) => !/^\d+$/.test(seg)) || "dashboard";
+  const pageLabel = PAGE_LABELS[pageKey] || pageKey.replace(/-/g, " ");
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (e) {
-        console.error('Error parsing user data');
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
       }
-    }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Close the profile dropdown on route change
+  useEffect(() => {
+    setIsProfileOpen(false);
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
+  const toggleProfile = () => {
+    setIsProfileOpen(!isProfileOpen);
+  };
+
   return (
-    <header className="student-header">
-      <div className="header-left">
-        <button className="header-btn mobile-menu-btn" onClick={onMenuClick}>
-          <Menu size={22} />
-        </button>
-
-        <button className="header-btn toggle-sidebar-btn" onClick={onToggleSidebar}>
-          <ChevronLeft size={20} />
-        </button>
-      </div>
-
-      <div className="header-center">
-        <h1 className="header-title">Dashboard</h1>
-      </div>
-
-      <div className="header-right">
-        <button className="header-btn notification-btn">
-          <Bell size={20} />
-          <span className="notification-dot"></span>
-        </button>
-
-        <div className="profile-container">
-          <button 
-            className="profile-btn"
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-          >
-            <div className="profile-avatar">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <div className="profile-info">
-              <span className="profile-name">{user?.name || 'User'}</span>
-              <span className="profile-role">Student</span>
-            </div>
+    <>
+      <header className="student-header">
+        {/* Left */}
+        <div className="sh-left">
+          <button className="sh-menu-btn" onClick={onToggleMobile} aria-label="Menu">
+            <Menu size={20} />
           </button>
 
-          {showProfileMenu && (
-            <div className="profile-dropdown">
-              <div className="dropdown-header">
-                <div className="dropdown-avatar">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                </div>
-                <div>
-                  <p className="dropdown-name">{user?.name || 'User'}</p>
-                  <p className="dropdown-email">{user?.email || 'user@email.com'}</p>
-                </div>
-              </div>
-
-              <div className="dropdown-divider"></div>
-
-              <button 
-                className="dropdown-item" 
-                onClick={() => {
-                  setShowProfileMenu(false);
-                  window.location.href = '/student/profile';
-                }}
-              >
-                <User size={18} />
-                Profile
-              </button>
-
-              {/* ❌ Settings option REMOVED */}
-
-              <div className="dropdown-divider"></div>
-
-              <button className="dropdown-item dropdown-logout" onClick={onLogout}>
-                <LogOut size={18} />
-                Logout
-              </button>
-            </div>
-          )}
+          <button
+            className="sh-collapse-btn"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
+          </button>
+          <div className="sh-breadcrumb">
+            <span className="sh-breadcrumb-parent">Student</span>
+            <ChevronRight size={14} className="sh-breadcrumb-sep" />
+            <span className="sh-breadcrumb-current">{pageLabel}</span>
+          </div>
         </div>
-      </div>
-    </header>
+
+        {/* Right */}
+        <div className="sh-right">
+          {/* Notifications */}
+          <button
+            className="sh-icon-btn"
+            onClick={() => navigate("/student/notifications")}
+            aria-label="Notifications"
+          >
+            <Bell size={18} />
+          </button>
+
+          {/* Profile with Dropdown */}
+          <div className="sh-profile-wrapper" ref={profileRef}>
+            <button className="sh-profile" onClick={toggleProfile}>
+              <div className="sh-avatar">
+                {user?.profileImage ? (
+                  <img
+                    src={user.profileImage}
+                    alt={user?.name || "Student"}
+                    style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                  />
+                ) : (
+                  user?.name?.charAt(0) || "S"
+                )}
+              </div>
+              <div className="sh-profile-info">
+                <span className="sh-profile-name">{user?.name || "Student"}</span>
+                <span className="sh-profile-role">Student</span>
+              </div>
+              <ChevronDown 
+                size={14} 
+                className={`sh-profile-arrow ${isProfileOpen ? 'open' : ''}`} 
+              />
+            </button>
+
+            {isProfileOpen && (
+              <div className="sh-profile-dropdown">
+                <div className="sh-dropdown-user">
+                  <div className="sh-dropdown-avatar">
+                    {user?.profileImage ? (
+                      <img
+                        src={user.profileImage}
+                        alt={user?.name || "Student"}
+                        style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      user?.name?.charAt(0) || "S"
+                    )}
+                  </div>
+                  <div>
+                    <h4>{user?.name || "Student"}</h4>
+                    <span>{user?.email || "student@zsmartclass.com"}</span>
+                  </div>
+                </div>
+                <div className="sh-dropdown-divider"></div>
+                <Link to="/student/profile" className="sh-dropdown-item" onClick={() => setIsProfileOpen(false)}>
+                  <User size={16} />
+                  <span>Profile</span>
+                </Link>
+                <div className="sh-dropdown-divider"></div>
+                <button className="sh-dropdown-item sh-dropdown-logout" onClick={handleLogout}>
+                  <LogOut size={16} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+    </>
   );
-};
+}
 
 export default StudentHeader;

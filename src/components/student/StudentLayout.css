@@ -1,98 +1,104 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body, #root {
-  height: 100%;
-  width: 100%;
-}
+/* =========================================================
+   ZSMARTCLASS — STUDENT LAYOUT
+   Shell: sidebar + header + content.
+   Uses the global --admin-* design tokens from admin-theme.css.
+   ========================================================= */
 
 .student-layout {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background: #f5f7fa;
+  min-height: 100vh;
+  background: var(--admin-bg, #f6f7fb);
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--admin-text, #111827);
 }
 
-.main-content {
-  flex: 1;
+.student-layout *,
+.student-layout *::before,
+.student-layout *::after { box-sizing: border-box; }
+
+/* =========================================================
+   MAIN COLUMN
+   ========================================================= */
+
+.student-layout .main-content {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  margin-left: 260px;
+  margin-left: var(--admin-sidebar-width, 260px);
   transition: margin-left 0.3s ease;
-  height: 100vh;
-  overflow: hidden;
-  width: calc(100% - 260px);
 }
 
-.main-content.sidebar-collapsed {
-  margin-left: 72px;
-  width: calc(100% - 72px);
+.student-layout .main-content.sidebar-collapsed {
+  margin-left: var(--admin-sidebar-collapsed-width, 76px);
 }
 
-.page-content {
+/* =========================================================
+   CONTENT AREA
+   ========================================================= */
+
+.student-layout .page-content {
   flex: 1;
-  overflow-y: auto;
+  min-width: 0;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
   padding: 24px;
-  background: #f5f7fa;
-  margin-top: 64px;
-  height: calc(100vh - 64px);
 }
 
-.mobile-overlay {
-  display: none;
+.student-layout .page-content::-webkit-scrollbar { width: 8px; }
+.student-layout .page-content::-webkit-scrollbar-thumb {
+  background: #d8dde8;
+  border-radius: 999px;
+}
+.student-layout .page-content::-webkit-scrollbar-thumb:hover { background: #c3cad8; }
+
+/* =========================================================
+   MOBILE OVERLAY
+   ========================================================= */
+
+.student-layout .mobile-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
-  animation: fadeIn 0.3s ease;
+  inset: 0;
+  z-index: 998;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  animation: studentOverlayIn 0.2s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+@keyframes studentOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-@media (max-width: 1024px) {
-  .main-content {
-    margin-left: 72px;
-    width: calc(100% - 72px);
-  }
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
 
-  .main-content.sidebar-collapsed {
-    margin-left: 72px;
-    width: calc(100% - 72px);
-  }
+@media (max-width: 1100px) {
+  .student-layout .page-content { padding: 20px; }
 }
 
-@media (max-width: 768px) {
-  .main-content {
+@media (max-width: 900px) {
+  /* sidebar becomes an overlay drawer — no offset */
+  .student-layout .main-content,
+  .student-layout .main-content.sidebar-collapsed {
     margin-left: 0;
-    width: 100%;
   }
+  .student-layout .page-content { padding: 16px; }
+}
 
-  .main-content.sidebar-collapsed {
-    margin-left: 0;
-    width: 100%;
-  }
+@media (max-width: 600px) {
+  .student-layout .page-content { padding: 14px 12px 32px; }
+}
 
-  .page-content {
-    padding: 16px;
-    margin-top: 56px;
-    height: calc(100vh - 56px);
-  }
+/* =========================================================
+   PRINT
+   ========================================================= */
 
-  .mobile-overlay {
-    display: block;
-  }
+@media print {
+  .student-sidebar,
+  .student-header,
+  .student-layout .mobile-overlay { display: none !important; }
+
+  .student-layout .main-content { margin-left: 0 !important; }
+  .student-layout .page-content { max-width: none !important; padding: 0 !important; }
 }

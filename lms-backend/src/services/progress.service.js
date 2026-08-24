@@ -90,9 +90,57 @@ class ProgressService {
   // Read a single lesson's progress
   // ------------------------------------------------------------------
   async getLessonProgress(studentId, lessonId) {
-    return await prisma.lessonProgress.findFirst({
-      where: { studentId: Number(studentId), lessonId: Number(lessonId) }
-    });
+    const sId = Number(studentId);
+    const lId = Number(lessonId);
+
+    const empty = {
+      lessonId: lId,
+      watchedSeconds: 0,
+      lastPosition: 0,
+      durationSeconds: 0,
+      completed: false,
+      percentage: 0
+    };
+
+    if (!sId || !lId) return empty;
+
+    let row = null;
+
+    try {
+      /*
+       * No `select` here on purpose. Selecting lastPosition/durationSeconds
+       * throws PrismaClientValidationError if those columns haven't been
+       * added yet — which surfaced as a 400 on every read and wiped the
+       * player's progress display.
+       */
+      row = await prisma.lessonProgress.findFirst({
+        where: { studentId: sId, lessonId: lId }
+      });
+    } catch (err) {
+      console.error("getLessonProgress query failed:", err.message);
+      return empty;
+    }
+
+    if (!row) return empty;
+
+    const watched = Number(row.watchedSeconds) || 0;
+    // these two may be undefined until the migration is run
+    const duration = Number(row.durationSeconds) || 0;
+    const lastPosition = Number(row.lastPosition) || 0;
+    const completed = !!row.completed;
+
+    return {
+      lessonId: lId,
+      watchedSeconds: watched,
+      lastPosition,
+      durationSeconds: duration,
+      completed,
+      percentage: completed
+        ? 100
+        : duration
+        ? Math.min(99, Math.round((watched / duration) * 100))
+        : 0
+    };
   }
 
   // ------------------------------------------------------------------

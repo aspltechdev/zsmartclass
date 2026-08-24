@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminNotifications.css";
+import "./AdminShared.css";
 
 // Channels (stored in the notification `type` field)
 const CHANNELS = [

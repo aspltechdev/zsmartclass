@@ -21,6 +21,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import "./Profile.css";
+import "./MentorShared.css";
 
 function Profile() {
   const { user: authUser, updateUser: updateAuthUser } = useAuth();

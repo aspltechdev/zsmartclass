@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import "./Certificates.css";
+import "./MentorShared.css";
 
 function Certificates() {
   const [pending, setPending] = useState([]);

@@ -22,6 +22,7 @@ import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
 import "./Modules.css";
+import "./MentorShared.css";
 
 const EMPTY_FORM = {
   title: "",

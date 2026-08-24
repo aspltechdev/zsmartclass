@@ -78,3 +78,13 @@ exports.getQuizMarks = async (req, res) => {
     fail(res, err, 500);
   }
 };
+
+// Student submits a quiz attempt
+exports.submitQuizAttempt = async (req, res) => {
+  try {
+    const attempt = await quizService.submitQuizAttempt(req.params.quizId, req.user.id, req.body);
+    res.status(201).json({ success: true, message: "Quiz submitted successfully.", data: attempt });
+  } catch (err) {
+    fail(res, err);
+  }
+};

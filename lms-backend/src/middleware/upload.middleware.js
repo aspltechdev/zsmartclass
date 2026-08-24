@@ -13,6 +13,7 @@ createFolder("uploads/thumbnails");
 createFolder("uploads/resources");
 createFolder("uploads/documents");
 createFolder("uploads/profile-images");
+createFolder("uploads/videos");
 
 const storage = multer.diskStorage({
 
@@ -26,6 +27,9 @@ const storage = multer.diskStorage({
         }
         else if (file.fieldname === "profileImage") {
             cb(null, "uploads/profile-images");
+        }
+        else if (file.fieldname === "video") {
+            cb(null, "uploads/videos");
         }
         else {
             cb(null, "uploads/documents");
@@ -73,6 +77,13 @@ const fileFilter = (req, file, cb) => {
         return cb(null, true);
     }
 
+    if (
+        file.fieldname === "video" &&
+        file.mimetype.startsWith("video/")
+    ) {
+        return cb(null, true);
+    }
+
     cb(new Error("Invalid file type"));
 
 };
@@ -82,7 +93,7 @@ const upload = multer({
     storage,
 
     limits: {
-        fileSize: 50 * 1024 * 1024
+        fileSize: 500 * 1024 * 1024
     },
 
     fileFilter

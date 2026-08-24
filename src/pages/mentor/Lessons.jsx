@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import "./Lessons.css";
+import "./MentorShared.css";
 
 const VIDEO_TYPES = ["VIDEO", "DOCUMENT", "LINK", "FILE"];
 
@@ -36,6 +37,13 @@ function Lessons() {
 
   useEffect(() => { fetchModules(); }, []);
   useEffect(() => { if (moduleId) loadModule(moduleId); else setLoading(false); }, [moduleId]);
+
+  // Arriving from Modules keeps the old scroll position, which hides the
+  // header and "Add Lesson" above the fold. Reset it on entry.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document.querySelector(".mentor-content")?.scrollTo({ top: 0, behavior: "auto" });
+  }, [moduleId]);
 
   const fetchModules = async () => {
     try {
@@ -109,12 +117,26 @@ function Lessons() {
   const typeColor = (t) => ({ VIDEO: "#3b82f6", DOCUMENT: "#10b981",
     LINK: "#f59e0b", FILE: "#8b5cf6" }[t] || "#64748b");
 
+  // A self-hosted file plays in a native <video> element — no third-party
+  // branding at all (YouTube always shows its channel name and logo).
+  const isDirectVideo = (url) =>
+    !!url && /\.(mp4|webm|ogg|ogv|mov|m4v)(\?.*)?$/i.test(url.trim());
+
   const getEmbedUrl = (url) => {
     if (!url) return null;
-    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-    if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
+
+    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/);
+    if (yt) {
+      const params = new URLSearchParams({
+        rel: "0", modestbranding: "1", iv_load_policy: "3",
+        controls: "1", fs: "1", playsinline: "1",
+      });
+      return `https://www.youtube-nocookie.com/embed/${yt[1]}?${params.toString()}`;
+    }
+
     const vm = url.match(/(?:vimeo\.com\/)(\d+)/);
-    if (vm) return `https://player.vimeo.com/video/${vm[1]}`;
+    if (vm) return `https://player.vimeo.com/video/${vm[1]}?title=0&byline=0&portrait=0&dnt=1`;
+
     return url;
   };
 
@@ -191,7 +213,6 @@ function Lessons() {
                     <span className="lesson-type-icon">{typeIcon(lesson.videoType)}</span>
                     {lesson.videoType || "VIDEO"}
                   </span>
-                  {lesson.isPreview && <span className="preview-badge">Free preview</span>}
                 </div>
                 <div className="lesson-actions">
                   {lesson.videoUrl && (
@@ -241,7 +262,7 @@ function Lessons() {
                 <label>Content URL</label>
                 <input value={form.videoUrl} placeholder="YouTube / Vimeo / direct link"
                        onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} />
-                <span className="field-hint">YouTube and Vimeo links embed automatically.</span>
+                <span className="field-hint">Direct video files (.mp4 / .webm) play in a clean, branding-free player. YouTube always shows its own channel name and logo.</span>
               </div>
               <div className="form-group">
                 <label>Attachment URL</label>
@@ -252,13 +273,6 @@ function Lessons() {
                 <label>Position</label>
                 <input type="number" min="1" value={form.position}
                        onChange={(e) => setForm({ ...form, position: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="toggle-label">
-                  <input type="checkbox" checked={form.isPreview}
-                         onChange={(e) => setForm({ ...form, isPreview: e.target.checked })} />
-                  Free preview lesson
-                </label>
               </div>
             </div>
             <div className="modal-footer">
@@ -281,8 +295,16 @@ function Lessons() {
             <div className="modal-body preview-body">
               {preview.videoUrl ? (
                 <div className="preview-container">
-                  <iframe className="preview-iframe" src={getEmbedUrl(preview.videoUrl)}
-                          title={preview.title} allowFullScreen />
+                  {isDirectVideo(preview.videoUrl) ? (
+                    <video className="preview-iframe" src={preview.videoUrl}
+                           controls controlsList="nodownload" playsInline preload="metadata" />
+                  ) : (
+                    <iframe className="preview-iframe" src={getEmbedUrl(preview.videoUrl)}
+                            title={preview.title}
+                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            referrerPolicy="strict-origin-when-cross-origin"
+                            allowFullScreen />
+                  )}
                 </div>
               ) : (
                 <div className="preview-empty"><p>No content URL for this lesson.</p></div>

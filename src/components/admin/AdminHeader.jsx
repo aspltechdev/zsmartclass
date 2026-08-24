@@ -26,10 +26,8 @@ const PAGE_LABELS = {
   payments: "Payments",
   certificates: "Certificates",
   notifications: "Notifications",
-  reviews: "Reviews",
   reports: "Reports",
   profile: "Profile",
-  settings: "Settings",
 };
 
 function AdminHeader({ collapsed = false, onToggleCollapse, onToggleMobile }) {
@@ -119,7 +117,7 @@ function AdminHeader({ collapsed = false, onToggleCollapse, onToggleMobile }) {
       <div className="ah-right">
         <button
           className="ah-icon-btn"
-          onClick={() => navigate("/admin/certificates")}
+          onClick={() => navigate("/admin/notifications")}
           aria-label="Pending certificates"
           title="Pending certificates"
         >

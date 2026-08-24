@@ -1,99 +1,64 @@
 ﻿// src/components/mentor/MentorSidebar.jsx
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   BookOpen,
   Users,
-  IndianRupee,
   Award,
   Layers,
   Star,
   ClipboardList,
   FileQuestion,
-  Settings,
   LogOut,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import "./MentorSidebar.css";
 
 const menu = [
-  // ==========================================
-  // MAIN DASHBOARD
-  // ==========================================
-  {
-    title: "Dashboard",
-    path: "/mentor/dashboard",
-    icon: LayoutDashboard,
-    category: "Main",
-  },
+  { title: "Dashboard", path: "/mentor/dashboard", icon: LayoutDashboard, category: "Main" },
 
-  // ==========================================
-  // CONTENT MANAGEMENT
-  // ==========================================
-  {
-    title: "My Courses",
-    path: "/mentor/courses",
-    icon: BookOpen,
-    category: "Content",
-  },
-  {
-    title: "Modules",
-    path: "/mentor/modules",
-    icon: Layers,
-    category: "Content",
-  },
+  { title: "My Courses", path: "/mentor/courses", icon: BookOpen, category: "Content" },
+  { title: "Modules", path: "/mentor/modules", icon: Layers, category: "Content" },
 
-  // ==========================================
-  // STUDENTS & ENGAGEMENT
-  // ==========================================
-  {
-    title: "Students Enrollments",
-    path: "/mentor/students",
-    icon: Users,
-    category: "Engagement",
-  },
-  {
-    title: "Quiz Marks",
-    path: "/mentor/quizmark",
-    icon: FileQuestion,
-    category: "Engagement",
-  },
-  {
-    title: "Certificates",
-    path: "/mentor/certificates",
-    icon: Award,
-    category: "Engagement",
-  },
-  {
-    title: "Assignments",
-    path: "/mentor/assignments",
-    icon: ClipboardList,
-    category: "Engagement",
-  },
-  
+  { title: "Students Enrollments", path: "/mentor/students", icon: Users, category: "Engagement" },
+  { title: "Quiz Marks", path: "/mentor/quizmark", icon: FileQuestion, category: "Engagement" },
+  { title: "Certificates", path: "/mentor/certificates", icon: Award, category: "Engagement" },
+  { title: "Assignments", path: "/mentor/assignments", icon: ClipboardList, category: "Engagement" },
 
-  // ==========================================
-  // ANALYTICS
-  // ==========================================
-  {
-    title: "Reviews",
-    path: "/mentor/reviews",
-    icon: Star,
-    category: "Analytics",
-  },
+  { title: "Reviews", path: "/mentor/reviews", icon: Star, category: "Analytics" },
 ];
 
-// Get unique categories
-const categories = [...new Set(menu.map(item => item.category))];
+const categories = [...new Set(menu.map((item) => item.category))];
 
-function MentorSidebar({ isOpen, isMobileOpen, toggleMobile }) {
+function MentorSidebar({ collapsed = false, mobileOpen = false, onNavigate }) {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/login";
+    // Use the auth context so in-memory state is cleared too, not just storage.
+    if (typeof logout === "function") {
+      logout();
+    } else {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    navigate("/login", { replace: true });
+  };
+
+  const handleLinkClick = () => {
+    if (typeof onNavigate === "function") onNavigate();
   };
 
   return (
-    <aside className={`mentor-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
+    <aside
+      className={[
+        "mentor-sidebar",
+        collapsed ? "collapsed" : "",
+        mobileOpen ? "mobile-open" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="logo-circle">Z</div>
@@ -116,15 +81,11 @@ function MentorSidebar({ isOpen, isMobileOpen, toggleMobile }) {
                   <NavLink
                     key={item.path}
                     to={item.path}
+                    onClick={handleLinkClick}
                     className={({ isActive }) =>
                       isActive ? "sidebar-link active" : "sidebar-link"
                     }
                     data-title={item.title}
-                    onClick={() => {
-                      if (window.innerWidth <= 768) {
-                        toggleMobile?.();
-                      }
-                    }}
                   >
                     <Icon size={20} />
                     <span>{item.title}</span>
@@ -137,7 +98,7 @@ function MentorSidebar({ isOpen, isMobileOpen, toggleMobile }) {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <button className="logout-btn" onClick={handleLogout}>
+        <button className="logout-btn" onClick={handleLogout} data-title="Logout">
           <LogOut size={18} />
           <span>Logout</span>
         </button>

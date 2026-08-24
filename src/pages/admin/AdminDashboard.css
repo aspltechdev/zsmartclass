@@ -10,11 +10,13 @@
    ========================================================= */
 
 .dashboard-page {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
   background: #f8fafc;
-  min-height: 100vh;
+  color: #0f172a;
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
 
@@ -73,7 +75,8 @@
 
 .dashboard-cards {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* auto-fit so the 11 cards flow neatly instead of forcing 4 per row */
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 16px;
 
   margin-bottom: 24px;

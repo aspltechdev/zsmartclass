@@ -1,0 +1,267 @@
+/* =========================================================
+   STUDENT — ASSIGNMENTS
+   Page-specific only; StudentShared.css covers the rest.
+   ========================================================= */
+
+.assignments-container { width: 100%; font-family: 'Poppins', system-ui, sans-serif; }
+
+/* ---------- Header ---------- */
+.assignments-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.assignments-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #0f172a;
+}
+
+.assignments-subtitle {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.assignments-count {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* ---------- List ---------- */
+.assignments-list { display: flex; flex-direction: column; gap: 14px; }
+
+.assignment-card {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-left: 4px solid #6366f1;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.assignment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+}
+
+/* overdue work gets a red rail so it reads instantly */
+.assignment-card.assignment-overdue { border-left-color: #ef4444; }
+
+/* ---------- Card header ---------- */
+.assignment-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 17px 19px 0;
+}
+
+.assignment-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.26);
+}
+
+.assignment-card.assignment-overdue .assignment-icon {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.26);
+}
+
+.assignment-icon svg { color: #fff; }
+
+.assignment-title-section { flex: 1; min-width: 0; }
+
+.assignment-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.assignment-course {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  color: #6366f1;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+/* ---------- Body ---------- */
+.assignment-body { padding: 14px 19px 18px; }
+
+.assignment-description {
+  margin: 0 0 14px;
+  color: #475569;
+  font-size: 13.5px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Meta grid ---------- */
+.assignment-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fafbfc;
+}
+
+.meta-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #eef2ff;
+  color: #6366f1;
+}
+
+.meta-label {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.meta-value {
+  display: block;
+  margin-top: 2px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-subvalue {
+  display: block;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+/* overdue tint on the due-date tile */
+.assignment-overdue .meta-item:first-child { background: #fef2f2; }
+.assignment-overdue .meta-item:first-child .meta-icon { background: #fee2e2; color: #dc2626; }
+.assignment-overdue .meta-item:first-child .meta-value { color: #b91c1c; }
+
+/* ---------- States ---------- */
+.assignments-empty,
+.assignments-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 280px;
+  padding: 48px 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: #fff;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.assignments-error {
+  border-style: solid;
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.assignments-empty-icon { color: #cbd5e1; }
+
+.assignments-empty h3 {
+  margin: 4px 0 0;
+  color: #334155;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.assignment-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin-top: 6px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.assignments-loading {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #64748b;
+}
+
+.assignment-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: asgSpin 0.75s linear infinite;
+}
+
+@keyframes asgSpin { to { transform: rotate(360deg); } }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .assignments-title { font-size: 21px; }
+  .assignments-header { flex-direction: column; align-items: stretch; }
+  .assignment-meta-grid { grid-template-columns: 1fr; }
+}

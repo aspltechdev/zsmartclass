@@ -1,45 +1,36 @@
-/* src/components/mentor/MentorHeader.css */
+/* =========================================================
+   ZSMARTCLASS — MENTOR HEADER
+   Sticky top bar: breadcrumb + actions + profile.
+   All classes are mh- prefixed, so no admin collision.
+   ========================================================= */
 
-/* ========================================== */
-/* CSS Variables */
-/* ========================================== */
-:root {
-  --brand-primary: #667eea;
-  --brand-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --border: #e2e8f0;
-  --bg-subtle: #f1f5f9;
-  --text-primary: #1a1a2e;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --danger: #ef4444;
-  --danger-bg: #fef2f2;
-  --radius-sm: 8px;
-  --radius-full: 9999px;
-  --transition: all 0.2s ease;
-}
-
-/* ========================================== */
-/* Mentor Header Container */
-/* ========================================== */
 .mentor-header {
+  position: sticky;
+  top: 0;
+  z-index: 900;
+
+  height: var(--admin-header-height, 68px);
+  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-sizing: border-box;
   gap: 16px;
+
+  padding: 0 24px;
+
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+
+  border-bottom: 1px solid var(--admin-border-light, #eef0f4);
+
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* ========================================== */
-/* Left Section */
-/* ========================================== */
+/* =========================================================
+   LEFT — menu + breadcrumb
+   ========================================================= */
+
 .mh-left {
   display: flex;
   align-items: center;
@@ -48,497 +39,383 @@
 }
 
 .mh-menu-btn {
-  display: none;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-secondary);
+  width: 38px;
+  height: 38px;
+
+  display: none;                 /* mobile only */
   align-items: center;
   justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--admin-border, #e5e7eb);
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: var(--admin-text-secondary, #475569);
+
   cursor: pointer;
-  transition: var(--transition);
-  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
 .mh-menu-btn:hover {
-  background: var(--bg-subtle);
-  color: var(--text-primary);
+  background: #f8fafc;
+  color: var(--admin-text, #111827);
 }
+
+.mh-collapse-btn {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--admin-border, #e5e7eb);
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: var(--admin-text-secondary, #475569);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mh-collapse-btn:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #6366f1;
+}
+
+/* ---------- Breadcrumb ---------- */
 
 .mh-breadcrumb {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 .mh-breadcrumb-parent {
+  color: var(--admin-text-muted, #94a3b8);
   font-size: 13px;
-  color: var(--text-muted);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .mh-breadcrumb-sep {
-  color: var(--text-muted);
+  flex-shrink: 0;
+  color: var(--admin-text-light, #cbd5e1);
 }
 
 .mh-breadcrumb-current {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
+  color: var(--admin-text, #111827);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  text-transform: capitalize;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ========================================== */
-/* Right Section */
-/* ========================================== */
+/* =========================================================
+   RIGHT — actions + profile
+   ========================================================= */
+
 .mh-right {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 12px;
 }
 
-/* ========================================== */
-/* Search Bar */
-/* ========================================== */
-.mh-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 7px 14px;
-  width: 220px;
-  transition: var(--transition);
-}
-
-.mh-search:focus-within {
-  background: #fff;
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  width: 260px;
-}
-
-.mh-search svg {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.mh-search input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 13px;
-  color: var(--text-primary);
-  width: 100%;
-}
-
-.mh-search input::placeholder {
-  color: var(--text-muted);
-}
-
-/* ========================================== */
-/* Icon Buttons */
-/* ========================================== */
 .mh-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text-secondary);
+  position: relative;
+
+  width: 40px;
+  height: 40px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--admin-border, #e5e7eb);
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: var(--admin-text-secondary, #475569);
+
   cursor: pointer;
-  position: relative;
-  transition: var(--transition);
-  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
 .mh-icon-btn:hover {
-  background: var(--bg-subtle);
-  color: var(--text-primary);
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #6366f1;
 }
 
-/* ========================================== */
-/* Profile Wrapper & Button */
-/* ========================================== */
-.mh-profile-wrapper {
-  position: relative;
+.mh-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+
+  min-width: 18px;
+  height: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 5px;
+
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+
+  background: #dc2626;
+  color: #ffffff;
+
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
 }
+
+/* =========================================================
+   PROFILE
+   ========================================================= */
+
+.mh-profile-wrapper { position: relative; }
 
 .mh-profile {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 4px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: #fff;
+  gap: 12px;
+
+  padding: 5px 10px 5px 5px;
+
+  border: 1px solid var(--admin-border, #e5e7eb);
+  border-radius: 999px;
+
+  background: #ffffff;
+
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s ease;
 }
 
 .mh-profile:hover {
-  background: var(--bg-subtle);
+  background: #f8fafc;
+  border-color: #d1d5db;
 }
 
 .mh-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  background: var(--brand-gradient);
-  color: #fff;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  flex-shrink: 0;
+
+  border-radius: 50%;
+  overflow: hidden;
+
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .mh-profile-info {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.2;
 }
 
 .mh-profile-name {
-  font-size: 12.5px;
+  color: var(--admin-text, #111827);
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
+
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .mh-profile-role {
+  color: var(--admin-text-muted, #94a3b8);
   font-size: 10px;
-  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .mh-profile-arrow {
-  color: var(--text-muted);
+  flex-shrink: 0;
+  color: var(--admin-text-muted, #94a3b8);
   transition: transform 0.2s ease;
 }
 
-.mh-profile-arrow.open {
-  transform: rotate(180deg);
-}
+.mh-profile-arrow.open { transform: rotate(180deg); }
 
-/* ========================================== */
-/* Profile Dropdown */
-/* ========================================== */
+/* =========================================================
+   PROFILE DROPDOWN
+   ========================================================= */
+
 .mh-profile-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   right: 0;
-  width: 240px;
+  z-index: 950;
+
+  width: 260px;
+  padding: 6px;
+
   background: #ffffff;
+  border: 1px solid var(--admin-border-light, #eef0f4);
   border-radius: 12px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-  z-index: 200;
-  animation: slideDown 0.2s ease;
+
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+
+  animation: mhDropdownIn 0.16s ease;
+}
+
+@keyframes mhDropdownIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .mh-dropdown-user {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 12px;
 }
 
 .mh-dropdown-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--brand-gradient);
-  color: #fff;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  border-radius: 50%;
+  overflow: hidden;
+
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+
+  color: #ffffff;
+  font-size: 16px;
   font-weight: 600;
-  font-size: 14px;
-  flex-shrink: 0;
+  text-transform: uppercase;
 }
 
+.mh-dropdown-user > div:last-child { min-width: 0; }
+
 .mh-dropdown-user h4 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
   margin: 0;
+  color: var(--admin-text, #111827);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mh-dropdown-user span {
-  font-size: 11px;
-  color: var(--text-muted);
+  display: block;
+  color: var(--admin-text-muted, #94a3b8);
+  font-size: 12px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mh-dropdown-divider {
   height: 1px;
-  background: var(--border);
-  margin: 0 12px;
+  margin: 4px 0;
+  background: var(--admin-border-light, #eef0f4);
 }
 
 .mh-dropdown-item {
+  width: 100%;
+
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: var(--transition);
-  background: none;
+  gap: 12px;
+
+  padding: 10px 12px;
+
   border: none;
-  width: 100%;
-  cursor: pointer;
+  border-radius: 8px;
+
+  background: transparent;
+  color: var(--admin-text-secondary, #475569);
+
+  font-family: inherit;
   font-size: 13px;
   font-weight: 500;
-}
+  text-align: left;
+  text-decoration: none;
 
-.mh-dropdown-item:hover {
-  background: var(--bg-subtle);
-  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .mh-dropdown-item svg {
-  color: var(--text-muted);
+  flex-shrink: 0;
+  color: var(--admin-text-muted, #94a3b8);
+  transition: color 0.2s ease;
 }
 
-.mh-dropdown-item:hover svg {
-  color: var(--text-primary);
+.mh-dropdown-item:hover {
+  background: #eef2ff;
+  color: #6366f1;
 }
 
-.mh-dropdown-logout {
-  color: var(--danger);
+.mh-dropdown-item:hover svg { color: #6366f1; }
+
+.mh-dropdown-logout:hover { background: #fee2e2; color: #dc2626; }
+.mh-dropdown-logout:hover svg { color: #dc2626; }
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .mentor-header { padding: 0 16px; }
+  .mh-menu-btn { display: flex; }
+  .mh-collapse-btn { display: none; }
 }
 
-.mh-dropdown-logout:hover {
-  background: var(--danger-bg);
-  color: var(--danger);
+@media (max-width: 600px) {
+  .mh-breadcrumb-parent,
+  .mh-breadcrumb-sep { display: none; }
+
+  .mh-breadcrumb-current { font-size: 14px; }
+
+  .mh-profile-info { display: none; }
+  .mh-profile { padding: 4px; border-radius: 50%; }
+  .mh-profile-arrow { display: none; }
+
+  .mh-profile-dropdown { width: min(280px, calc(100vw - 32px)); }
 }
 
-.mh-dropdown-logout:hover svg {
-  color: var(--danger);
-}
-
-/* ========================================== */
-/* Animations */
-/* ========================================== */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* ========================================== */
-/* Mobile Search Overlay */
-/* ========================================== */
-.mh-mobile-search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 64px;
-  z-index: 99;
-}
-
-.mh-mobile-search .mh-search.expanded {
-  flex: 1;
-  width: auto;
-}
-
-.mobile-search-toggle {
-  display: none;
-}
-
-/* ========================================== */
-/* Dark Mode Support */
-/* ========================================== */
-@media (prefers-color-scheme: dark) {
-  .mentor-header {
-    background: rgba(26, 26, 46, 0.95);
-    border-bottom-color: rgba(255, 255, 255, 0.05);
-  }
-
-  .mh-breadcrumb-parent {
-    color: #64748b;
-  }
-
-  .mh-breadcrumb-current {
-    color: #e2e8f0;
-  }
-
-  .mh-search {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-
-  .mh-search input {
-    color: #e2e8f0;
-  }
-
-  .mh-search input::placeholder {
-    color: #64748b;
-  }
-
-  .mh-search:focus-within {
-    background: #1a1a2e;
-    border-color: #667eea;
-  }
-
-  .mh-icon-btn {
-    background: #1a1a2e;
-    border-color: rgba(255, 255, 255, 0.08);
-    color: #94a3b8;
-  }
-
-  .mh-icon-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #e2e8f0;
-  }
-
-  .mh-profile {
-    background: #1a1a2e;
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-
-  .mh-profile-name {
-    color: #e2e8f0;
-  }
-
-  .mh-profile-role {
-    color: #64748b;
-  }
-
-  .mh-profile-dropdown {
-    background: #1a1a2e;
-    border-color: rgba(255, 255, 255, 0.05);
-  }
-
-  .mh-dropdown-user h4 {
-    color: #e2e8f0;
-  }
-
-  .mh-dropdown-user span {
-    color: #64748b;
-  }
-
-  .mh-dropdown-item {
-    color: #94a3b8;
-  }
-
-  .mh-dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #e2e8f0;
-  }
-
-  .mh-dropdown-item svg {
-    color: #64748b;
-  }
-
-  .mh-dropdown-item:hover svg {
-    color: #e2e8f0;
-  }
-
-  .mh-dropdown-divider {
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .mh-mobile-search {
-    background: #1a1a2e;
-    border-bottom-color: rgba(255, 255, 255, 0.05);
-  }
-}
-
-/* ========================================== */
-/* Responsive Design */
-/* ========================================== */
-
-/* Tablet */
-@media (max-width: 1024px) {
-  .mh-profile-info {
-    display: none;
-  }
-  
-  .mh-search {
-    width: 160px;
-  }
-  
-  .mh-search:focus-within {
-    width: 200px;
-  }
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-  .mentor-header {
-    padding: 0 16px;
-    height: 60px;
-  }
-  
-  .mh-menu-btn {
-    display: flex;
-  }
-  
-  .mh-search {
-    display: none;
-  }
-  
-  .mobile-search-toggle {
-    display: flex;
-  }
-  
-  .mh-profile {
-    padding: 4px;
-  }
-  
-  .mh-profile-info {
-    display: none;
-  }
-  
-  .mh-profile-arrow {
-    display: none;
-  }
-  
-  .mh-profile-dropdown {
-    right: -20px;
-    width: 220px;
-  }
-  
-  .mh-mobile-search {
-    top: 60px;
-  }
-}
-
-/* Small Mobile */
-@media (max-width: 480px) {
-  .mentor-header {
-    padding: 0 12px;
-  }
-  
-  .mh-breadcrumb-parent {
-    display: none;
-  }
-  
-  .mh-breadcrumb-sep {
-    display: none;
-  }
-  
-  .mh-profile-dropdown {
-    right: -10px;
-    width: 200px;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .mh-profile-dropdown { animation: none; }
+  .mh-icon-btn, .mh-profile, .mh-dropdown-item, .mh-profile-arrow { transition: none; }
 }

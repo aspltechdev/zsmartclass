@@ -124,3 +124,38 @@ exports.reorderLessons = async (req, res) => {
         });
     }
 };
+
+// ==========================================
+// ADMIN/MENTOR: UPLOAD A LESSON VIDEO
+// Saves to /uploads/videos and returns the public URL.
+// The frontend stores that URL in the lesson's videoUrl.
+// ==========================================
+exports.uploadVideo = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "No video file received."
+            });
+        }
+
+        // Served statically by app.js -> app.use("/uploads", express.static(...))
+        const url = `/uploads/videos/${req.file.filename}`;
+
+        res.status(201).json({
+            success: true,
+            message: "Video uploaded successfully.",
+            data: {
+                url,
+                filename: req.file.filename,
+                size: req.file.size,
+                mimetype: req.file.mimetype
+            }
+        });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message
+        });
+    }
+};

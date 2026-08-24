@@ -1,0 +1,1103 @@
+/* ==========================================================================
+   src/pages/admin/AdminShared.css
+   ONE consistency layer for every admin page.
+
+   HOW TO USE — in each admin page, import this AFTER the page's own CSS:
+       import "./AdminUsers.css";
+       import "./AdminShared.css";   <-- must be LAST so it wins
+
+   It normalises the class names your pages already use, so you get identical
+   buttons / stat cards / modals WITHOUT rewriting any JSX.
+
+   Covers: Dashboard, Users, Categories, Courses, Modules, Enrollments,
+           Payments, Certificates, Notifications, Reports, Coupons, Reviews.
+   ========================================================================== */
+
+:root {
+  --a-font: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --a-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --a-primary: #6366f1;
+  --a-text: #1a1a2e;
+  --a-muted: #64748b;
+  --a-line: #e5e7eb;
+
+  --a-blue: #2563eb;
+  --a-green: #10b981;
+  --a-amber: #f59e0b;
+  --a-purple: #8b5cf6;
+  --a-cyan: #06b6d4;
+  --a-red: #ef4444;
+  --a-pink: #ec4899;
+  --a-teal: #0d9488;
+  --a-orange: #f97316;
+}
+
+/* ==========================================================================
+   1. POPPINS EVERYWHERE
+   ========================================================================== */
+.admin-content,
+.admin-content h1, .admin-content h2, .admin-content h3,
+.admin-content h4, .admin-content h5, .admin-content p,
+.admin-content span, .admin-content div, .admin-content td,
+.admin-content th, .admin-content label, .admin-content a,
+.admin-content button,
+.admin-content input,
+.admin-content select,
+.admin-content textarea,
+.modal, .modal-content,
+.users-modal-overlay,
+.modal *, .modal-content *,
+.users-modal-overlay * {
+  font-family: var(--a-font) !important;
+}
+/* keep intentional monospace (codes, slugs, receipts) readable */
+.category-slug, .mono, .coupon-code {
+  font-family: 'Poppins', ui-monospace, Consolas, monospace !important;
+}
+
+/* ==========================================================================
+   2. BUTTONS — one look for every page
+   ========================================================================== */
+.admin-content .btn-save,
+.admin-content .btn-cancel,
+.admin-content .btn-danger,
+.admin-content .btn-update,
+.admin-content .btn-delete,
+.admin-content .btn-edit,
+.admin-content .add-btn,
+.admin-content .view-btn,
+.admin-content .edit-btn,
+.admin-content .delete-btn,
+.admin-content .save-btn,
+.admin-content .cancel-btn,
+.admin-content .update-btn,
+.admin-content .primary-button,
+.admin-content .secondary-button,
+.admin-content .danger-button,
+.admin-content .invite-user-button,
+.admin-content .invite-button,
+.admin-content .rp-btn,
+.admin-content .pay-btn,
+.admin-content .ntf-btn,
+.admin-content .back-link {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.admin-content button:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+.admin-content button svg { flex-shrink: 0; }
+
+/* --- PRIMARY / SAVE / UPDATE / ADD (purple-indigo gradient) --- */
+.admin-content .btn-save,
+.admin-content .save-btn,
+.admin-content .btn-update,
+.admin-content .update-btn,
+.admin-content .add-btn,
+.admin-content .primary-button,
+.admin-content .invite-user-button,
+.admin-content .invite-button {
+  background: var(--a-gradient) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+.admin-content .btn-save:hover:not(:disabled),
+.admin-content .save-btn:hover:not(:disabled),
+.admin-content .btn-update:hover:not(:disabled),
+.admin-content .update-btn:hover:not(:disabled),
+.admin-content .add-btn:hover:not(:disabled),
+.admin-content .primary-button:hover:not(:disabled),
+.admin-content .invite-user-button:hover:not(:disabled),
+.admin-content .invite-button:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.42);
+  transform: translateY(-1px);
+}
+
+/* --- EDIT --- */
+.admin-content .btn-edit,
+.admin-content .edit-btn {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+.admin-content .btn-edit:hover:not(:disabled),
+.admin-content .edit-btn:hover:not(:disabled) { background: #e0e7ff !important; }
+
+/* --- VIEW --- */
+.admin-content .view-btn {
+  background: #ecfeff !important;
+  color: #0e7490 !important;
+  border-color: #a5f3fc !important;
+}
+.admin-content .view-btn:hover:not(:disabled) { background: #cffafe !important; }
+
+/* Categories uses .view-btn/.edit-btn as compact ICON-ONLY squares in the
+   table. Keep that shape (don't stretch them like icon+text buttons) but
+   align the colours with the rest of the system. */
+.admin-content .action-buttons .view-btn,
+.admin-content .action-buttons .edit-btn,
+.admin-content .action-buttons .delete-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0 !important;
+  gap: 0;
+  border-radius: 8px !important;
+}
+.admin-content .action-buttons .edit-btn {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+.admin-content .action-buttons .edit-btn:hover { background: #e0e7ff !important; }
+
+/* --- DELETE / DANGER --- */
+.admin-content .btn-danger,
+.admin-content .btn-delete,
+.admin-content .delete-btn,
+.admin-content .danger-button {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+  box-shadow: none !important;
+}
+.admin-content .btn-danger:hover:not(:disabled),
+.admin-content .btn-delete:hover:not(:disabled),
+.admin-content .delete-btn:hover:not(:disabled),
+.admin-content .danger-button:hover:not(:disabled) { background: #fee2e2 !important; }
+
+/* --- CANCEL / SECONDARY --- */
+.admin-content .btn-cancel,
+.admin-content .cancel-btn,
+.admin-content .secondary-button {
+  background: #fff !important;
+  color: #475569 !important;
+  border-color: var(--a-line) !important;
+  box-shadow: none !important;
+}
+.admin-content .btn-cancel:hover:not(:disabled),
+.admin-content .cancel-btn:hover:not(:disabled),
+.admin-content .secondary-button:hover:not(:disabled) { background: #f8fafc !important; }
+
+/* --- ICON-ONLY (refresh etc.) --- */
+.admin-content .refresh-btn,
+.admin-content .users-refresh {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--a-line) !important;
+  background: #fff !important;
+  color: #475569 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.admin-content .refresh-btn:hover,
+.admin-content .users-refresh:hover {
+  background: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: var(--a-primary) !important;
+}
+
+/* Small action buttons inside table rows */
+.admin-content .action-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--a-line);
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.admin-content .action-btn:hover { background: #f1f5f9; }
+.admin-content .action-btn.download-btn,
+.admin-content .action-btn.view-btn { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
+.admin-content .action-btn.delete-btn { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.admin-content .action-btn.approve-btn { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+
+/* ==========================================================================
+   3. STAT CARDS — Dashboard look on every page
+   ========================================================================== */
+.admin-content .stat-card,
+.admin-content .user-stat,
+.admin-content .pay-stat-card,
+.admin-content .ntf-stat,
+.admin-content .stats-card {
+  position: relative;
+  min-width: 0;
+  min-height: 118px;
+  display: flex !important;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.admin-content .stat-card:hover,
+.admin-content .user-stat:hover,
+.admin-content .pay-stat-card:hover,
+.admin-content .ntf-stat:hover,
+.admin-content .stats-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* soft decorative circle, same as dashboard */
+.admin-content .stat-card::after,
+.admin-content .user-stat::after,
+.admin-content .pay-stat-card::after,
+.admin-content .ntf-stat::after {
+  content: "";
+  position: absolute;
+  right: -35px;
+  bottom: -45px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.035);
+  pointer-events: none;
+}
+
+/* the coloured icon tile (SVG background) */
+.admin-content .stat-card > svg,
+.admin-content .user-stat-icon,
+.admin-content .pay-stat-icon,
+.admin-content .ntf-stat-icon,
+.admin-content .stat-icon,
+.admin-content .stat-icon-purple,
+.admin-content .stat-icon-blue {
+  width: 48px !important;
+  height: 48px !important;
+  flex: 0 0 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px !important;
+  color: #fff !important;
+  /* No !important here: an inline `style={{ background: color }}` in the JSX,
+     or a page's own rule, is a deliberate purpose colour and should win.
+     Cards without one fall back to --a-stat-color. */
+  background: var(--a-stat-color, var(--a-primary));
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+  position: relative;
+  z-index: 1;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.admin-content .user-stat-icon svg,
+.admin-content .pay-stat-icon svg,
+.admin-content .ntf-stat-icon svg,
+.admin-content .stat-icon svg { width: 23px; height: 23px; }
+
+/* card text */
+.admin-content .stat-card h3,
+.admin-content .stat-card h2,
+.admin-content .user-stat h3,
+.admin-content .user-stat h2,
+.admin-content .user-stat strong,
+.admin-content .pay-stat-value,
+.admin-content .ntf-stat-value {
+  display: block;
+  margin: 0 !important;
+  color: var(--a-text) !important;
+  font-size: 23px !important;
+  line-height: 1.25;
+  font-weight: 700 !important;
+  letter-spacing: -0.4px;
+}
+.admin-content .stat-card p,
+.admin-content .user-stat p,
+.admin-content .user-stat > div > span,
+.admin-content .pay-stat-label,
+.admin-content .ntf-stat-label {
+  display: block;
+  margin: 5px 0 0 !important;
+  color: var(--a-muted) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* --- PURPOSE COLOURS -------------------------------------------------
+   Add ONE class to colour a card by meaning:
+     <div className="stat-card sc-green"> … </div>
+   Without it, the nth-child fallback below keeps cards varied.
+   -------------------------------------------------------------------- */
+.admin-content .sc-blue   { --a-stat-color: var(--a-blue); }
+.admin-content .sc-green  { --a-stat-color: var(--a-green); }
+.admin-content .sc-amber  { --a-stat-color: var(--a-amber); }
+.admin-content .sc-purple { --a-stat-color: var(--a-purple); }
+.admin-content .sc-cyan   { --a-stat-color: var(--a-cyan); }
+.admin-content .sc-red    { --a-stat-color: var(--a-red); }
+.admin-content .sc-pink   { --a-stat-color: var(--a-pink); }
+.admin-content .sc-teal   { --a-stat-color: var(--a-teal); }
+.admin-content .sc-orange { --a-stat-color: var(--a-orange); }
+
+/* Fallback rotation — LOW priority on purpose. A page that defines its own
+   stat colours (Users, Enrollments, Certificates, Courses…) must win, so this
+   is only a default for pages that set nothing. */
+.admin-content .stat-card:nth-child(1),
+.admin-content .user-stat:nth-child(1),
+.admin-content .pay-stat-card:nth-child(1),
+.admin-content .ntf-stat:nth-child(1) { --a-stat-color: var(--a-blue); }
+.admin-content .stat-card:nth-child(2),
+.admin-content .user-stat:nth-child(2),
+.admin-content .pay-stat-card:nth-child(2),
+.admin-content .ntf-stat:nth-child(2) { --a-stat-color: var(--a-green); }
+.admin-content .stat-card:nth-child(3),
+.admin-content .user-stat:nth-child(3),
+.admin-content .pay-stat-card:nth-child(3),
+.admin-content .ntf-stat:nth-child(3) { --a-stat-color: var(--a-amber); }
+.admin-content .stat-card:nth-child(4),
+.admin-content .user-stat:nth-child(4),
+.admin-content .pay-stat-card:nth-child(4),
+.admin-content .ntf-stat:nth-child(4) { --a-stat-color: var(--a-purple); }
+.admin-content .stat-card:nth-child(5),
+.admin-content .user-stat:nth-child(5),
+.admin-content .pay-stat-card:nth-child(5) { --a-stat-color: var(--a-cyan); }
+.admin-content .stat-card:nth-child(6),
+.admin-content .user-stat:nth-child(6) { --a-stat-color: var(--a-red); }
+
+/* stat grid spacing */
+.admin-content .category-stats,
+.admin-content .users-stat-grid,
+.admin-content .pay-stats,
+.admin-content .ntf-stats {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+  gap: 16px !important;
+  margin-bottom: 24px !important;
+}
+
+/* ==========================================================================
+   4. MODALS — identical dark overlay (portaled to <body>)
+   ========================================================================== */
+.modal,
+.users-modal-overlay,
+.modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(15, 23, 42, 0.55) !important;
+  backdrop-filter: blur(2px);
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding: 40px 20px !important;
+  overflow-y: auto !important;
+  z-index: 9999 !important;
+  animation: aFadeIn 0.18s ease;
+}
+@keyframes aFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Pages set their own modal widths (form / view / confirm variants),
+   so the shared layer only provides the shell — never a width cap. */
+.modal-content {
+  background: #fff !important;
+  border-radius: 16px !important;
+  margin: auto !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28) !important;
+  animation: aModalIn 0.22s ease;
+}
+
+/* The Users modal sets its own width per variant (view / duration / form),
+   so only give it the shell styling — never cap its width here. */
+.users-modal-overlay > div {
+  background: #fff !important;
+  border-radius: 16px !important;
+  margin: auto !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28) !important;
+  animation: aModalIn 0.22s ease;
+}
+@keyframes aModalIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-content.view-content,
+.modal-content.large { max-width: 780px; }
+.modal-content.confirm-content { max-width: 440px; }
+
+.modal-header {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+.modal-header h2,
+.modal-header h3,
+.modal-heading {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--a-text) !important;
+}
+.modal-close {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px !important;
+  border: 1px solid var(--a-line) !important;
+  background: #fff !important;
+  color: #64748b !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.modal-close:hover { background: #f1f5f9 !important; color: var(--a-text) !important; }
+
+.modal-footer,
+.modal-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  padding: 16px 22px !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+/* ==========================================================================
+   5. FORMS
+   ========================================================================== */
+.admin-content .form-group,
+.modal .form-group { margin-bottom: 18px; }
+.modal label,
+.admin-content .form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 7px;
+}
+.modal input[type="text"],
+.modal input[type="email"],
+.modal input[type="number"],
+.modal input[type="date"],
+.modal select,
+.modal textarea,
+.admin-content .form-group input,
+.admin-content .form-group select,
+.admin-content .form-group textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 14px;
+  color: var(--a-text);
+  background: #fff;
+  outline: none;
+  transition: border 0.15s ease, box-shadow 0.15s ease;
+}
+.modal input:focus,
+.modal select:focus,
+.modal textarea:focus,
+.admin-content .form-group input:focus,
+.admin-content .form-group select:focus,
+.admin-content .form-group textarea:focus {
+  border-color: var(--a-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.modal .error-text,
+.admin-content .error-text {
+  color: #dc2626;
+  font-size: 12.5px;
+  margin-top: 5px;
+}
+
+/* ==========================================================================
+   6. HEADINGS / TOOLBAR / TABLES
+   ========================================================================== */
+.admin-content .subtitle,
+.admin-content .users-header p {
+  color: var(--a-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.admin-content .toolbar,
+.admin-content .users-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.admin-content .search-box,
+.admin-content .users-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid var(--a-line);
+  border-radius: 10px;
+  padding: 0 13px;
+  color: #94a3b8;
+}
+.admin-content .search-box input,
+.admin-content .users-search input {
+  border: none;
+  outline: none;
+  padding: 11px 0;
+  width: 100%;
+  font-size: 14px;
+  background: transparent;
+  color: var(--a-text);
+}
+
+.admin-content .table-wrapper {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow-x: auto;
+}
+.admin-content .table-wrapper table { width: 100%; border-collapse: collapse; }
+.admin-content .table-wrapper thead th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--a-muted);
+  background: #fafafa;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef0f3;
+  white-space: nowrap;
+}
+.admin-content .table-wrapper tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+  color: #374151;
+}
+.admin-content .table-wrapper tbody tr:last-child td { border-bottom: none; }
+.admin-content .table-wrapper tbody tr:hover { background: #fafbff; }
+
+/* ==========================================================================
+   7. RESPONSIVE
+   ========================================================================== */
+@media (max-width: 900px) {
+  .admin-content .category-stats,
+  .admin-content .users-stat-grid,
+  .admin-content .pay-stats,
+  .admin-content .ntf-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 600px) {
+  .admin-content .category-stats,
+  .admin-content .users-stat-grid,
+  .admin-content .pay-stats,
+  .admin-content .ntf-stats {
+    grid-template-columns: 1fr !important;
+  }
+  .modal, .users-modal-overlay, .modal-overlay { padding: 20px 12px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-content .stat-card,
+  .admin-content .user-stat,
+  .modal-content { animation: none !important; transition: none !important; }
+}
+
+
+/* ==========================================================================
+   8. LESSONS / MODULES / COURSES — page-specific pieces folded into the kit
+   ========================================================================== */
+
+/* compact icon-square actions on lesson rows */
+.admin-content .preview-lesson-btn,
+.admin-content .edit-lesson-btn,
+.admin-content .delete-lesson-btn,
+.admin-content .module-action-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--a-line) !important;
+  background: #fff !important;
+  color: #4b5563 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.admin-content .preview-lesson-btn:hover {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+.admin-content .edit-lesson-btn:hover {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+.admin-content .delete-lesson-btn:hover {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+
+/* back link (e.g. Lessons -> Modules) — pill button */
+.admin-content .back-link {
+  gap: 7px;
+  padding: 7px 14px 7px 11px;
+  border: 1px solid var(--a-line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.admin-content .back-link svg {
+  transition: transform 0.2s ease;
+}
+.admin-content .back-link:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+  text-decoration: none;
+  transform: none;
+}
+.admin-content .back-link:hover svg {
+  transform: translateX(-2px);
+}
+
+/* module / lesson picker select */
+.admin-content .module-picker {
+  min-width: 280px;
+  padding: 11px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  font-family: var(--a-font);
+  font-size: 14px;
+  color: var(--a-text);
+  cursor: pointer;
+  outline: none;
+}
+.admin-content .module-picker:focus {
+  border-color: var(--a-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+
+/* ==========================================================================
+   9. CARD ICON TILES + CONFIRM DIALOGS (shared across pages)
+   ========================================================================== */
+
+/* Any coloured icon tile on a content card (module / course / lesson).
+   Solid fill + white glyph, matching the Dashboard stat tiles. */
+.admin-content .module-icon,
+.admin-content .course-icon-tile,
+.admin-content .card-icon-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--a-gradient);
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
+}
+.admin-content .module-icon svg,
+.admin-content .course-icon-tile svg,
+.admin-content .card-icon-tile svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Delete / confirm dialogs — icon centred above the message everywhere */
+.confirm-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 14px;
+  padding: 28px 24px 22px;
+  text-align: center;
+}
+.confirm-icon {
+  width: 56px !important;
+  height: 56px !important;
+  flex-shrink: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50% !important;
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  margin: 0 auto;
+}
+.confirm-body {
+  min-width: 0;
+  text-align: center;
+}
+.confirm-body h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--a-text);
+}
+.confirm-sub {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--a-muted);
+  line-height: 1.55;
+}
+
+/* Delete buttons: soft red fill on every page */
+.admin-content .btn-danger,
+.modal .btn-danger,
+.admin-content .modal-delete,
+.modal .modal-delete,
+.admin-content .delete-confirm,
+.modal .delete-confirm {
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  color: #dc2626 !important;
+  box-shadow: none !important;
+}
+.admin-content .btn-danger:hover:not(:disabled),
+.modal .btn-danger:hover:not(:disabled),
+.admin-content .modal-delete:hover:not(:disabled),
+.modal .modal-delete:hover:not(:disabled),
+.admin-content .delete-confirm:hover:not(:disabled),
+.modal .delete-confirm:hover:not(:disabled) {
+  background: #fee2e2 !important;
+}
+
+/* ==========================================================================
+   10. MOBILE RESPONSIVE LAYER
+   Applies to every admin page. Loaded last, so it wins over page CSS.
+   ========================================================================== */
+
+/* ---------- TABLETS (<= 1024px) ---------- */
+@media (max-width: 1024px) {
+
+  .admin-content {
+    padding: 18px 16px;
+  }
+
+  /* stat grids: max 2 across */
+  .admin-content .category-stats,
+  .admin-content .users-stat-grid,
+  .admin-content .pay-stats,
+  .admin-content .ntf-stats,
+  .admin-content .course-stats,
+  .admin-content .module-stats,
+  .admin-content .enrollment-stats,
+  .admin-content .certificate-stats,
+  .admin-content .dashboard-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* any two-column split collapses */
+  .admin-content .dashboard-grid,
+  .admin-content .rp-grid-2,
+  .admin-content .rp-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---------- PHONES (<= 768px) ---------- */
+@media (max-width: 768px) {
+
+  .admin-content {
+    padding: 14px 12px 32px;
+  }
+
+  /* --- page headers stack, actions go full width --- */
+  .admin-content .page-header,
+  .admin-content .users-header,
+  .admin-content .pay-header,
+  .admin-content .ntf-header,
+  .admin-content .rp-header,
+  .admin-content .courses-header,
+  .admin-content .modules-header,
+  .admin-content .certificates-header,
+  .admin-content .enrollments-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px;
+  }
+
+  .admin-content h1 {
+    font-size: 21px !important;
+  }
+
+  .admin-content .page-header > div:last-child,
+  .admin-content .users-header > div:last-child,
+  .admin-content .pay-actions,
+  .admin-content .ntf-actions,
+  .admin-content .rp-actions,
+  .admin-content .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  /* primary CTAs span the row so they're easy to tap */
+  .admin-content .add-btn,
+  .admin-content .invite-user-button,
+  .admin-content .invite-button,
+  .admin-content .primary-button {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* --- stat cards: single column, shorter --- */
+  .admin-content .category-stats,
+  .admin-content .users-stat-grid,
+  .admin-content .pay-stats,
+  .admin-content .ntf-stats,
+  .admin-content .course-stats,
+  .admin-content .module-stats,
+  .admin-content .enrollment-stats,
+  .admin-content .certificate-stats,
+  .admin-content .dashboard-cards {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .admin-content .stat-card,
+  .admin-content .user-stat,
+  .admin-content .pay-stat-card,
+  .admin-content .ntf-stat,
+  .admin-content .course-stat-card,
+  .admin-content .dashboard-card {
+    min-height: 96px !important;
+    height: auto !important;
+    padding: 16px !important;
+  }
+
+  /* --- toolbars: search full width, filters share a row --- */
+  .admin-content .toolbar,
+  .admin-content .users-toolbar,
+  .admin-content .pay-toolbar,
+  .admin-content .ntf-toolbar,
+  .admin-content .courses-toolbar,
+  .admin-content .filters-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-content .search-box,
+  .admin-content .users-search,
+  .admin-content .pay-search,
+  .admin-content .ntf-search {
+    flex: 1 1 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  .admin-content select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* --- TABLES: scroll sideways with a visible hint --- */
+  .admin-content .table-wrapper,
+  .admin-content .pay-table-wrap,
+  .admin-content .rp-table-wrap,
+  .admin-content .table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    /* fading edge cues that there's more to the right */
+    background:
+      linear-gradient(90deg, #fff 30%, rgba(255, 255, 255, 0)) left / 24px 100% no-repeat,
+      linear-gradient(270deg, #fff 30%, rgba(255, 255, 255, 0)) right / 24px 100% no-repeat,
+      radial-gradient(farthest-side at 0 50%, rgba(15, 23, 42, 0.12), transparent) left / 12px 100% no-repeat,
+      radial-gradient(farthest-side at 100% 50%, rgba(15, 23, 42, 0.12), transparent) right / 12px 100% no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
+
+  .admin-content table {
+    min-width: 620px;          /* keeps columns readable while scrolling */
+    table-layout: auto !important;
+  }
+
+  .admin-content table th,
+  .admin-content table td {
+    padding: 11px 12px !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+
+  /* --- card grids go single column --- */
+  .admin-content .users-card-grid,
+  .admin-content .module-grid,
+  .admin-content .course-grid,
+  .admin-content .template-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- row action buttons: icon only, bigger tap target --- */
+  .admin-content .action-buttons,
+  .admin-content .rp-row-actions,
+  .admin-content .pay-row-actions {
+    gap: 6px;
+  }
+
+  .admin-content .action-btn,
+  .admin-content .view-btn,
+  .admin-content .edit-btn,
+  .admin-content .delete-btn {
+    min-width: 38px;
+    min-height: 38px;
+  }
+
+  /* --- MODALS: near full screen, stacked footer --- */
+  .modal,
+  .users-modal-overlay,
+  .modal-overlay,
+  .pay-modal-overlay,
+  .ntf-modal-overlay {
+    padding: 12px !important;
+    align-items: flex-start !important;
+  }
+
+  .modal-content,
+  .users-modal,
+  .pay-modal,
+  .ntf-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 24px) !important;
+    border-radius: 14px !important;
+  }
+
+  .modal-header,
+  .modal-heading,
+  .pay-modal-header,
+  .ntf-modal-header {
+    padding: 14px 16px !important;
+  }
+
+  .modal-body,
+  .pay-modal-body,
+  .ntf-modal-body,
+  .view-body,
+  .view-modal-body,
+  .user-form {
+    padding: 16px !important;
+  }
+
+  .modal-footer,
+  .modal-actions,
+  .pay-modal-footer,
+  .ntf-modal-footer {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+    padding: 14px 16px !important;
+  }
+
+  .modal-footer > button,
+  .modal-actions > button,
+  .pay-modal-footer > button,
+  .ntf-modal-footer > button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* detail grids inside modals */
+  .admin-content .view-details-grid,
+  .view-details-grid,
+  .profile-details,
+  .rp-kpis {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* charts get shorter so they don't dominate the screen */
+  .admin-content .chart-container,
+  .admin-content .rp-chart {
+    height: 240px !important;
+  }
+}
+
+/* ---------- SMALL PHONES (<= 480px) ---------- */
+@media (max-width: 480px) {
+
+  .admin-content {
+    padding: 12px 10px 28px;
+  }
+
+  .admin-content h1 {
+    font-size: 19px !important;
+  }
+
+  /* hide button text in dense row actions, keep the icon */
+  .admin-content .card-footer button span,
+  .admin-content .row-actions .a-btn span {
+    display: none;
+  }
+
+  .admin-content .stat-card h2,
+  .admin-content .stat-card h3,
+  .admin-content .user-stat strong,
+  .admin-content .dashboard-card h2 {
+    font-size: 20px !important;
+  }
+
+  /* tabs scroll instead of squashing */
+  .admin-content .rp-tabs,
+  .admin-content .tabs,
+  .admin-content .cert-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+  }
+
+  .admin-content .rp-tabs button,
+  .admin-content .tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .admin-content .chart-container,
+  .admin-content .rp-chart {
+    height: 210px !important;
+  }
+}
+
+/* ---------- touch devices: remove hover lifts ---------- */
+@media (hover: none) {
+  .admin-content .stat-card:hover,
+  .admin-content .user-stat:hover,
+  .admin-content .user-card:hover,
+  .admin-content .rp-kpi:hover,
+  .admin-content .dashboard-card:hover {
+    transform: none !important;
+  }
+}

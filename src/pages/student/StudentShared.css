@@ -1,0 +1,871 @@
+/* ==========================================================================
+   src/pages/student/StudentShared.css
+   ONE consistency layer for every student page.
+   Mirrors AdminShared.css and MentorShared.css.
+
+   HOW TO USE — in each student page, import this AFTER the page's own CSS:
+       import "./Dashboard.css";
+       import "./StudentShared.css";   <-- must be LAST so it wins
+
+   WHY IT'S SCOPED TO .student-layout
+   Admin, mentor and student pages share class names (.modal, .stat-card,
+   .page-header, .empty-state, .search-box, .logout-btn …). Vite bundles all
+   CSS globally, so without scoping the three panels restyle each other.
+   Section 11 is deliberately UNSCOPED because portaled modals attach to
+   <body>, outside .student-layout — scoped rules can never reach them.
+   ========================================================================== */
+
+:root {
+  --s-font: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --s-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --s-primary: #6366f1;
+  --s-text: #0f172a;
+  --s-muted: #64748b;
+  --s-faint: #94a3b8;
+  --s-line: #e5e7eb;
+
+  --s-blue: #2563eb;
+  --s-green: #10b981;
+  --s-amber: #f59e0b;
+  --s-purple: #8b5cf6;
+  --s-cyan: #06b6d4;
+  --s-red: #ef4444;
+  --s-pink: #ec4899;
+}
+
+/* ==========================================================================
+   1. TYPOGRAPHY
+   ========================================================================== */
+.student-layout,
+.student-layout h1, .student-layout h2, .student-layout h3,
+.student-layout h4, .student-layout p, .student-layout span,
+.student-layout div, .student-layout td, .student-layout th,
+.student-layout label, .student-layout a,
+.student-layout button, .student-layout input,
+.student-layout select, .student-layout textarea {
+  font-family: var(--s-font);
+}
+
+.student-layout h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--s-text);
+}
+
+.student-layout .subtitle,
+.student-layout .page-subtitle {
+  color: var(--s-muted);
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   2. PAGE HEADER
+   ========================================================================== */
+.student-layout .page-header,
+.student-layout .section-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.student-layout .header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   3. BUTTONS
+   ========================================================================== */
+.student-layout .btn,
+.student-layout .btn-primary,
+.student-layout .btn-secondary,
+.student-layout .btn-cancel,
+.student-layout .btn-save,
+.student-layout .btn-danger,
+.student-layout .add-btn,
+.student-layout .submit-btn,
+.student-layout .continue-btn,
+.student-layout .start-btn,
+.student-layout .resume-btn,
+.student-layout .download-btn,
+.student-layout .apply-btn,
+.student-layout .view-btn,
+.student-layout .read-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-layout button:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+.student-layout button svg { flex-shrink: 0; }
+
+/* primary actions */
+.student-layout .btn-primary,
+.student-layout .btn-save,
+.student-layout .add-btn,
+.student-layout .submit-btn,
+.student-layout .continue-btn,
+.student-layout .start-btn,
+.student-layout .resume-btn,
+.student-layout .apply-btn {
+  background: var(--s-gradient) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.student-layout .btn-primary:hover:not(:disabled),
+.student-layout .btn-save:hover:not(:disabled),
+.student-layout .add-btn:hover:not(:disabled),
+.student-layout .submit-btn:hover:not(:disabled),
+.student-layout .continue-btn:hover:not(:disabled),
+.student-layout .start-btn:hover:not(:disabled),
+.student-layout .resume-btn:hover:not(:disabled),
+.student-layout .apply-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.42);
+  transform: translateY(-1px);
+}
+
+/* download / success */
+.student-layout .download-btn {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+  box-shadow: none !important;
+}
+.student-layout .download-btn:hover:not(:disabled) { background: #d1fae5 !important; }
+
+/* view / neutral */
+.student-layout .view-btn,
+.student-layout .read-btn {
+  background: #ecfeff !important;
+  color: #0e7490 !important;
+  border-color: #a5f3fc !important;
+}
+.student-layout .view-btn:hover:not(:disabled) { background: #cffafe !important; }
+
+/* secondary / cancel */
+.student-layout .btn-secondary,
+.student-layout .btn-cancel {
+  background: #fff !important;
+  color: #475569 !important;
+  border-color: var(--s-line) !important;
+  box-shadow: none !important;
+}
+.student-layout .btn-secondary:hover:not(:disabled),
+.student-layout .btn-cancel:hover:not(:disabled) { background: #f8fafc !important; }
+
+/* danger */
+.student-layout .btn-danger {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+  box-shadow: none !important;
+}
+.student-layout .btn-danger:hover:not(:disabled) { background: #fee2e2 !important; }
+
+/* icon-only */
+.student-layout .refresh-btn,
+.student-layout .icon-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--s-line) !important;
+  background: #fff !important;
+  color: #475569 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.student-layout .refresh-btn:hover,
+.student-layout .icon-btn:hover {
+  background: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: var(--s-primary) !important;
+}
+
+/* back link — pill */
+.student-layout .back-link {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px 7px 11px;
+  margin-bottom: 12px;
+  border: 1px solid var(--s-line);
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.student-layout .back-link:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+.student-layout .back-link svg { transition: transform 0.2s ease; }
+.student-layout .back-link:hover svg { transform: translateX(-2px); }
+
+/* ==========================================================================
+   4. STAT CARDS — 118px, matching admin & mentor
+   ========================================================================== */
+.student-layout .stat-card,
+.student-layout .stats-card,
+.student-layout .summary-card {
+  position: relative;
+  min-width: 0;
+  min-height: 118px;
+  height: 118px;
+  box-sizing: border-box;
+  display: flex !important;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #fff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.student-layout .stat-card:hover,
+.student-layout .stats-card:hover,
+.student-layout .summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* soft decorative circle */
+.student-layout .stat-card::after,
+.student-layout .stats-card::after,
+.student-layout .summary-card::after {
+  content: "";
+  position: absolute;
+  right: -35px;
+  bottom: -45px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: var(--s-stat, var(--s-primary));
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+/* coloured icon tile — an inline style in the JSX still wins */
+.student-layout .stat-icon,
+.student-layout .card-icon {
+  width: 48px !important;
+  height: 48px !important;
+  flex: 0 0 48px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px !important;
+  color: #fff !important;
+  background: var(--s-stat, var(--s-primary));
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+  position: relative;
+  z-index: 1;
+}
+.student-layout .stat-icon svg,
+.student-layout .card-icon svg { width: 22px; height: 22px; color: #fff !important; }
+
+/* purpose colours */
+.student-layout .sc-blue   { --s-stat: var(--s-blue); }
+.student-layout .sc-green  { --s-stat: var(--s-green); }
+.student-layout .sc-amber  { --s-stat: var(--s-amber); }
+.student-layout .sc-purple { --s-stat: var(--s-purple); }
+.student-layout .sc-cyan   { --s-stat: var(--s-cyan); }
+.student-layout .sc-red    { --s-stat: var(--s-red); }
+.student-layout .sc-pink   { --s-stat: var(--s-pink); }
+
+.student-layout .stat-value,
+.student-layout .stat-card h3,
+.student-layout .stat-card h2,
+.student-layout .stat-card strong {
+  display: block;
+  margin: 0 !important;
+  color: var(--s-text) !important;
+  font-size: 23px !important;
+  line-height: 1.25;
+  font-weight: 700 !important;
+  letter-spacing: -0.4px;
+  position: relative;
+  z-index: 1;
+}
+
+.student-layout .stat-label,
+.student-layout .stat-card p {
+  display: block;
+  margin: 5px 0 0 !important;
+  color: var(--s-muted) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  position: relative;
+  z-index: 1;
+}
+
+.student-layout .stats-grid,
+.student-layout .summary-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+  gap: 16px !important;
+  margin-bottom: 24px !important;
+}
+
+/* ==========================================================================
+   5. CARDS + GRIDS
+   ========================================================================== */
+.student-layout .course-card,
+.student-layout .lesson-card,
+.student-layout .quiz-card,
+.student-layout .cert-card,
+.student-layout .assignment-card,
+.student-layout .notification-card,
+.student-layout .panel,
+.student-layout .content-card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.student-layout .course-card:hover,
+.student-layout .quiz-card:hover,
+.student-layout .cert-card:hover,
+.student-layout .assignment-card:hover {
+  border-color: #d8dee8;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.07);
+}
+
+.student-layout .course-grid,
+.student-layout .card-grid,
+.student-layout .quiz-grid,
+.student-layout .cert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* ==========================================================================
+   6. PROGRESS BARS — used across courses, lessons and quizzes
+   ========================================================================== */
+.student-layout .progress-track,
+.student-layout .progress-bar-bg {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: #eef0f4;
+  overflow: hidden;
+}
+
+.student-layout .progress-fill,
+.student-layout .progress-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--s-gradient);
+  transition: width 0.35s ease;
+}
+
+.student-layout .progress-fill.complete { background: var(--s-green); }
+.student-layout .progress-fill.none { background: #cbd5e1; }
+
+.student-layout .progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-layout .progress-pct {
+  flex-shrink: 0;
+  color: var(--s-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   7. BADGES
+   ========================================================================== */
+.student-layout .badge,
+.student-layout .status-badge,
+.student-layout .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.student-layout .badge-green,
+.student-layout .status-badge.completed,
+.student-layout .status-badge.passed { background: #ecfdf5; color: #047857; }
+
+.student-layout .badge-amber,
+.student-layout .status-badge.in-progress,
+.student-layout .status-badge.pending { background: #fffbeb; color: #b45309; }
+
+.student-layout .badge-blue,
+.student-layout .status-badge.active { background: #eef2ff; color: #4338ca; }
+
+.student-layout .badge-red,
+.student-layout .status-badge.failed,
+.student-layout .status-badge.expired { background: #fef2f2; color: #b91c1c; }
+
+.student-layout .badge-gray,
+.student-layout .status-badge.not-started { background: #f1f5f9; color: #64748b; }
+
+/* ==========================================================================
+   8. FORMS + SEARCH
+   ========================================================================== */
+.student-layout .form-group { margin-bottom: 16px; }
+
+.student-layout .form-group label,
+.student-layout .field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.student-layout input[type="text"],
+.student-layout input[type="email"],
+.student-layout input[type="number"],
+.student-layout input[type="password"],
+.student-layout input[type="date"],
+.student-layout select,
+.student-layout textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--s-text);
+  outline: none;
+  transition: border 0.15s ease, box-shadow 0.15s ease;
+}
+
+.student-layout input:focus,
+.student-layout select:focus,
+.student-layout textarea:focus {
+  border-color: var(--s-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.student-layout textarea { resize: vertical; min-height: 90px; }
+
+.student-layout .toolbar,
+.student-layout .filters-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.student-layout .search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 240px;
+  min-width: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--s-line);
+  border-radius: 10px;
+  padding: 0 13px;
+  color: var(--s-faint);
+}
+
+/* flex sizing, not width:100% — with an icon beside it, 100% overflows */
+.student-layout .search-box input {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: auto !important;
+  padding: 11px 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  font-size: 14px;
+  color: var(--s-text);
+}
+
+/* ==========================================================================
+   9. TABLES
+   ========================================================================== */
+.student-layout .table-wrapper {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow-x: auto;
+}
+
+.student-layout table { width: 100%; border-collapse: collapse; }
+
+.student-layout thead th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--s-muted);
+  background: #fafafa;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef0f3;
+  white-space: nowrap;
+}
+
+.student-layout tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+  color: #374151;
+}
+
+.student-layout tbody tr:last-child td { border-bottom: none; }
+.student-layout tbody tr:hover { background: #fafbff; }
+
+/* ==========================================================================
+   10. STATES
+   ========================================================================== */
+.student-layout .empty-state,
+.student-layout .no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 240px;
+  padding: 48px 20px;
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  color: var(--s-faint);
+  text-align: center;
+}
+
+.student-layout .empty-state h3 {
+  margin: 4px 0 0;
+  color: #334155;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.student-layout .empty-state svg { color: #cbd5e1; }
+
+.student-layout .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 300px;
+  color: var(--s-muted);
+  font-size: 14px;
+}
+
+.student-layout .spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--s-primary);
+  border-radius: 50%;
+  animation: sSpin 0.75s linear infinite;
+}
+
+.student-layout .button-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  display: inline-block;
+  animation: sSpin 0.7s linear infinite;
+}
+
+@keyframes sSpin { to { transform: rotate(360deg); } }
+
+.student-layout .alert-error,
+.student-layout .error-text {
+  padding: 11px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13.5px;
+}
+
+.student-layout .alert-success {
+  padding: 11px 14px;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 13.5px;
+}
+
+.student-layout .alert-info {
+  padding: 11px 14px;
+  border: 1px solid #c7d2fe;
+  border-left: 4px solid var(--s-primary);
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 13.5px;
+}
+
+/* ==========================================================================
+   11. PORTALED MODALS  ← UNSCOPED ON PURPOSE
+   Modals rendered with createPortal(..., document.body) live OUTSIDE
+   .student-layout, so nothing scoped above can reach them.
+   ========================================================================== */
+.student-modal-overlay,
+.student-layout .modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  font-family: var(--s-font);
+  animation: sFadeIn 0.18s ease;
+}
+
+@keyframes sFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.student-modal {
+  width: min(560px, 100%);
+  margin: auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  font-family: var(--s-font);
+  animation: sModalIn 0.22s ease;
+}
+
+@keyframes sModalIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.student-modal-lg { width: min(820px, 100%); }
+.student-modal-sm { width: min(440px, 100%); }
+
+.student-modal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.student-modal .modal-header h2,
+.student-modal .modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--s-text);
+}
+
+.student-modal .modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 1px solid var(--s-line);
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-modal .modal-close:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.student-modal .modal-body { padding: 20px 22px; }
+
+.student-modal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* form controls inside portaled modals */
+.student-modal input,
+.student-modal select,
+.student-modal textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  font-family: var(--s-font);
+  font-size: 14px;
+  color: var(--s-text);
+  outline: none;
+}
+
+.student-modal input:focus,
+.student-modal select:focus,
+.student-modal textarea:focus {
+  border-color: var(--s-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* buttons inside portaled modals */
+.student-modal button {
+  font-family: var(--s-font);
+}
+
+/* ==========================================================================
+   12. RESPONSIVE
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .student-layout .stats-grid,
+  .student-layout .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-layout .page-header,
+  .student-layout .section-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .student-layout h1 { font-size: 21px; }
+
+  .student-layout .header-actions { width: 100%; }
+  .student-layout .header-actions > button {
+    flex: 1 1 auto;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .student-layout .stats-grid,
+  .student-layout .summary-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .student-layout .stat-card,
+  .student-layout .stats-card,
+  .student-layout .summary-card {
+    min-height: 96px !important;
+    height: auto !important;
+    padding: 16px !important;
+  }
+
+  .student-layout .course-grid,
+  .student-layout .card-grid,
+  .student-layout .quiz-grid,
+  .student-layout .cert-grid { grid-template-columns: 1fr; }
+
+  .student-layout .search-box { flex: 1 1 100%; }
+
+  .student-layout table { min-width: 620px; }
+  .student-layout th,
+  .student-layout td {
+    padding: 11px 12px !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+
+  /* modals near full screen */
+  .student-modal-overlay,
+  .student-layout .modal-overlay { padding: 12px; }
+
+  .student-modal,
+  .student-modal-lg,
+  .student-modal-sm {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+
+  .student-modal .modal-footer { flex-direction: column-reverse; }
+  .student-modal .modal-footer > button { width: 100%; min-height: 44px; }
+}
+
+@media (max-width: 480px) {
+  .student-layout h1 { font-size: 19px; }
+  .student-layout .tabs,
+  .student-layout .filter-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+}
+
+@media (hover: none) {
+  .student-layout .stat-card:hover,
+  .student-layout .course-card:hover,
+  .student-layout .quiz-card:hover { transform: none !important; }
+}
+
+/* ==========================================================================
+   13. COURSE PLAYER — native <video> for self-hosted lessons
+   ========================================================================== */
+.student-layout .native-video-player,
+video.native-video-player {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  object-fit: contain;
+  border-radius: inherit;
+}
