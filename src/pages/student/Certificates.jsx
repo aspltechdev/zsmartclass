@@ -355,7 +355,6 @@ const Certificates = () => {
           </div>
           <div>
             <h1>My Certificates</h1>
-            <p>Complete your courses and earn certificates.</p>
           </div>
         </div>
 

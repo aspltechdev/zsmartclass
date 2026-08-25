@@ -1,9 +1,11 @@
 .progress-page {
   width: 100%;
   min-height: 100%;
-  padding: 28px;
-  background: #f7f8fc;
+  padding: 24px;
   box-sizing: border-box;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
 .progress-container {

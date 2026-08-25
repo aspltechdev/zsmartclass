@@ -8,9 +8,10 @@
 .mentor-layout {
   min-height: 100vh;
   background: rgb(233, 236, 238);
-  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
-  color: var(--admin-text, #111827);
+  font-family: var(--admin-font);
+  color: var(--admin-text);
   margin: -10px;
+  position: relative;
 }
 
 .mentor-layout *,

@@ -8,59 +8,120 @@
   min-height: 100vh;
   padding: 24px 32px;
   box-sizing: border-box;
+
   background: #f8fafc;
   color: #0f172a;
-  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  font-family:
+    'Poppins',
+    system-ui,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
 }
 
-/* ---------- Header ---------- */
+/* =========================================================
+   HEADER
+========================================================= */
+
 .assignment-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 16px;
   flex-wrap: wrap;
+
   margin-bottom: 24px;
 }
 
 .assignment-header h1 {
   margin: 0;
+
   font-size: 26px;
   font-weight: 700;
+
   letter-spacing: -0.5px;
+
   color: #0f172a;
 }
 
 .assignment-header p {
   margin: 6px 0 0;
+
   color: #64748b;
   font-size: 14px;
 }
 
-/* ---------- Table Container ---------- */
+/* =========================================================
+   ASSIGNMENTS TITLE + ICON
+========================================================= */
+
+.assignments-title {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.assignments-title-icon {
+  width: 30px;
+  height: 30px;
+
+  flex-shrink: 0;
+
+  color: #111827;
+  stroke: #111827;
+
+  stroke-width: 2;
+}
+
+.assignments-title h1 {
+  margin: 0;
+  padding: 0;
+}
+
+/* =========================================================
+   TABLE CONTAINER
+========================================================= */
+
 .assignment-table {
   width: 100%;
-  background: #fff;
+
+  background: #ffffff;
+
   border: 1px solid #e5e7eb;
   border-radius: 12px;
+
   overflow: hidden;
 }
 
 .assignment-table table {
   width: 100%;
+
   border-collapse: collapse;
 }
 
+/* =========================================================
+   TABLE HEADER
+========================================================= */
+
 .assignment-table thead th {
   text-align: left;
+
   font-size: 11.5px;
   font-weight: 600;
+
   text-transform: uppercase;
   letter-spacing: 0.05em;
+
   color: #64748b;
   background: #fafafa;
+
   padding: 14px 18px;
+
   border-bottom: 1px solid #e5e7eb;
+
   white-space: nowrap;
 }
 
@@ -68,11 +129,18 @@
   text-align: center;
 }
 
+/* =========================================================
+   TABLE BODY
+========================================================= */
+
 .assignment-table tbody td {
   padding: 14px 18px;
+
   border-bottom: 1px solid #f3f4f6;
+
   font-size: 14px;
   color: #374151;
+
   vertical-align: middle;
 }
 
@@ -88,116 +156,181 @@
   background: #fafbff;
 }
 
+/* EMPTY TABLE */
+
 .assignment-table td[colspan] {
   padding: 60px 16px;
+
   text-align: center;
+
   color: #94a3b8;
+
   font-size: 15px;
 }
 
-/* ---------- Actions ---------- */
+/* =========================================================
+   ACTIONS
+========================================================= */
+
 .actions {
   display: flex;
   align-items: center;
   justify-content: center;
+
   gap: 8px;
 }
 
 .actions .view-btn {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
+
   width: 36px;
   height: 36px;
+
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  background: #fff;
+
+  background: #ffffff;
   color: #6b7280;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
 }
 
 .actions .view-btn:hover {
   background: #eef2ff;
+
   border-color: #6366f1;
+
   color: #4338ca;
+
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+
+  box-shadow:
+    0 2px 8px rgba(99, 102, 241, 0.15);
 }
 
-/* ---------- Modal Overlay ---------- */
+/* =========================================================
+   MODAL OVERLAY
+========================================================= */
+
 .modal-overlay {
   position: fixed;
   inset: 0;
+
   background: rgba(15, 23, 42, 0.6);
+
   backdrop-filter: blur(4px);
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   padding: 20px;
+
   z-index: 9999;
-  animation: modalFadeIn 0.2s ease;
+
+  animation:
+    modalFadeIn 0.2s ease;
 }
 
 @keyframes modalFadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
 }
 
-/* ---------- Modal ---------- */
+/* =========================================================
+   ASSIGNMENT MODAL
+========================================================= */
+
 .assignment-modal {
   width: 100%;
   max-width: 560px;
+
   max-height: 90vh;
+
   display: flex;
   flex-direction: column;
-  background: #fff;
+
+  background: #ffffff;
+
   border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
-  animation: modalSlideUp 0.25s ease;
+
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.25);
+
+  animation:
+    modalSlideUp 0.25s ease;
 }
+
+/* =========================================================
+   DELETE CONFIRM MODAL
+========================================================= */
 
 .delete-confirm-modal {
   width: 100%;
   max-width: 420px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #fff;
+
+  background: #ffffff;
+
   border-radius: 16px;
+
   padding: 32px 40px 28px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
-  animation: modalSlideUp 0.25s ease;
+
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.25);
+
+  animation:
+    modalSlideUp 0.25s ease;
+
   text-align: center;
 }
 
 .delete-confirm-modal .delete-confirm-icon {
   width: 64px;
   height: 64px;
+
   border-radius: 50%;
+
   background: #fef2f2;
   color: #dc2626;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   margin-bottom: 16px;
 }
 
 .delete-confirm-modal h3 {
   margin: 0 0 8px;
+
   font-size: 18px;
   font-weight: 700;
+
   color: #0f172a;
 }
 
 .delete-confirm-modal p {
   margin: 0 0 24px;
+
   font-size: 14px;
+
   color: #64748b;
+
   line-height: 1.6;
 }
 
@@ -205,113 +338,180 @@
   color: #0f172a;
 }
 
+/* =========================================================
+   DELETE BUTTONS
+========================================================= */
+
 .delete-confirm-buttons {
   display: flex;
+
   gap: 10px;
+
   width: 100%;
 }
 
 .delete-confirm-buttons .btn-cancel {
   flex: 1;
+
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
+
   gap: 8px;
+
   padding: 10px 20px;
+
   border: 1px solid #d1d5db;
   border-radius: 10px;
-  background: #fff;
+
+  background: #ffffff;
   color: #475569;
+
   font-size: 14px;
   font-weight: 600;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
+
   font-family: inherit;
 }
 
 .delete-confirm-buttons .btn-cancel:hover {
   background: #f8fafc;
+
   border-color: #9ca3af;
 }
 
 .delete-confirm-buttons .btn-danger {
   flex: 1;
+
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
+
   gap: 8px;
+
   padding: 10px 20px;
+
   border: none;
   border-radius: 10px;
+
   background: #dc2626;
-  color: #fff;
+  color: #ffffff;
+
   font-size: 14px;
   font-weight: 600;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
+
   font-family: inherit;
 }
 
 .delete-confirm-buttons .btn-danger:hover {
   background: #b91c1c;
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+
+  box-shadow:
+    0 4px 14px rgba(220, 38, 38, 0.35);
+
   transform: translateY(-1px);
 }
+
+/* =========================================================
+   MODAL ANIMATION
+========================================================= */
 
 @keyframes modalSlideUp {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.98);
+
+    transform:
+      translateY(20px)
+      scale(0.98);
   }
+
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+
+    transform:
+      translateY(0)
+      scale(1);
   }
 }
 
-/* ---------- Modal Header ---------- */
+/* =========================================================
+   MODAL HEADER
+========================================================= */
+
 .assignment-modal .modal-header {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
+
   gap: 12px;
+
   padding: 18px 24px;
+
   border-bottom: 1px solid #f1f3f5;
+
   flex-shrink: 0;
 }
 
 .assignment-modal .modal-header h2 {
   margin: 0;
+
   font-size: 18px;
   font-weight: 700;
+
   color: #0f172a;
 }
 
 .assignment-modal .modal-header .close-btn {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
+
   width: 36px;
   height: 36px;
+
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  background: #fff;
+
+  background: #ffffff;
   color: #6b7280;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
 }
 
 .assignment-modal .modal-header .close-btn:hover {
   background: #fef2f2;
+
   border-color: #fecaca;
+
   color: #dc2626;
 }
 
-/* ---------- Modal Body ---------- */
+/* =========================================================
+   MODAL BODY
+========================================================= */
+
 .assignment-modal form,
 .assignment-view {
   padding: 24px;
+
   overflow-y: auto;
+
   flex: 1;
 }
 
@@ -323,12 +523,14 @@
 .assignment-modal form::-webkit-scrollbar-track,
 .assignment-view::-webkit-scrollbar-track {
   background: #f1f3f5;
+
   border-radius: 10px;
 }
 
 .assignment-modal form::-webkit-scrollbar-thumb,
 .assignment-view::-webkit-scrollbar-thumb {
   background: #d1d5db;
+
   border-radius: 10px;
 }
 
@@ -337,14 +539,21 @@
   background: #b0b4ba;
 }
 
-/* ---------- Form Elements ---------- */
+/* =========================================================
+   FORM ELEMENTS
+========================================================= */
+
 .assignment-modal label,
 .assignment-view label {
   display: block;
+
   margin: 0 0 6px;
+
   font-size: 13px;
   font-weight: 600;
+
   color: #374151;
+
   letter-spacing: 0.01em;
 }
 
@@ -359,15 +568,26 @@
 .assignment-view input,
 .assignment-view textarea {
   width: 100%;
+
   padding: 10px 14px;
+
   border: 2px solid #d1d5db;
+
   border-radius: 10px;
+
   font-size: 14px;
+
   font-family: inherit;
+
   color: #0f172a;
-  background: #fff;
+
+  background: #ffffff;
+
   outline: none;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
+
   box-sizing: border-box;
 }
 
@@ -385,22 +605,36 @@
 .assignment-view input:focus,
 .assignment-view textarea:focus {
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .assignment-modal textarea,
 .assignment-view textarea {
   resize: vertical;
+
   min-height: 100px;
 }
+
+/* =========================================================
+   SELECT
+========================================================= */
 
 .assignment-modal select,
 .assignment-view select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+
   background-repeat: no-repeat;
-  background-position: right 14px center;
+
+  background-position:
+    right 14px center;
+
   padding-right: 40px;
+
   cursor: pointer;
 }
 
@@ -409,20 +643,34 @@
   padding: 8px 12px;
 }
 
+/* =========================================================
+   DISABLED INPUTS
+========================================================= */
+
 .assignment-modal input:disabled,
 .assignment-view input:disabled,
 .assignment-view textarea:disabled {
   background: #f8fafc;
+
   color: #64748b;
+
   cursor: not-allowed;
+
   border-color: #e5e7eb;
 }
 
-/* ---------- Row Layout ---------- */
+/* =========================================================
+   ROW LAYOUT
+========================================================= */
+
 .row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+
+  grid-template-columns:
+    1fr 1fr;
+
   gap: 14px;
+
   margin-top: 16px;
 }
 
@@ -434,31 +682,51 @@
   margin-top: 0 !important;
 }
 
-/* ---------- Marks Counter ---------- */
+/* =========================================================
+   MARKS COUNTER
+========================================================= */
+
 .marks-counter {
   display: flex;
+
   align-items: center;
+
   border: 2px solid #d1d5db;
+
   border-radius: 10px;
+
   overflow: hidden;
-  transition: border-color 0.2s ease;
+
+  transition:
+    border-color 0.2s ease;
 }
 
 .marks-counter:focus-within {
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .marks-counter input {
   flex: 1;
+
   min-width: 0;
+
   border: none !important;
+
   border-radius: 0 !important;
+
   text-align: center;
+
   padding: 10px 8px;
+
   font-size: 14px;
+
   font-weight: 600;
+
   box-shadow: none !important;
+
   background: transparent;
 }
 
@@ -469,31 +737,48 @@
 .marks-counter input::-webkit-inner-spin-button,
 .marks-counter input::-webkit-outer-spin-button {
   -webkit-appearance: none;
+
   margin: 0;
 }
 
-.marks-counter input[type=number] {
+.marks-counter input[type="number"] {
   -moz-appearance: textfield;
 }
 
+/* =========================================================
+   MARKS BUTTON
+========================================================= */
+
 .marks-btn {
   width: 44px;
+
   min-height: 44px;
+
   flex-shrink: 0;
+
   display: flex;
+
   align-items: center;
   justify-content: center;
+
   border: none;
+
   background: #f8fafc;
+
   color: #475569;
+
   font-size: 18px;
   font-weight: 700;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
 }
 
 .marks-btn:hover {
   background: #eef2ff;
+
   color: #4338ca;
 }
 
@@ -501,24 +786,45 @@
   transform: scale(0.95);
 }
 
-/* ---------- Buttons ---------- */
+/* =========================================================
+   CREATE BUTTON
+========================================================= */
+
 .submit-btn {
   width: 100%;
+
   margin-top: 20px;
+
   padding: 12px 20px;
+
   border: none;
+
   border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
+
+  background:
+    linear-gradient(
+      135deg,
+      #6366f1,
+      #8b5cf6
+    );
+
+  color: #ffffff;
+
   font-size: 15px;
   font-weight: 600;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
+
   font-family: inherit;
 }
 
 .submit-btn:hover {
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  box-shadow:
+    0 4px 14px rgba(99, 102, 241, 0.35);
+
   transform: translateY(-1px);
 }
 
@@ -526,122 +832,218 @@
   transform: translateY(1px);
 }
 
-/* ---------- Popup Buttons ---------- */
+/* =========================================================
+   POPUP BUTTONS
+========================================================= */
+
 .popup-buttons {
   display: flex;
+
   justify-content: flex-end;
+
   gap: 10px;
+
   margin-top: 20px;
+
   padding-top: 16px;
+
   border-top: 1px solid #f1f5f9;
 }
 
+/* =========================================================
+   CANCEL
+========================================================= */
+
 .popup-buttons .btn-cancel {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
+
   gap: 8px;
+
   padding: 10px 20px;
+
   border: 1px solid #d1d5db;
+
   border-radius: 10px;
-  background: #fff;
+
+  background: #ffffff;
+
   color: #475569;
+
   font-size: 14px;
   font-weight: 600;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
+
   font-family: inherit;
 }
 
 .popup-buttons .btn-cancel:hover {
   background: #f8fafc;
+
   border-color: #9ca3af;
 }
 
+/* =========================================================
+   EDIT
+========================================================= */
+
 .popup-buttons .edit-btn {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
+
   gap: 8px;
+
   padding: 10px 24px;
+
   border: 1px solid #c7d2fe;
+
   border-radius: 10px;
+
   background: #eef2ff;
+
   color: #4338ca;
+
   font-size: 14px;
   font-weight: 600;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
+
   font-family: inherit;
+
   width: 100px;
 }
 
 .popup-buttons .edit-btn:hover {
   background: #e0e7ff;
-  box-shadow: 0 2px 8px rgba(67, 56, 202, 0.15);
+
+  box-shadow:
+    0 2px 8px rgba(67, 56, 202, 0.15);
+
   transform: translateY(-1px);
 }
 
+/* =========================================================
+   DELETE
+========================================================= */
+
 .popup-buttons .delete-btn {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
+
   gap: 8px;
+
   padding: 10px 24px;
+
   border: 1px solid #fecaca;
+
   border-radius: 10px;
+
   background: #fef2f2;
+
   color: #dc2626;
+
   font-size: 14px;
   font-weight: 600;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
+
   font-family: inherit;
 }
 
 .popup-buttons .delete-btn:hover {
   background: #fee2e2;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+
+  box-shadow:
+    0 2px 8px rgba(220, 38, 38, 0.15);
+
   transform: translateY(-1px);
 }
 
+/* =========================================================
+   SAVE
+========================================================= */
+
 .popup-buttons .save-btn {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
+
   gap: 8px;
+
   padding: 10px 24px;
+
   border: none;
+
   border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
+
+  background:
+    linear-gradient(
+      135deg,
+      #6366f1,
+      #8b5cf6
+    );
+
+  color: #ffffff;
+
   font-size: 14px;
   font-weight: 600;
+
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    all 0.2s ease;
+
   font-family: inherit;
 }
 
 .popup-buttons .save-btn:hover {
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  box-shadow:
+    0 4px 14px rgba(99, 102, 241, 0.35);
+
   transform: translateY(-1px);
 }
 
-/* ---------- Responsive ---------- */
+/* =========================================================
+   RESPONSIVE — TABLET
+========================================================= */
+
 @media (max-width: 1024px) {
   .mentor-assignments {
     padding: 20px 24px;
   }
 }
 
+/* =========================================================
+   RESPONSIVE — MOBILE
+========================================================= */
+
 @media (max-width: 768px) {
   .mentor-assignments {
     padding: 16px;
+
     min-height: 100vh;
   }
 
   .assignment-header {
     flex-direction: column;
+
     align-items: stretch;
   }
 
@@ -651,16 +1053,18 @@
 
   .assignment-table {
     border-radius: 10px;
+
     overflow-x: auto;
   }
 
   .assignment-table table {
-    min-width: 700px;
+    min-width: 650px;
   }
 
   .assignment-table thead th,
   .assignment-table tbody td {
     padding: 10px 14px;
+
     font-size: 13px;
   }
 
@@ -671,7 +1075,9 @@
 
   .assignment-modal {
     max-width: 100%;
+
     max-height: 95vh;
+
     border-radius: 14px;
   }
 
@@ -686,6 +1092,7 @@
 
   .row {
     grid-template-columns: 1fr;
+
     gap: 12px;
   }
 
@@ -695,16 +1102,19 @@
 
   .popup-buttons > button {
     width: 100%;
+
     justify-content: center;
   }
 
   .marks-btn {
     width: 40px;
+
     min-height: 40px;
   }
 
   .delete-confirm-modal {
     padding: 24px 20px 20px;
+
     max-width: 95%;
   }
 
@@ -717,6 +1127,10 @@
     width: 100%;
   }
 }
+
+/* =========================================================
+   RESPONSIVE — SMALL MOBILE
+========================================================= */
 
 @media (max-width: 480px) {
   .mentor-assignments {
@@ -734,6 +1148,7 @@
   .assignment-table thead th,
   .assignment-table tbody td {
     padding: 8px 10px;
+
     font-size: 12px;
   }
 
@@ -770,17 +1185,21 @@
   .assignment-view input,
   .assignment-view textarea {
     padding: 8px 12px;
+
     font-size: 15px;
   }
 
   .marks-counter input {
     padding: 8px;
+
     font-size: 15px;
   }
 
   .marks-btn {
     width: 36px;
+
     min-height: 36px;
+
     font-size: 16px;
   }
 
@@ -789,6 +1208,7 @@
   .popup-buttons .save-btn,
   .popup-buttons .btn-cancel {
     padding: 8px 16px;
+
     font-size: 13px;
   }
 
@@ -809,174 +1229,4 @@
     width: 26px;
     height: 26px;
   }
-}
-
-/* =========================================================
-   SUBMISSIONS PANEL + GRADING  (view modal)
-   ========================================================= */
-.submissions-panel {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.submissions-loading,
-.submissions-empty {
-  padding: 18px 14px;
-  border: 1px dashed #d1d5db;
-  border-radius: 12px;
-  background: #fafbfc;
-  color: #94a3b8;
-  font-size: 13px;
-  text-align: center;
-}
-
-.submissions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.submission-row {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
-  padding: 14px 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.submission-row-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.submission-student {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.submission-student strong {
-  font-size: 14px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.submission-student span {
-  font-size: 12px;
-  color: #94a3b8;
-  overflow-wrap: anywhere;
-}
-
-.submission-tag {
-  flex-shrink: 0;
-  padding: 4px 11px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.submission-tag.pending { background: #fffbeb; color: #b45309; }
-.submission-tag.graded { background: #ecfdf5; color: #047857; }
-
-.submission-download {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  padding: 7px 13px;
-  border: 1px solid #c7d2fe;
-  border-radius: 9px;
-  background: #eef2ff;
-  color: #4338ca;
-  font-size: 12.5px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.submission-download:hover {
-  background: #e0e7ff;
-  transform: translateY(-1px);
-}
-
-.submission-nofile {
-  font-size: 12.5px;
-  color: #94a3b8;
-  font-style: italic;
-}
-
-.submission-note-text {
-  margin: 0;
-  padding: 9px 12px;
-  border-left: 3px solid #e2e8f0;
-  background: #f8fafc;
-  border-radius: 0 8px 8px 0;
-  color: #475569;
-  font-size: 12.5px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-/* grade inputs inherit the modal's input styling; this just lays them out */
-.grade-row {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 12px;
-  align-items: start;
-}
-
-.grade-row label {
-  margin: 0 0 5px !important;
-  font-size: 12px;
-  color: #64748b;
-}
-
-.grade-save-btn {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 9px 18px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.grade-save-btn:hover:not(:disabled) {
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-  transform: translateY(-1px);
-}
-
-.grade-save-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.submissions-msg {
-  padding: 10px 13px;
-  border-radius: 10px;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.submissions-msg.success { background: #ecfdf5; color: #047857; }
-.submissions-msg.error { background: #fef2f2; color: #b91c1c; }
-
-@media (max-width: 480px) {
-  .grade-row { grid-template-columns: 1fr; }
 }

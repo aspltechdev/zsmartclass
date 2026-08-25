@@ -200,7 +200,7 @@ const Assignments = () => {
     <div className="assignments-container">
       <div className="assignments-header">
         <div>
-          <h1 className="assignments-title">Assignments</h1>
+          <h1 className="assignments-title"><FileText size={25} />Assignments</h1>
           <p className="assignments-subtitle">
             Submit your work and track marks &amp; feedback
           </p>

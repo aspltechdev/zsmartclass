@@ -12,6 +12,7 @@ import MentorCourses from "../pages/mentor/Courses";
 import MentorStudents from "../pages/mentor/Students";
 import MentorNotification from "../pages/mentor/Notification";
 import MentorReviews from "../pages/mentor/Review";
+import AssignmentSubmission from "../pages/mentor/AssignmentSubmission";
 
 
 function MentorRoutes() {
@@ -30,6 +31,7 @@ function MentorRoutes() {
           <Route path="certificates" element={<MentorCertificates />} />
           <Route path="assignments" element={<MentorAssignments />} />          
           <Route path="reviews" element={<MentorReviews />} />
+          <Route path="assignment-submissions" element={<AssignmentSubmission />} />
     </Routes>
   );
 }

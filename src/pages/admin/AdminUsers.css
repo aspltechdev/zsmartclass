@@ -1101,6 +1101,12 @@ button:disabled {
   min-width: 0;
 }
 
+.profile-name,
+.profile-name h3,
+.profile-name p {
+  text-align: left;
+}
+
 .profile-name h3 {
   margin: 0 0 5px;
   font-size: 17px;
@@ -1117,8 +1123,6 @@ button:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-
 
 .profile-details {
   display: grid;
@@ -1630,8 +1634,7 @@ button:disabled {
   }
 
   .profile-overview {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .profile-role {
@@ -1704,41 +1707,48 @@ button:disabled {
 }
 
 /* =========================================================
-   VIEW MODAL — fit on screen: pin the heading + action bar,
-   let only the middle scroll if a profile is unusually tall,
-   and compact spacing so the normal case never scrolls.
+   VIEW MODAL — minimal & dense: smaller everything, tighter
+   spacing, boxed cards flattened into slim divided rows.
 ========================================================= */
 
 .users-modal.view-user-modal {
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* the modal shell itself never scrolls */
+  overflow: hidden;
+  width: min(680px, 100%);
+  max-width: 680px;
 }
 
 .view-user-modal .modal-heading,
 .view-user-modal .modal-actions {
-  flex: 0 0 auto; /* pinned — always visible, never below the fold */
+  flex: 0 0 auto;
 }
 
 .view-modal-body {
   flex: 1 1 auto;
-  min-height: 0;    /* let the body shrink so it can scroll if needed */
-  overflow-y: auto; /* only this area scrolls, and only when it must */
-  overflow-x: hidden; /* never scroll sideways */
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* --- page-like typography & spacing (scoped to the View modal) --- */
-.view-user-modal .modal-heading { padding: 20px 28px; }
-.view-user-modal .modal-kicker { font-size: 11px; margin-bottom: 6px; }
-.view-user-modal .modal-heading h2 { font-size: 22px; }
+/* --- header --- */
+.view-user-modal .modal-heading { padding: 14px 20px; }
+.view-user-modal .modal-kicker { font-size: 9px; margin-bottom: 3px; letter-spacing: 0.8px; }
+.view-user-modal .modal-heading h2 { font-size: 17px; }
 
-.view-user-modal .profile-overview { padding: 20px 28px; gap: 18px; }
+/* --- profile strip --- */
+.view-user-modal .profile-overview {
+  padding: 14px 20px;
+  gap: 12px;
+  background: #fff;
+  border-bottom: 1px solid #f1f5f9;
+}
 .view-user-modal .profile-avatar {
-  width: 60px;
-  height: 60px;
-  flex: 0 0 60px;
-  font-size: 21px;
-  overflow: hidden; /* clip an uploaded photo to the circle */
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  font-size: 14px;
+  overflow: hidden;
 }
 .view-user-modal .profile-avatar img {
   width: 100%;
@@ -1746,27 +1756,65 @@ button:disabled {
   object-fit: cover;
   border-radius: 50%;
 }
-.view-user-modal .profile-name h3 { font-size: 20px; margin-bottom: 6px; }
-.view-user-modal .profile-name p { font-size: 13px; gap: 6px; }
-.view-user-modal .profile-role { font-size: 11px; min-height: 28px; padding: 0 14px; }
+.view-user-modal .profile-name h3 { font-size: 14px; margin-bottom: 2px; }
+.view-user-modal .profile-name p { font-size: 11px; gap: 4px; }
+.view-user-modal .profile-role { font-size: 9px; min-height: 20px; padding: 0 9px; }
 
-.view-user-modal .profile-details { padding: 20px 26px; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.view-user-modal .detail-item { padding: 13px; gap: 11px; }
-.view-user-modal .detail-icon { flex: 0 0 34px; width: 34px; height: 34px; }
-.view-user-modal .detail-item span { font-size: 11px; margin-bottom: 4px; }
-.view-user-modal .detail-item strong { font-size: 13.5px; }
+/* --- details: flattened divided rows instead of boxed cards --- */
+.view-user-modal .profile-details {
+  padding: 4px 20px 8px;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px;
+}
+.view-user-modal .detail-item {
+  padding: 7px 0;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 8px;
+  align-items: center;
+}
+.view-user-modal .detail-icon {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-radius: 6px;
+}
+.view-user-modal .detail-item span { font-size: 9px; margin-bottom: 1px; }
+.view-user-modal .detail-item strong { font-size: 11.5px; }
 
-.view-user-modal .access-section { margin: 0 28px 20px; }
-.view-user-modal .access-header { padding: 14px 16px; }
-.view-user-modal .access-header h3 { font-size: 16px; }
-.view-user-modal .access-header p { font-size: 12px; }
-.view-user-modal .course-row { padding: 12px 16px; }
-.view-user-modal .course-icon { width: 40px; height: 40px; flex: 0 0 40px; }
-.view-user-modal .course-main h4 { font-size: 14px; }
-.view-user-modal .course-main p { font-size: 11px; }
+/* --- course access --- */
+.view-user-modal .access-section { margin: 8px 20px 14px; border-radius: 8px; }
+.view-user-modal .access-header { padding: 9px 12px; }
+.view-user-modal .access-header h3 { font-size: 12.5px; gap: 5px; }
+.view-user-modal .access-header p { font-size: 10px; }
+.view-user-modal .access-total { font-size: 9px; padding: 3px 7px; }
 
-.view-user-modal .modal-actions { padding: 16px 28px; }
-.view-user-modal .modal-actions button { min-height: 40px; font-size: 13px; padding: 0 16px; }
+.view-user-modal .course-row { padding: 8px 12px; gap: 8px 10px; }
+.view-user-modal .course-icon { width: 28px; height: 28px; flex: 0 0 28px; border-radius: 6px; }
+.view-user-modal .course-main h4 { font-size: 11.5px; margin-bottom: 1px; }
+.view-user-modal .course-main p { font-size: 9px; }
+.view-user-modal .remaining,
+.view-user-modal .expired-text { font-size: 8.5px; margin-top: 2px; }
+.view-user-modal .course-status span { padding: 3px 7px; font-size: 8.5px; }
+.view-user-modal .course-actions button {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 10px;
+  gap: 4px;
+}
+
+/* --- footer --- */
+.view-user-modal .modal-actions { padding: 10px 20px; gap: 8px; }
+.view-user-modal .modal-actions button {
+  min-height: 32px;
+  font-size: 12px;
+  padding: 0 12px;
+  gap: 6px;
+}
 
 /* =========================================================
    DELETE CONFIRM MODAL — compact, centred

@@ -23,7 +23,15 @@
    fighting it.
    ========================================================= */
 
-.notifications-container { width: 100%; font-family: 'Poppins', system-ui, sans-serif; }
+.notifications-container {
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+}
 
 /* =========================================================
    HEADER
@@ -83,7 +91,10 @@
   color: #0f172a;
 }
 
-.notifications-title svg { color: #6366f1; flex-shrink: 0; }
+.notifications-title svg {
+  color: #6366f1;
+  flex-shrink: 0;
+}
 
 .notifications-subtitle {
   position: relative;
@@ -141,7 +152,10 @@
   transform: translateY(-1px);
 }
 
-.mark-all-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.mark-all-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 /* =========================================================
    LIST + ROWS
@@ -159,8 +173,13 @@
   overflow: visible;
 }
 
-.notification-item:first-child { border-radius: 18px 18px 0 0; }
-.notification-item:last-child { border-radius: 0 0 18px 18px; }
+.notification-item:first-child {
+  border-radius: 18px 18px 0 0;
+}
+
+.notification-item:last-child {
+  border-radius: 0 0 18px 18px;
+}
 
 .notification-item {
   position: relative;
@@ -175,7 +194,9 @@
   border-bottom: 1px solid #f4f6f9;
 }
 
-.notification-item:hover { background: #fafbff; }
+.notification-item:hover {
+  background: #fafbff;
+}
 
 /* UNREAD — tinted row + gradient marker */
 .notification-item.unread {
@@ -246,7 +267,11 @@
    CONTENT
    ========================================================= */
 
-.notification-content { flex: 1; min-width: 0; cursor: pointer; }
+.notification-content {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
 
 .notification-header {
   display: flex;
@@ -332,7 +357,10 @@
   overflow: hidden;
 }
 
-.notification-message.expanded { display: block; overflow: visible; }
+.notification-message.expanded {
+  display: block;
+  overflow: visible;
+}
 
 .expand-btn {
   display: inline-flex;
@@ -349,8 +377,13 @@
   cursor: pointer;
 }
 
-.expand-btn:hover { text-decoration: underline; }
-.expand-btn svg { flex-shrink: 0; }
+.expand-btn:hover {
+  text-decoration: underline;
+}
+
+.expand-btn svg {
+  flex-shrink: 0;
+}
 
 /* =========================================================
    ACTIONS
@@ -378,7 +411,10 @@
   transition: all 0.18s ease;
 }
 
-.action-btn svg { width: 16px; height: 16px; }
+.action-btn svg {
+  width: 16px;
+  height: 16px;
+}
 
 .read-btn:hover {
   background: #ecfdf5;
@@ -399,7 +435,9 @@
    These are driven by data-tip and sit ABOVE the button.
    ========================================================= */
 
-.action-btn[data-tip] { position: relative; }
+.action-btn[data-tip] {
+  position: relative;
+}
 
 /* label */
 .action-btn[data-tip]::after {
@@ -457,8 +495,13 @@
 }
 
 /* the row must not clip a tooltip that sits above it */
-.notification-item { overflow: visible; }
-.notification-item:hover { z-index: 5; }
+.notification-item {
+  overflow: visible;
+}
+
+.notification-item:hover {
+  z-index: 5;
+}
 
 /* the first row's tooltip would otherwise be cut by the list's
    rounded overflow — flip it below for that row only */
@@ -512,7 +555,9 @@
   color: #a5b4fc;
 }
 
-.error-icon { color: #dc2626; }
+.error-icon {
+  color: #dc2626;
+}
 
 .notifications-empty h3 {
   margin: 6px 0 0;
@@ -565,7 +610,11 @@
   animation: ntfSpin 0.75s linear infinite;
 }
 
-@keyframes ntfSpin { to { transform: rotate(360deg); } }
+@keyframes ntfSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* =========================================================
    RESPONSIVE
@@ -578,12 +627,30 @@
     padding: 16px 18px;
   }
 
-  .notifications-title { font-size: 19px; }
-  .notifications-actions { width: 100%; }
-  .mark-all-btn { flex: 1; justify-content: center; min-height: 42px; }
+  .notifications-title {
+    font-size: 19px;
+  }
 
-  .notification-item { flex-wrap: wrap; gap: 13px; padding: 15px 16px; }
-  .notification-icon { width: 38px; height: 38px; }
+  .notifications-actions {
+    width: 100%;
+  }
+
+  .mark-all-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 42px;
+  }
+
+  .notification-item {
+    flex-wrap: wrap;
+    gap: 13px;
+    padding: 15px 16px;
+  }
+
+  .notification-icon {
+    width: 38px;
+    height: 38px;
+  }
 
   .notification-header {
     flex-direction: column;
@@ -599,10 +666,20 @@
 }
 
 @media (max-width: 420px) {
-  .notification-title { font-size: 13.5px; }
-  .notification-message { font-size: 12.5px; }
+  .notification-title {
+    font-size: 13.5px;
+  }
+
+  .notification-message {
+    font-size: 12.5px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .notification-item, .action-btn, .mark-all-btn { transition: none; }
+
+  .notification-item,
+  .action-btn,
+  .mark-all-btn {
+    transition: none;
+  }
 }

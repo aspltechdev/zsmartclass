@@ -3,7 +3,15 @@
    Page-specific only; StudentShared.css covers the rest.
    ========================================================= */
 
-.assignments-container { width: 100%; font-family: 'Poppins', system-ui, sans-serif; }
+.assignments-container {
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+}
 
 /* ---------- Header ---------- */
 .assignments-header {
@@ -43,7 +51,11 @@
 }
 
 /* ---------- List ---------- */
-.assignments-list { display: flex; flex-direction: column; gap: 14px; }
+.assignments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .assignment-card {
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -61,7 +73,9 @@
 }
 
 /* overdue work gets a red rail so it reads instantly */
-.assignment-card.assignment-overdue { border-left-color: #ef4444; }
+.assignment-card.assignment-overdue {
+  border-left-color: #ef4444;
+}
 
 /* ---------- Card header ---------- */
 .assignment-header {
@@ -76,6 +90,7 @@
   height: 44px;
   flex-shrink: 0;
   display: flex;
+  margin-bottom: 10px;
   align-items: center;
   justify-content: center;
   border-radius: 12px;
@@ -89,9 +104,14 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.26);
 }
 
-.assignment-icon svg { color: #fff; }
+.assignment-icon svg {
+  color: #fff;
+}
 
-.assignment-title-section { flex: 1; min-width: 0; }
+.assignment-title-section {
+  flex: 1;
+  min-width: 0;
+}
 
 .assignment-title {
   margin: 0;
@@ -115,7 +135,9 @@
 }
 
 /* ---------- Body ---------- */
-.assignment-body { padding: 14px 19px 18px; }
+.assignment-body {
+  padding: 14px 19px 18px;
+}
 
 .assignment-description {
   margin: 0 0 14px;
@@ -183,9 +205,18 @@
 }
 
 /* overdue tint on the due-date tile */
-.assignment-overdue .meta-item:first-child { background: #fef2f2; }
-.assignment-overdue .meta-item:first-child .meta-icon { background: #fee2e2; color: #dc2626; }
-.assignment-overdue .meta-item:first-child .meta-value { color: #b91c1c; }
+.assignment-overdue .meta-item:first-child {
+  background: #fef2f2;
+}
+
+.assignment-overdue .meta-item:first-child .meta-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.assignment-overdue .meta-item:first-child .meta-value {
+  color: #b91c1c;
+}
 
 /* ---------- States ---------- */
 .assignments-empty,
@@ -211,7 +242,9 @@
   color: #b91c1c;
 }
 
-.assignments-empty-icon { color: #cbd5e1; }
+.assignments-empty-icon {
+  color: #cbd5e1;
+}
 
 .assignments-empty h3 {
   margin: 4px 0 0;
@@ -257,13 +290,26 @@
   animation: asgSpin 0.75s linear infinite;
 }
 
-@keyframes asgSpin { to { transform: rotate(360deg); } }
+@keyframes asgSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
-  .assignments-title { font-size: 21px; }
-  .assignments-header { flex-direction: column; align-items: stretch; }
-  .assignment-meta-grid { grid-template-columns: 1fr; }
+  .assignments-title {
+    font-size: 21px;
+  }
+
+  .assignments-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .assignment-meta-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* =========================================================
@@ -286,10 +332,25 @@
   white-space: nowrap;
 }
 
-.assignment-overdue-badge { background: #fef2f2; color: #b91c1c; }
-.assignment-status-badge.submitted { background: #fffbeb; color: #b45309; }
-.assignment-status-badge.graded { background: #ecfdf5; color: #047857; }
-.assignment-status-badge.locked { background: #f1f5f9; color: #475569; }
+.assignment-overdue-badge {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.assignment-status-badge.submitted {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.assignment-status-badge.graded {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.assignment-status-badge.locked {
+  background: #f1f5f9;
+  color: #475569;
+}
 
 /* wrapper below the meta grid */
 .assignment-submission {
@@ -311,7 +372,10 @@
   border: 1px solid transparent;
 }
 
-.submission-status svg { flex-shrink: 0; margin-top: 1px; }
+.submission-status svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
 
 .submission-status-submitted {
   background: #fffbeb;
@@ -332,7 +396,10 @@
   min-width: 0;
 }
 
-.submission-status-text strong { font-size: 13.5px; font-weight: 700; }
+.submission-status-text strong {
+  font-size: 13.5px;
+  font-weight: 700;
+}
 
 .submission-feedback {
   display: flex;
@@ -345,7 +412,11 @@
   overflow-wrap: anywhere;
 }
 
-.submission-feedback svg { flex-shrink: 0; margin-top: 2px; color: #64748b; }
+.submission-feedback svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #64748b;
+}
 
 .submission-meta-row {
   display: flex;
@@ -365,9 +436,15 @@
   text-decoration: none;
 }
 
-.submission-file-link:hover { text-decoration: underline; }
+.submission-file-link:hover {
+  text-decoration: underline;
+}
 
-.submission-date { color: #94a3b8; font-size: 11.5px; font-weight: 500; }
+.submission-date {
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 500;
+}
 
 /* upload form */
 .submission-upload {
@@ -385,7 +462,9 @@
   font-weight: 700;
 }
 
-.submission-upload-label svg { color: #6366f1; }
+.submission-upload-label svg {
+  color: #6366f1;
+}
 
 .submission-file-input {
   width: 100%;
@@ -473,7 +552,11 @@
   animation: asgSpin 0.7s linear infinite;
 }
 
-.submission-hint { margin: 0; color: #94a3b8; font-size: 11.5px; }
+.submission-hint {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 11.5px;
+}
 
 .submission-msg {
   padding: 10px 13px;
@@ -482,8 +565,15 @@
   font-weight: 600;
 }
 
-.submission-msg-success { background: #ecfdf5; color: #047857; }
-.submission-msg-error { background: #fef2f2; color: #b91c1c; }
+.submission-msg-success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.submission-msg-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
 
 /* locked notice — shown in place of the upload form until the course is done */
 .submission-locked {
@@ -497,7 +587,11 @@
   color: #475569;
 }
 
-.submission-locked svg { flex-shrink: 0; margin-top: 1px; color: #94a3b8; }
+.submission-locked svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #94a3b8;
+}
 
 .submission-locked-text {
   display: flex;
@@ -506,5 +600,14 @@
   min-width: 0;
 }
 
-.submission-locked-text strong { font-size: 13.5px; font-weight: 700; color: #334155; }
-.submission-locked-text span { font-size: 12.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.submission-locked-text strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.submission-locked-text span {
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}

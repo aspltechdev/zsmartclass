@@ -3,8 +3,19 @@
    Page-specific only; StudentShared.css covers the rest.
    ========================================================= */
 
-.student-dashboard-page { width: 100%; font-family: 'Poppins', system-ui, sans-serif; }
-.student-dashboard-container { width: 100%; }
+.student-dashboard-page {
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.student-dashboard-container {
+  width: 100%;
+}
 
 /* ---------- Summary cards ---------- */
 .dashboard-summary-grid {
@@ -61,10 +72,21 @@
   z-index: 1;
 }
 
-.dashboard-summary-icon.blue   { background: #2563eb; }
-.dashboard-summary-icon.green  { background: #10b981; }
-.dashboard-summary-icon.orange { background: #f59e0b; }
-.dashboard-summary-icon.purple { background: #8b5cf6; }
+.dashboard-summary-icon.blue {
+  background: #2563eb;
+}
+
+.dashboard-summary-icon.green {
+  background: #10b981;
+}
+
+.dashboard-summary-icon.orange {
+  background: #f59e0b;
+}
+
+.dashboard-summary-icon.purple {
+  background: #8b5cf6;
+}
 
 .dashboard-summary-card h3,
 .dashboard-summary-card strong {
@@ -92,7 +114,9 @@
 }
 
 /* ---------- Sections ---------- */
-.dashboard-section { margin-bottom: 26px; }
+.dashboard-section {
+  margin-bottom: 26px;
+}
 
 .dashboard-section-header {
   display: flex;
@@ -124,7 +148,9 @@
   cursor: pointer;
 }
 
-.dashboard-text-button:hover { text-decoration: underline; }
+.dashboard-text-button:hover {
+  text-decoration: underline;
+}
 
 /* ---------- Continue-learning list ---------- */
 .dashboard-progress-list {
@@ -169,7 +195,10 @@
   object-fit: cover;
 }
 
-.dashboard-progress-content { flex: 1; min-width: 0; }
+.dashboard-progress-content {
+  flex: 1;
+  min-width: 0;
+}
 
 .dashboard-progress-content h4 {
   margin: 0 0 3px;
@@ -193,7 +222,9 @@
   text-transform: uppercase;
 }
 
-.dashboard-course-progress { margin-top: 9px; }
+.dashboard-course-progress {
+  margin-top: 9px;
+}
 
 .dashboard-course-progress-top,
 .dashboard-course-progress-bottom {
@@ -206,7 +237,9 @@
   font-weight: 600;
 }
 
-.dashboard-course-progress-bottom { margin-top: 5px; }
+.dashboard-course-progress-bottom {
+  margin-top: 5px;
+}
 
 .dashboard-progress-track {
   width: 100%;
@@ -313,11 +346,9 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to top,
-    rgba(15, 23, 42, 0.35),
-    transparent 55%
-  );
+  background: linear-gradient(to top,
+      rgba(15, 23, 42, 0.35),
+      transparent 55%);
   pointer-events: none;
 }
 
@@ -374,7 +405,7 @@
   overflow: hidden;
 }
 
-.recent-course-track > div {
+.recent-course-track>div {
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, #6366f1, #8b5cf6);
@@ -443,16 +474,26 @@
   animation: dashSpin 0.75s linear infinite;
 }
 
-@keyframes dashSpin { to { transform: rotate(360deg); } }
+@keyframes dashSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
-  .dashboard-summary-grid { grid-template-columns: 1fr; }
-  .recent-course-grid { grid-template-columns: 1fr; }
+  .dashboard-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-course-grid {
+    grid-template-columns: 1fr;
+  }
 
   .dashboard-progress-card {
     flex-wrap: wrap;
   }
+
   .dashboard-continue-button {
     width: 100%;
     justify-content: center;
@@ -505,7 +546,11 @@
   pointer-events: none;
 }
 
-.dashboard-hero-text { position: relative; z-index: 1; min-width: 0; }
+.dashboard-hero-text {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
 
 .dashboard-hero-eyebrow {
   display: block;
@@ -535,9 +580,22 @@
 }
 
 @keyframes heroWave {
-  0%, 60%, 100% { transform: rotate(0deg); }
-  10%, 30% { transform: rotate(14deg); }
-  20%, 40% { transform: rotate(-8deg); }
+
+  0%,
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  10%,
+  30% {
+    transform: rotate(14deg);
+  }
+
+  20%,
+  40% {
+    transform: rotate(-8deg);
+  }
 }
 
 .dashboard-hero p {
@@ -556,7 +614,7 @@
   font-size: 12.5px;
 }
 
-.dashboard-hero-meta > span {
+.dashboard-hero-meta>span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -593,8 +651,13 @@
   color: #fff;
 }
 
-.hero-stat-icon.streak { background: #f97316; }
-.hero-stat-icon.goal { background: #6366f1; }
+.hero-stat-icon.streak {
+  background: #f97316;
+}
+
+.hero-stat-icon.goal {
+  background: #6366f1;
+}
 
 .hero-stat strong {
   display: block;
@@ -640,7 +703,7 @@
   min-width: 0;
 }
 
-.learning-goal-title > svg {
+.learning-goal-title>svg {
   flex-shrink: 0;
   margin-top: 2px;
   color: #6366f1;
@@ -694,31 +757,56 @@
   font-weight: 500;
 }
 
-.learning-goal-foot > span {
+.learning-goal-foot>span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.learning-goal-foot svg { color: #94a3b8; }
+.learning-goal-foot svg {
+  color: #94a3b8;
+}
 
 /* =========================================================
    RESPONSIVE
    ========================================================= */
 
 @media (max-width: 900px) {
-  .dashboard-hero { padding: 20px; }
-  .dashboard-hero h1 { font-size: 21px; }
-  .dashboard-hero-stats { width: 100%; }
-  .hero-stat { flex: 1; min-width: 0; }
+  .dashboard-hero {
+    padding: 20px;
+  }
+
+  .dashboard-hero h1 {
+    font-size: 21px;
+  }
+
+  .dashboard-hero-stats {
+    width: 100%;
+  }
+
+  .hero-stat {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 560px) {
-  .learning-goal-head { flex-direction: column; gap: 10px; }
-  .learning-goal-foot { gap: 14px; }
-  .dashboard-hero-meta { gap: 12px; }
+  .learning-goal-head {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .learning-goal-foot {
+    gap: 14px;
+  }
+
+  .dashboard-hero-meta {
+    gap: 12px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-hero .wave { animation: none; }
+  .dashboard-hero .wave {
+    animation: none;
+  }
 }

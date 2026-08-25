@@ -1,4 +1,10 @@
 /* =========================================================
+   FONT
+========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;750&display=swap');
+
+/* =========================================================
    RESET
 ========================================================= */
 
@@ -14,6 +20,12 @@
   padding: 28px;
   background: #f6f8fc;
   color: #172033;
+}
+
+/* Portaled modals live outside .courses-page in the DOM, so they need
+   their own font-family — they don't inherit from .courses-page. */
+.courses-modal-overlay {
+  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
 body.courses-modal-open {
@@ -100,6 +112,7 @@ body.courses-modal-open {
   background: #4f46e5;
   color: white;
 
+  font-family: inherit;
   font-size: 13px;
   font-weight: 650;
 
@@ -312,6 +325,7 @@ body.courses-modal-open {
 
   color: #273044;
 
+  font-family: inherit;
   font-size: 13px;
 }
 
@@ -332,6 +346,7 @@ body.courses-modal-open {
 
   color: #485268;
 
+  font-family: inherit;
   font-size: 13px;
 
   outline: none;
@@ -1048,6 +1063,7 @@ body.courses-modal-open {
 
   border-radius: 9px;
 
+  font-family: inherit;
   font-size: 12px;
   font-weight: 650;
 
@@ -1758,6 +1774,7 @@ body.courses-modal-open {
 
   color: #475569;
 
+  font-family: inherit;
   font-size: 11px;
 }
 
@@ -1781,6 +1798,7 @@ body.courses-modal-open {
   background: #4f46e5;
   color: white;
 
+  font-family: inherit;
   font-size: 11px;
   font-weight: 650;
 
@@ -1912,6 +1930,7 @@ body.courses-modal-open {
 
   color: #dc2626;
 
+  font-family: inherit;
   font-size: 9px;
   font-weight: 650;
 
@@ -2063,6 +2082,7 @@ body.courses-modal-open {
   background: #dc2626;
   color: white;
 
+  font-family: inherit;
   font-size: 12px;
   font-weight: 650;
 
