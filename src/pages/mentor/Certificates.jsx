@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Award, Search, RefreshCw, CheckCircle, XCircle, Clock,
-  Download, Zap, X, User, BookOpen,
+  Download, X, User, BookOpen,
 } from "lucide-react";
 import api from "../../services/api";
 import "./Certificates.css";
@@ -71,17 +71,6 @@ function Certificates() {
     } finally { setActionId(null); }
   };
 
-  const verifyNow = async () => {
-    setActionId("verify");
-    try {
-      const res = await api.post("/certificates/admin/verify-now");
-      await fetchAll();
-      flash(res.data?.message || "Verification run complete.");
-    } catch (err) {
-      alert(err.response?.data?.message || "Verify failed.");
-    } finally { setActionId(null); }
-  };
-
   const download = async (certNo) => {
     if (!certNo) return;
     setActionId(certNo);
@@ -132,9 +121,6 @@ function Certificates() {
         </div>
         <div className="cert-actions">
           <button className="cert-btn ghost" onClick={fetchAll}><RefreshCw size={16} /></button>
-          <button className="cert-btn primary" onClick={verifyNow} disabled={actionId === "verify"}>
-            <Zap size={16} /> {actionId === "verify" ? "Verifying…" : "Verify Now"}
-          </button>
         </div>
       </div>
 

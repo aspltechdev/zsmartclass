@@ -10,7 +10,6 @@ import {
   AlertCircle,
   RefreshCw,
   Clock,
-  CheckCircle,
   ArrowLeft,
   PlayCircle,
   ClipboardList,
@@ -192,62 +191,32 @@ const Quiz = () => {
     try {
       setSubmitting(true);
 
-      // Calculate score
-      let correctCount = 0;
-      let totalMarks = 0;
-
-      activeQuiz.questions.forEach((question, index) => {
-        const userAnswers = answers[index] || [];
-        const correctOptions = question.options
-          .map((opt, optIndex) => opt.isCorrect ? optIndex : -1)
-          .filter(idx => idx !== -1);
-
-        // Check if user answers match correct answers
-        const isCorrect = 
-          userAnswers.length === correctOptions.length &&
-          userAnswers.sort().every((val, idx) => val === correctOptions.sort()[idx]);
-
-        if (isCorrect) {
-          correctCount++;
-          totalMarks += question.marks || 1;
-        }
+      // The server grades the attempt. We send ONLY which options were picked
+      // (as option IDs, resolved from the selected indices) — never a score.
+      const answersPayload = activeQuiz.questions.map((question, index) => {
+        const selectedIndices = answers[index] || [];
+        const selectedOptionIds = selectedIndices
+          .map((oi) => question.options?.[oi]?.id)
+          .filter((id) => id != null);
+        return { questionId: question.id, selectedOptionIds };
       });
 
-      const totalPossibleMarks = activeQuiz.questions.reduce(
-        (sum, q) => sum + (q.marks || 1), 0
-      );
+      const response = await api.post(`/quizzes/${activeQuiz.id}/attempts`, {
+        answers: answersPayload,
+        courseId: courseId ? Number(courseId) : undefined,
+      });
 
-      const scorePercentage = totalPossibleMarks > 0 
-        ? Math.round((totalMarks / totalPossibleMarks) * 100) 
-        : 0;
-
-      // Save attempt to server
-      const attemptData = {
-        quizId: activeQuiz.id,
-        answers: answers,
-        score: totalMarks,
-        totalMarks: totalPossibleMarks,
-        percentage: scorePercentage,
-        correctCount: correctCount,
-        totalQuestions: activeQuiz.questions.length
-      };
-
-      // Save attempt
-      await api.post(`/quizzes/${activeQuiz.id}/attempts`, attemptData);
-
-      // --- SAVE STATUS TO LOCAL STORAGE (For CoursePlayer) ---
-      const passed = scorePercentage >= 50;
-      const moduleKey = `quiz_status_${moduleId}`;
-      localStorage.setItem(moduleKey, passed ? "passed" : "failed");
-      // -------------------------------------------------------
+      // Authoritative grade from the server.
+      const graded = response?.data?.data || {};
+      const scorePercentage = graded.percentage ?? 0;
 
       setResult({
-        correctCount,
-        totalQuestions: activeQuiz.questions.length,
-        totalMarks,
-        totalPossibleMarks,
+        correctCount: graded.correctCount ?? 0,
+        totalQuestions: graded.totalQuestions ?? activeQuiz.questions.length,
+        totalMarks: graded.obtainedMarks ?? 0,
+        totalPossibleMarks: graded.totalMarks ?? 0,
         scorePercentage,
-        answers: { ...answers }
+        passed: graded.passed ?? scorePercentage >= 50,
       });
 
       setSubmitted(true);
@@ -279,19 +248,13 @@ const Quiz = () => {
         <div className="quiz-options-list">
           {question.options.map((option, optIndex) => {
             const isSelected = selectedOptions.includes(optIndex);
-            const isCorrect = option.isCorrect;
-            const showCorrect = submitted && isCorrect;
-            const showWrong = submitted && isSelected && !isCorrect;
 
             return (
               <button
                 key={optIndex}
-                className={`quiz-option ${isSelected ? 'selected' : ''} 
-                  ${showCorrect ? 'correct' : ''} 
-                  ${showWrong ? 'wrong' : ''}
-                  ${submitted ? 'disabled' : ''}`}
+                className={`quiz-option ${isSelected ? 'selected' : ''} ${submitting ? 'disabled' : ''}`}
                 onClick={() => handleAnswerSelect(index, optIndex)}
-                disabled={submitted}
+                disabled={submitting}
               >
                 <span className="option-indicator">
                   {question.type === "RADIO" ? (
@@ -301,12 +264,6 @@ const Quiz = () => {
                   )}
                 </span>
                 <span className="option-text">{option.text}</span>
-                {submitted && isCorrect && (
-                  <CheckCircle size={16} className="result-icon correct-icon" />
-                )}
-                {submitted && isSelected && !isCorrect && (
-                  <XCircle size={16} className="result-icon wrong-icon" />
-                )}
               </button>
             );
           })}
@@ -321,7 +278,7 @@ const Quiz = () => {
 
   const renderResults = () => {
     const { correctCount, totalQuestions, totalMarks, totalPossibleMarks, scorePercentage } = result;
-    const passed = scorePercentage >= 50;
+    const passed = result.passed ?? scorePercentage >= 50;
 
     return (
       <div className="quiz-results-container">

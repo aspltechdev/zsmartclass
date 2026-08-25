@@ -20,7 +20,6 @@ import {
   Clock as ClockIcon,
   Trash2,
   Plus,
-  Zap,
   Printer,
 } from "lucide-react";
 import api from "../../services/api";
@@ -275,20 +274,6 @@ function AdminCertificates() {
   // ==========================================
   // CERTIFICATE ACTION FUNCTIONS
   // ==========================================
-  // Trigger the auto-verify job immediately (no waiting for the 10-min timer)
-  const handleVerifyNow = async () => {
-    try {
-      setActionLoading("verify-now");
-      const res = await api.post("/certificates/admin/verify-now");
-      await fetchAll();
-      showSuccessMessage(res.data?.message || "Verification run complete.");
-    } catch (err) {
-      alert(err.response?.data?.message || "Verify-now failed. Please try again.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   // Open the certificate PDF in a new tab and print it
   const handlePrintCertificate = async (certNo) => {
     if (!certNo || certNo === "N/A") {
@@ -602,15 +587,6 @@ function AdminCertificates() {
           </p>
         </div>
         <div className="header-actions">
-          <button
-            className="add-btn"
-            onClick={handleVerifyNow}
-            disabled={actionLoading === "verify-now"}
-            title="Verify all pending applications now"
-          >
-            <Zap size={18} />
-            {actionLoading === "verify-now" ? "Verifying…" : "Verify Now"}
-          </button>
           <button className="add-btn" onClick={() => openVerifyModal()}>
             <ShieldCheck size={18} />
             Verify Certificate

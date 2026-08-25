@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -12,7 +12,7 @@ import {
   X,
   AlertCircle,
   HelpCircle,
-  ShieldQuestion, // <--- Replaces Lock to avoid browser crash
+  ShieldQuestion, // used as the "locked" glyph (avoids a Lucide Lock crash seen earlier)
 } from "lucide-react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 
@@ -20,6 +20,21 @@ import api from "../../services/api";
 import "./CoursePlayer.css";
 import "./StudentShared.css";
 
+/*
+ * Student Course Player.
+ *
+ * All structure, gating and progress come from the server-enforced player API:
+ *   - GET /player/course/:courseId          → gated module/lesson tree + progress
+ *   - GET /player/lesson/:lessonId?courseId  → the ONLY path to a playable videoUrl
+ *   - POST /player/lesson/:lessonId/watch-time → persists watch time; server marks
+ *                                                a lesson complete at >=95% watched
+ *
+ * Module locks, quiz-unlock and quiz pass/fail all read from the gating flags on
+ * each module (unlocked / lessonsComplete / quizRequired / quizPassed /
+ * moduleComplete) — never computed client-side. Course progress is whatever the
+ * server reports (completed lessons / total lessons), so it matches the admin,
+ * dashboard and My Learning views exactly.
+ */
 function CoursePlayer() {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -29,18 +44,17 @@ function CoursePlayer() {
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [expandedModules, setExpandedModules] = useState({});
 
-  // Store whether a module has a quiz
-  const [moduleQuizzes, setModuleQuizzes] = useState({});
-
+  // Per-lesson live progress (for the smooth in-progress bars). Seeded from the
+  // structure payload, updated from each watch-time save.
   const [progressMap, setProgressMap] = useState({});
-  
-  // HARDCODED TO 0% AT START (This kills the 50% bug)
+
+  // Server-reported overall course progress (completed lessons / total lessons).
   const [courseProgress, setCourseProgress] = useState(0);
 
   const [loading, setLoading] = useState(true);
-  const [loadingLessons, setLoadingLessons] = useState({});
   const [savingProgress, setSavingProgress] = useState(false);
   const [error, setError] = useState("");
+  const [lessonError, setLessonError] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   /* =====================================================
@@ -61,7 +75,7 @@ function CoursePlayer() {
   const savingRef = useRef(false);
 
   /* =====================================================
-     YOUTUBE API
+     YOUTUBE IFRAME API
   ===================================================== */
   useEffect(() => {
     if (window.YT && window.YT.Player) {
@@ -88,7 +102,7 @@ function CoursePlayer() {
   }, []);
 
   /* =====================================================
-     LOAD COURSE
+     LOAD COURSE (gated structure + progress)
   ===================================================== */
   useEffect(() => {
     if (!courseId) {
@@ -97,190 +111,131 @@ function CoursePlayer() {
       return;
     }
     loadCourse();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
+
+  const normalizeModules = (list) => {
+    const arr = Array.isArray(list) ? [...list] : [];
+    arr.sort((a, b) => Number(a?.position || 0) - Number(b?.position || 0));
+    return arr.map((m) => ({
+      ...m,
+      lessons: Array.isArray(m?.lessons)
+        ? [...m.lessons].sort(
+            (a, b) => Number(a?.position || 0) - Number(b?.position || 0)
+          )
+        : [],
+    }));
+  };
+
+  const seedProgressMap = (moduleList, previous = {}) => {
+    const map = {};
+    moduleList.forEach((m) => {
+      (m.lessons || []).forEach((l) => {
+        const id = Number(l.id);
+        const server = {
+          watchedSeconds: Number(l.watchedSeconds) || 0,
+          lastPosition: Number(l.lastPosition) || 0,
+          durationSeconds: Number(l.durationSeconds) || 0,
+          completed: Boolean(l.completed),
+        };
+        // For the lesson currently playing, don't let a structure refresh
+        // pull its live watched time backwards.
+        if (
+          currentLessonRef.current &&
+          Number(currentLessonRef.current.id) === id &&
+          previous[id]
+        ) {
+          server.watchedSeconds = Math.max(
+            server.watchedSeconds,
+            Number(previous[id].watchedSeconds) || 0
+          );
+          server.durationSeconds =
+            server.durationSeconds || Number(previous[id].durationSeconds) || 0;
+        }
+        map[id] = server;
+      });
+    });
+    return map;
+  };
 
   const loadCourse = async () => {
     try {
       setLoading(true);
       setError("");
 
-      // *** CRITICAL: FORCE COURSE PROGRESS TO 0% ***
-      setCourseProgress(0);
-
-      const response = await api.get(`/courses/${courseId}`);
+      const response = await api.get(`/player/course/${courseId}`);
       const data = response?.data?.data || response?.data || null;
-
       if (!data) throw new Error("Course data not found.");
 
-      setCourse(data);
+      setCourse(data.course || null);
 
-      let courseModules = Array.isArray(data?.modules) ? [...data.modules] : [];
-      courseModules.sort((a, b) => Number(a?.position || 0) - Number(b?.position || 0));
-      courseModules = courseModules.map((module) => ({
-        ...module,
-        lessons: Array.isArray(module?.lessons)
-          ? [...module.lessons].sort((a, b) => Number(a?.position || 0) - Number(b?.position || 0))
-          : [],
-      }));
-
+      const courseModules = normalizeModules(data.modules);
       modulesRef.current = courseModules;
       setModules(courseModules);
 
-      // Fetch quiz availability for each module
-      const quizzesMap = {};
-      for (const module of courseModules) {
-        try {
-          const quizRes = await api.get(`/quizzes/module/${module.id}`);
-          const quizData = quizRes?.data?.data || [];
-          quizzesMap[module.id] = Array.isArray(quizData) && quizData.length > 0;
-        } catch (err) {
-          quizzesMap[module.id] = false;
-        }
-      }
-      setModuleQuizzes(quizzesMap);
+      const map = seedProgressMap(courseModules);
+      progressMapRef.current = map;
+      setProgressMap(map);
 
-      const modulesNeedLessons = courseModules.some(
-        (module) => !Array.isArray(module.lessons) || module.lessons.length === 0
+      setCourseProgress(Number(data.progress) || 0);
+
+      // Auto-open + select the first lesson of the first unlocked, non-empty module.
+      const firstPlayable = courseModules.find(
+        (m) => m.unlocked && (m.lessons || []).length > 0
       );
-
-      if (modulesNeedLessons && courseModules.length > 0) {
-        for (const module of courseModules) {
-          await loadModuleLessons(module.id, false);
-        }
-      }
-
-      await loadAllLessonProgress(courseModules);
-
-      if (courseModules.length > 0) {
+      if (firstPlayable) {
+        setExpandedModules({ [firstPlayable.id]: true });
+        await selectLesson(firstPlayable.lessons[0]);
+      } else if (courseModules.length > 0) {
         setExpandedModules({ [courseModules[0].id]: true });
-        const firstLessons = courseModules[0]?.lessons || [];
-        if (firstLessons.length > 0) {
-          await selectLesson(firstLessons[0]);
-        } else {
-          await loadModuleLessons(courseModules[0].id, true);
-        }
       }
     } catch (err) {
       console.error("Course loading error:", err);
-      setError(err?.response?.data?.message || err?.message || "Unable to load course.");
+      setError(
+        err?.response?.data?.message || err?.message || "Unable to load course."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  /* =====================================================
-     PROGRESS LOADING
-  ===================================================== */
-  const loadBulkProgress = async (targetCourseId) => {
+  /*
+   * Re-pull the gated structure. Called after a lesson completes so the next
+   * module unlocks (and quiz-unlock / pass flags update) without a page reload.
+   */
+  const refreshStructure = async () => {
     try {
-      const response = await api.get(`/player/course/${targetCourseId}/progress`);
-      const data = response?.data?.data || response?.data || {};
-      const lessons = data.lessons || {};
-      const map = {};
+      const response = await api.get(`/player/course/${courseId}`);
+      const data = response?.data?.data || response?.data || null;
+      if (!data) return;
 
-      Object.keys(lessons).forEach((key) => {
-        const item = lessons[key];
-        map[Number(key)] = {
-          watchedSeconds: Number(item?.watchedSeconds || 0),
-          lastPosition: Number(item?.lastPosition || 0),
-          durationSeconds: Number(item?.durationSeconds || 0),
-          completed: Boolean(item?.completed)
-        };
-      });
+      const courseModules = normalizeModules(data.modules);
+      modulesRef.current = courseModules;
+      setModules(courseModules);
 
+      const map = seedProgressMap(courseModules, progressMapRef.current);
       progressMapRef.current = map;
       setProgressMap(map);
 
-      // RETURN MAP ONLY, DO NOT SET OVERALL PROGRESS FROM BACKEND
-      return map;
+      setCourseProgress(Number(data.progress) || 0);
     } catch (err) {
-      console.error("Bulk progress load failed:", err.message);
-      return progressMapRef.current || {};
+      console.error("Structure refresh failed:", err?.message);
     }
   };
 
-  const loadAllLessonProgress = async (courseModules) => {
-    const map = await loadBulkProgress(courseId);
-    calculateCourseProgress(map, courseModules && courseModules.length ? courseModules : modulesRef.current);
-  };
-
-  const loadSingleLessonProgress = async (lessonId, lesson) => {
-    const cached = progressMapRef.current[Number(lessonId)];
-    if (cached) return cached;
-    return {
-      watchedSeconds: 0,
-      lastPosition: 0,
-      durationSeconds: Number(lesson?.duration || 0) * 60,
-      completed: false
-    };
-  };
-
   /* =====================================================
-     LOAD MODULE LESSONS
+     MODULE TOGGLE (locked modules can't expand)
   ===================================================== */
-  const loadModuleLessons = async (moduleId, autoSelect = false) => {
-    try {
-      setLoadingLessons((previous) => ({ ...previous, [moduleId]: true }));
-      const response = await api.get(`/modules/${moduleId}`);
-      const moduleData = response?.data?.data || response?.data || {};
-      const lessons = Array.isArray(moduleData?.lessons)
-        ? [...moduleData.lessons].sort((a, b) => Number(a?.position || 0) - Number(b?.position || 0))
-        : [];
-
-      const baseModules = modulesRef.current.length > 0 ? modulesRef.current : modules;
-      const nextModules = baseModules.map((module) =>
-        Number(module.id) === Number(moduleId) ? { ...module, ...moduleData, lessons } : module
-      );
-
-      modulesRef.current = nextModules;
-      setModules(nextModules);
-
-      const moduleProgressResults = await Promise.all(
-        lessons.map(async (lesson) => {
-          const lessonId = Number(lesson.id);
-          if (!lessonId) return null;
-          const saved = await loadSingleLessonProgress(lessonId, lesson);
-          return { lessonId, saved };
-        })
-      );
-
-      const mergedMap = { ...progressMapRef.current };
-      moduleProgressResults.forEach((result) => {
-        if (!result) return;
-        mergedMap[result.lessonId] = result.saved;
-      });
-
-      progressMapRef.current = mergedMap;
-      setProgressMap(mergedMap);
-      calculateCourseProgress(mergedMap, nextModules);
-
-      if (autoSelect && lessons.length > 0 && !currentLessonRef.current) {
-        await selectLesson(lessons[0]);
-      }
-    } catch (err) {
-      console.error("Lesson loading error:", err);
-    } finally {
-      setLoadingLessons((previous) => ({ ...previous, [moduleId]: false }));
-    }
+  const toggleModule = (module) => {
+    if (!module?.unlocked) return;
+    setExpandedModules((previous) => ({
+      ...previous,
+      [module.id]: !previous[module.id],
+    }));
   };
 
   /* =====================================================
-     MODULE TOGGLE
-  ===================================================== */
-  const toggleModule = async (moduleId) => {
-    const isOpen = Boolean(expandedModules[moduleId]);
-    setExpandedModules((previous) => ({ ...previous, [moduleId]: !isOpen }));
-
-    if (!isOpen) {
-      const module = modules.find((item) => Number(item.id) === Number(moduleId));
-      if (!module || !Array.isArray(module.lessons) || module.lessons.length === 0) {
-        await loadModuleLessons(moduleId);
-      }
-    }
-  };
-
-  /* =====================================================
-     YOUTUBE HELPERS
+     VIDEO HELPERS
   ===================================================== */
   const getYoutubeId = (url) => {
     if (!url) return null;
@@ -307,40 +262,69 @@ function CoursePlayer() {
 
   /* =====================================================
      SELECT LESSON
+     Fetches the playable URL through the gated lesson endpoint — the only
+     place a student ever receives a real videoUrl.
   ===================================================== */
   const selectLesson = async (lesson) => {
     if (!lesson) return;
+
     await saveCurrentProgress();
     stopProgressTimer();
     destroyYoutubePlayer();
+    isPlayingRef.current = false;
+    setLessonError("");
 
-    let stored = progressMap[Number(lesson.id)];
-    if (!stored) stored = await loadSingleLessonProgress(Number(lesson.id), lesson);
+    let full = null;
+    try {
+      const response = await api.get(
+        `/player/lesson/${lesson.id}?courseId=${courseId}`
+      );
+      full = response?.data?.data || response?.data || null;
+    } catch (err) {
+      // 403 => module locked (defensive; the UI already hides locked lessons).
+      console.error("Lesson open failed:", err?.response?.data || err);
+      setLessonError(
+        err?.response?.data?.message ||
+          "This lesson is locked. Complete the previous module first."
+      );
+      setSelectedLesson({ ...lesson, videoUrl: null });
+      currentLessonRef.current = null;
+      return;
+    }
 
-    const watched = Number(stored?.watchedSeconds || 0);
-    const lastPosition = Number(stored?.lastPosition || 0);
-    const duration = Number(stored?.durationSeconds || 0) || Number(lesson?.duration || 0) * 60;
+    if (!full) {
+      setLessonError("Unable to open this lesson.");
+      return;
+    }
 
-    currentLessonRef.current = lesson;
+    const stored = progressMapRef.current[Number(full.id)] || {};
+    const watched = Number(full.watchedSeconds ?? stored.watchedSeconds ?? 0);
+    const lastPosition = Number(full.lastPosition ?? stored.lastPosition ?? 0);
+    const duration = Number(
+      full.durationSeconds ?? stored.durationSeconds ?? 0
+    );
+
+    currentLessonRef.current = full;
     watchedSecondsRef.current = watched;
     lastPositionRef.current = lastPosition;
     durationSecondsRef.current = duration;
     lastTickRef.current = null;
 
-    setSelectedLesson(lesson);
+    setSelectedLesson(full);
     setMobileSidebarOpen(false);
 
-    setTimeout(() => {
-      createYoutubePlayer(lesson);
-    }, 50);
+    // Let React paint the container before mounting the YT player.
+    setTimeout(() => createYoutubePlayer(full), 50);
   };
 
   /* =====================================================
      CREATE YOUTUBE PLAYER
   ===================================================== */
   const createYoutubePlayer = (lesson) => {
-    if (!lesson || !youtubeContainerRef.current || !window.YT || !window.YT.Player) return;
-    if (isDirectVideo(lesson.videoUrl)) return;
+    if (!lesson || !youtubeContainerRef.current || !window.YT || !window.YT.Player)
+      return;
+    if (isDirectVideo(lesson.videoUrl)) return; // native <video> handles these
+    if (!lesson.videoUrl) return;
 
     const videoId = getYoutubeId(lesson.videoUrl);
     if (!videoId) return;
@@ -350,7 +334,9 @@ function CoursePlayer() {
     youtubeContainerRef.current.appendChild(element);
 
     playerRef.current = new window.YT.Player(element, {
-      width: "100%", height: "100%", videoId,
+      width: "100%",
+      height: "100%",
+      videoId,
       playerVars: { controls: 1, rel: 0, modestbranding: 1, playsinline: 1, fs: 1 },
       events: {
         onReady: (event) => {
@@ -358,7 +344,10 @@ function CoursePlayer() {
           durationSecondsRef.current = duration;
           setProgressMap((previous) => ({
             ...previous,
-            [lesson.id]: { ...(previous[lesson.id] || {}), durationSeconds: duration },
+            [lesson.id]: {
+              ...(previous[lesson.id] || {}),
+              durationSeconds: duration,
+            },
           }));
           const resumeAt = Math.max(0, lastPositionRef.current);
           if (resumeAt > 0 && resumeAt < duration) event.target.seekTo(resumeAt, true);
@@ -376,10 +365,11 @@ function CoursePlayer() {
             saveCurrentProgress();
           }
           if (event.data === window.YT.PlayerState.ENDED) {
-            isPlayingRef.current = false;
             accumulateWatchTime(true);
+            isPlayingRef.current = false;
             stopProgressTimer();
-            markLessonCompleted();
+            // No /complete call — the watch-time save marks completion at >=95%.
+            saveCurrentProgress();
           }
         },
       },
@@ -387,7 +377,7 @@ function CoursePlayer() {
   };
 
   /* =====================================================
-     TIMER & PROGRESS SAVE
+     TIMER & WATCH-TIME
   ===================================================== */
   const startProgressTimer = () => {
     stopProgressTimer();
@@ -402,13 +392,19 @@ function CoursePlayer() {
   };
 
   const accumulateWatchTime = async (forceSave) => {
-    if (!isPlayingRef.current || !playerRef.current || !currentLessonRef.current) return;
+    if (!isPlayingRef.current || !playerRef.current || !currentLessonRef.current)
+      return;
     const now = Date.now();
-    if (!lastTickRef.current) { lastTickRef.current = now; return; }
+    if (!lastTickRef.current) {
+      lastTickRef.current = now;
+      return;
+    }
     const elapsed = Math.min(6, Math.max(0, (now - lastTickRef.current) / 1000));
     if (elapsed > 0) watchedSecondsRef.current += elapsed;
     lastTickRef.current = now;
-    try { lastPositionRef.current = Number(playerRef.current.getCurrentTime()) || 0; } catch {}
+    try {
+      lastPositionRef.current = Number(playerRef.current.getCurrentTime()) || 0;
+    } catch {}
     if (forceSave || elapsed > 0) await saveCurrentProgress();
   };
 
@@ -430,21 +426,40 @@ function CoursePlayer() {
     try {
       savingRef.current = true;
       setSavingProgress(true);
+
       const response = await api.post(`/player/lesson/${lesson.id}/watch-time`, {
-        watchedSeconds: watched, lastPosition: position, durationSeconds: duration,
+        watchedSeconds: watched,
+        lastPosition: position,
+        durationSeconds: duration,
       });
+
       const returned = response?.data?.data;
-      const saved = returned?.lessonProgress || returned;
-      const updatedProgress = {
+      const saved = returned?.lessonProgress || returned || {};
+
+      const wasCompleted = Boolean(
+        progressMapRef.current[Number(lesson.id)]?.completed
+      );
+
+      const updated = {
         watchedSeconds: Number(saved?.watchedSeconds ?? watched),
         lastPosition: Number(saved?.lastPosition ?? position),
         durationSeconds: Number(saved?.durationSeconds ?? duration),
         completed: Boolean(saved?.completed),
       };
 
-      const nextMap = { ...progressMap, [Number(lesson.id)]: updatedProgress };
+      const nextMap = { ...progressMapRef.current, [Number(lesson.id)]: updated };
+      progressMapRef.current = nextMap;
       setProgressMap(nextMap);
-      calculateCourseProgress(nextMap, modules);
+
+      if (typeof returned?.overallProgress === "number") {
+        setCourseProgress(returned.overallProgress);
+      }
+
+      // A freshly-completed lesson can unlock the module's quiz / the next
+      // module — refresh the gated structure so the sidebar reflects it live.
+      if (updated.completed && !wasCompleted) {
+        await refreshStructure();
+      }
     } catch (err) {
       console.error("Progress save failed:", err?.response?.data || err);
     } finally {
@@ -453,107 +468,60 @@ function CoursePlayer() {
     }
   };
 
-  const markLessonCompleted = async () => {
-    const lesson = currentLessonRef.current;
-    if (!lesson) return;
-
-    try {
-      await api.post(`/player/lesson/${lesson.id}/complete`);
-      const completedDuration = Math.floor(durationSecondsRef.current || 0);
-      const nextMap = {
-        ...progressMap,
-        [Number(lesson.id)]: {
-          ...(progressMap[Number(lesson.id)] || {}),
-          watchedSeconds: Math.max(completedDuration, Number(watchedSecondsRef.current) || 0),
-          durationSeconds: completedDuration,
-          lastPosition: completedDuration,
-          completed: true,
-        },
-      };
-      setProgressMap(nextMap);
-      calculateCourseProgress(nextMap, modules);
-      await loadSingleLessonProgress(Number(lesson.id), lesson);
-    } catch (err) {
-      console.error("Complete lesson error:", err?.response?.data || err);
-    }
-  };
-
   /* =====================================================
-     COMPLETION LOGIC
+     DERIVED DISPLAY HELPERS
   ===================================================== */
   const getLessonPercentage = (lesson) => {
     const item = progressMap[Number(lesson.id)];
-    if (!item) return 0;
+    if (!item) return lesson?.completed ? 100 : 0;
     if (item.completed) return 100;
     const watched = Number(item.watchedSeconds || 0);
-    const duration = Number(item.durationSeconds || 0) || Number(lesson.duration || 0) * 60;
-    if (duration <= 0) return 0;
+    const duration = Number(item.durationSeconds || 0);
+    if (duration <= 0) return 0; // guard: no duration => 0%, never "complete"
     if (watched >= duration * 0.95 || duration - watched <= 3) return 100;
-    return Math.min(99, Math.max(0, Math.round((Math.min(watched, duration) / duration) * 100)));
+    return Math.min(
+      99,
+      Math.max(0, Math.round((Math.min(watched, duration) / duration) * 100))
+    );
   };
 
-  const isModuleComplete = (module) => {
-    if (!module || !Array.isArray(module.lessons) || module.lessons.length === 0) return false;
-    return module.lessons.every(lesson => getLessonPercentage(lesson) >= 100);
-  };
+  const isLessonComplete = (lesson) =>
+    Boolean(progressMap[Number(lesson.id)]?.completed) || Boolean(lesson?.completed);
 
   const getModuleCompletionCount = (module) => {
-    if (!module || !Array.isArray(module.lessons) || module.lessons.length === 0) {
-      return { completed: 0, total: 0 };
-    }
-    const completed = module.lessons.filter(lesson => getLessonPercentage(lesson) >= 100).length;
-    return { completed, total: module.lessons.length };
+    const lessons = module?.lessons || [];
+    const completed = lessons.filter((l) => isLessonComplete(l)).length;
+    return { completed, total: lessons.length };
   };
 
-  /* =====================================================
-     CALCULATE COURSE % (LESSONS ONLY)
-  ===================================================== */
-  const calculateCourseProgress = (map, moduleList) => {
-    let totalLessons = 0;
-    let completedLessons = 0;
-
-    moduleList.forEach((module) => {
-      if (Array.isArray(module.lessons)) {
-        module.lessons.forEach((lesson) => {
-          totalLessons++;
-          const item = map[Number(lesson.id)];
-          if (item?.completed || (item && item.watchedSeconds >= item.durationSeconds * 0.95)) {
-            completedLessons++;
-          }
-        });
-      }
-    });
-
-    if (totalLessons === 0) {
-      setCourseProgress(0);
-      return;
-    }
-
-    setCourseProgress(Math.min(100, Math.max(0, Math.round((completedLessons / totalLessons) * 100))));
-  };
-
-  /* =====================================================
-     FORMAT TIME
-  ===================================================== */
   const formatTime = (seconds) => {
     const value = Math.max(0, Math.floor(Number(seconds) || 0));
     const hours = Math.floor(value / 3600);
     const minutes = Math.floor((value % 3600) / 60);
     const secs = value % 60;
-    if (hours > 0) return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    if (hours > 0)
+      return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
     return `${minutes}:${String(secs).padStart(2, "0")}`;
   };
 
   /* =====================================================
-     DESTROY & CLEANUP
+     CLEANUP
   ===================================================== */
   const destroyYoutubePlayer = () => {
-    if (playerRef.current) { try { playerRef.current.destroy(); } catch {} playerRef.current = null; }
+    if (playerRef.current && !playerRef.current.isNative) {
+      try {
+        playerRef.current.destroy();
+      } catch {}
+    }
+    playerRef.current = null;
     if (youtubeContainerRef.current) youtubeContainerRef.current.innerHTML = "";
   };
 
   useEffect(() => {
-    return () => { stopProgressTimer(); destroyYoutubePlayer(); };
+    return () => {
+      stopProgressTimer();
+      destroyYoutubePlayer();
+    };
   }, []);
 
   /* =====================================================
@@ -588,10 +556,18 @@ function CoursePlayer() {
     <div className="course-player-page">
       <header className="course-player-header">
         <div className="course-player-header-left">
-          <button type="button" className="player-back-btn" onClick={() => navigate("/student/my-courses")}>
+          <button
+            type="button"
+            className="player-back-btn"
+            onClick={() => navigate("/student/my-courses")}
+          >
             <ArrowLeft size={18} />
           </button>
-          <button type="button" className="mobile-menu-btn" onClick={() => setMobileSidebarOpen(true)}>
+          <button
+            type="button"
+            className="mobile-menu-btn"
+            onClick={() => setMobileSidebarOpen(true)}
+          >
             <Menu size={20} />
           </button>
           <div>
@@ -600,30 +576,44 @@ function CoursePlayer() {
           </div>
         </div>
 
-        {/* HARDCODED TO 0% - NO 50% BUG */}
+        {/* Real, server-reported course progress. */}
         <div className="header-course-progress">
           <div className="header-progress-label">
             <span>Course Progress</span>
-            <strong>{0}%</strong>
+            <strong>{courseProgress}%</strong>
           </div>
           <div className="header-progress-track">
-            <div className="header-progress-fill" style={{ width: `${0}%` }} />
+            <div
+              className="header-progress-fill"
+              style={{ width: `${courseProgress}%` }}
+            />
           </div>
         </div>
       </header>
 
       {mobileSidebarOpen && (
-        <div className="course-sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} />
+        <div
+          className="course-sidebar-overlay"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
       )}
 
       <div className="course-player-layout">
-        <aside className={`course-player-sidebar ${mobileSidebarOpen ? "mobile-open" : ""}`}>
+        <aside
+          className={`course-player-sidebar ${mobileSidebarOpen ? "mobile-open" : ""}`}
+        >
           <div className="course-sidebar-header">
             <div>
               <span>COURSE CONTENT</span>
-              <strong>{modules.length} {modules.length === 1 ? "Module" : "Modules"}</strong>
+              <strong>
+                {modules.length} {modules.length === 1 ? "Module" : "Modules"}
+              </strong>
             </div>
-            <button type="button" className="mobile-close-btn" onClick={() => setMobileSidebarOpen(false)}>
+            <button
+              type="button"
+              className="mobile-close-btn"
+              onClick={() => setMobileSidebarOpen(false)}
+            >
               <X size={18} />
             </button>
           </div>
@@ -632,42 +622,43 @@ function CoursePlayer() {
             {modules.map((module, index) => {
               const open = Boolean(expandedModules[module.id]);
               const lessons = module?.lessons || [];
-              const moduleLoading = Boolean(loadingLessons[module.id]);
-              const hasQuiz = moduleQuizzes[module.id];
-
-              // MODULE LOCKING
-              const isModuleUnlocked = index === 0 || isModuleComplete(modules[index - 1]);
+              const unlocked = Boolean(module.unlocked);
+              const hasQuiz = Boolean(module.hasQuiz);
+              const { completed, total } = getModuleCompletionCount(module);
 
               return (
                 <div key={module.id} className="sidebar-module">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="sidebar-module-header"
-                    onClick={() => {
-                      if (isModuleUnlocked) {
-                        toggleModule(module.id);
-                      } else {
-                        alert("Complete the previous module to unlock this one!");
-                      }
+                    onClick={() => toggleModule(module)}
+                    style={{
+                      opacity: unlocked ? 1 : 0.6,
+                      cursor: unlocked ? "pointer" : "not-allowed",
                     }}
-                    style={{ opacity: isModuleUnlocked ? 1 : 0.5, cursor: isModuleUnlocked ? 'pointer' : 'not-allowed' }}
+                    aria-disabled={!unlocked}
+                    title={!unlocked ? module.reason || "Locked" : undefined}
                   >
                     <div className="module-index">
-                      {!isModuleUnlocked && <ShieldQuestion size={14} />}
+                      {!unlocked && <ShieldQuestion size={14} />}
                       {index + 1}
                     </div>
                     <div className="module-details">
                       <strong>{module.title || `Module ${index + 1}`}</strong>
                       <span>
-                        {moduleLoading ? "Loading..." : `${getModuleCompletionCount(module).completed}/${getModuleCompletionCount(module).total} completed`}
+                        {unlocked
+                          ? `${completed}/${total} completed`
+                          : module.reason || "Complete the previous module to unlock"}
                       </span>
                     </div>
                     <div className="module-header-right">
-                      {!moduleLoading && isModuleComplete(module) && (
-                        <span className="module-complete-badge"><CheckCircle2 size={14} /> Complete</span>
+                      {unlocked && module.moduleComplete && (
+                        <span className="module-complete-badge">
+                          <CheckCircle2 size={14} /> Complete
+                        </span>
                       )}
-                      {moduleLoading ? (
-                        <LoaderCircle size={16} className="lesson-loader" />
+                      {!unlocked ? (
+                        <ShieldQuestion size={16} className="quiz-locked-icon" />
                       ) : open ? (
                         <ChevronDown size={16} />
                       ) : (
@@ -676,7 +667,7 @@ function CoursePlayer() {
                     </div>
                   </button>
 
-                  {open && isModuleUnlocked && (
+                  {open && unlocked && (
                     <div className="sidebar-lessons">
                       {lessons.length === 0 ? (
                         <div className="no-lessons">No lessons available</div>
@@ -684,16 +675,24 @@ function CoursePlayer() {
                         <>
                           {lessons.map((lesson) => {
                             const percentage = getLessonPercentage(lesson);
-                            const active = Number(selectedLesson?.id) === Number(lesson.id);
+                            const active =
+                              Number(selectedLesson?.id) === Number(lesson.id);
+                            const done = percentage >= 100;
                             return (
                               <button
                                 key={lesson.id}
                                 type="button"
-                                className={`sidebar-lesson ${active ? "active" : ""} ${percentage >= 100 ? "completed" : ""}`}
+                                className={`sidebar-lesson ${active ? "active" : ""} ${
+                                  done ? "completed" : ""
+                                }`}
                                 onClick={() => selectLesson(lesson)}
                               >
                                 <div className="lesson-icon">
-                                  {percentage >= 100 ? <CheckCircle2 size={16} /> : <PlayCircle size={16} />}
+                                  {done ? (
+                                    <CheckCircle2 size={16} />
+                                  ) : (
+                                    <PlayCircle size={16} />
+                                  )}
                                 </div>
                                 <div className="sidebar-lesson-info">
                                   <div className="lesson-title-line">
@@ -702,34 +701,52 @@ function CoursePlayer() {
                                   </div>
                                   <div className="lesson-progress-row">
                                     <small>
-                                      {formatTime(progressMap[Number(lesson.id)]?.watchedSeconds || 0)} / {formatTime(progressMap[Number(lesson.id)]?.durationSeconds || Number(lesson?.duration || 0) * 60)}
+                                      {formatTime(
+                                        progressMap[Number(lesson.id)]?.watchedSeconds || 0
+                                      )}{" "}
+                                      /{" "}
+                                      {formatTime(
+                                        progressMap[Number(lesson.id)]?.durationSeconds || 0
+                                      )}
                                     </small>
                                   </div>
                                   <div className="lesson-progress-track">
-                                    <div className="lesson-progress-fill" style={{ width: `${percentage}%` }} />
+                                    <div
+                                      className="lesson-progress-fill"
+                                      style={{ width: `${percentage}%` }}
+                                    />
                                   </div>
                                 </div>
                               </button>
                             );
                           })}
 
-                          {/* QUIZ SECTION - RE-ADDED */}
+                          {/* QUIZ: unlocks when all lessons are complete. */}
                           {hasQuiz && (
                             <div className="sidebar-quiz-section">
-                              {isModuleComplete(module) ? (
+                              {module.lessonsComplete ? (
                                 <Link
                                   to={`/student/quiz?moduleId=${module.id}&courseId=${courseId}`}
-                                  className="sidebar-quiz-link completed"
+                                  className="sidebar-quiz-link"
                                 >
                                   <HelpCircle size={16} />
-                                  <span>Take Module Quiz</span>
-                                  <ChevronRight size={14} />
+                                  <span>
+                                    {module.quizPassed
+                                      ? "Quiz Passed — Review"
+                                      : "Take Module Quiz"}
+                                  </span>
+                                  {module.quizPassed ? (
+                                    <CheckCircle2 size={14} />
+                                  ) : (
+                                    <ChevronRight size={14} />
+                                  )}
                                 </Link>
                               ) : (
                                 <div className="sidebar-quiz-progress">
                                   <HelpCircle size={16} className="quiz-locked-icon" />
                                   <span>
-                                    Complete all lessons to unlock quiz ({getModuleCompletionCount(module).completed}/{getModuleCompletionCount(module).total})
+                                    Complete all lessons to unlock quiz ({completed}/
+                                    {total})
                                   </span>
                                 </div>
                               )}
@@ -753,36 +770,74 @@ function CoursePlayer() {
                 <h2>Select a lesson</h2>
                 <p>Select a lesson from the sidebar to start learning.</p>
               </div>
+            ) : lessonError ? (
+              <div className="course-player-no-selection">
+                <ShieldQuestion size={50} />
+                <h2>Lesson locked</h2>
+                <p>{lessonError}</p>
+              </div>
+            ) : isDirectVideo(selectedLesson?.videoUrl) ? (
+              <video
+                ref={nativeVideoRef}
+                key={selectedLesson?.id}
+                src={selectedLesson?.videoUrl}
+                className="youtube-player-wrapper native-video-player"
+                controls
+                controlsList="nodownload"
+                playsInline
+                preload="metadata"
+                onLoadedMetadata={(e) => {
+                  playerRef.current = makeNativeAdapter(e.currentTarget);
+                  durationSecondsRef.current = Number(e.currentTarget.duration) || 0;
+                  // Resume where the student left off.
+                  const resumeAt = Math.max(0, lastPositionRef.current);
+                  if (resumeAt > 0 && resumeAt < e.currentTarget.duration) {
+                    try {
+                      e.currentTarget.currentTime = resumeAt;
+                    } catch {}
+                  }
+                }}
+                onPlay={() => {
+                  // CRITICAL: native video must flag "playing" or watch time
+                  // never accumulates (accumulateWatchTime early-returns).
+                  isPlayingRef.current = true;
+                  lastTickRef.current = Date.now();
+                  startProgressTimer();
+                }}
+                onPause={() => {
+                  accumulateWatchTime(true);
+                  isPlayingRef.current = false;
+                  stopProgressTimer();
+                  saveCurrentProgress();
+                }}
+                onEnded={() => {
+                  accumulateWatchTime(true);
+                  isPlayingRef.current = false;
+                  stopProgressTimer();
+                  saveCurrentProgress();
+                }}
+              />
+            ) : selectedLesson?.videoUrl ? (
+              <div ref={youtubeContainerRef} className="youtube-player-wrapper" />
             ) : (
-              isDirectVideo(selectedLesson?.videoUrl) ? (
-                <video
-                  ref={nativeVideoRef}
-                  key={selectedLesson?.id}
-                  src={selectedLesson?.videoUrl}
-                  className="youtube-player-wrapper native-video-player"
-                  controls controlsList="nodownload" playsInline preload="metadata"
-                  onLoadedMetadata={(e) => {
-                    playerRef.current = makeNativeAdapter(e.currentTarget);
-                    durationSecondsRef.current = Number(e.currentTarget.duration) || 0;
-                  }}
-                  onPlay={() => { lastTickRef.current = Date.now(); startProgressTimer(); }}
-                  onPause={() => { stopProgressTimer(); saveCurrentProgress(); }}
-                  onEnded={() => { stopProgressTimer(); saveCurrentProgress(); }}
-                />
-              ) : (
-                <div ref={youtubeContainerRef} className="youtube-player-wrapper" />
-              )
+              <div className="course-player-no-selection">
+                <Video size={50} />
+                <h2>No video</h2>
+                <p>This lesson has no video yet.</p>
+              </div>
             )}
           </div>
 
-          {selectedLesson && (
+          {selectedLesson && !lessonError && (
             <section className="lesson-information">
               <div className="lesson-information-top">
                 <div>
                   <span className="lesson-label">CURRENT LESSON</span>
                   <h2>{selectedLesson.title}</h2>
                 </div>
-                {savingProgress && <span className="progress-saving">Saving progress...</span>}
+                {savingProgress && (
+                  <span className="progress-saving">Saving progress...</span>
+                )}
               </div>
 
               {selectedLesson.description && <p>{selectedLesson.description}</p>}
@@ -790,11 +845,18 @@ function CoursePlayer() {
               <div className="lesson-information-meta">
                 <div>
                   <Clock size={15} />
-                  <span>Watched {formatTime(progressMap[Number(selectedLesson.id)]?.watchedSeconds || 0)}</span>
+                  <span>
+                    Watched{" "}
+                    {formatTime(
+                      progressMap[Number(selectedLesson.id)]?.watchedSeconds || 0
+                    )}
+                  </span>
                 </div>
                 <div>
                   <Video size={15} />
-                  <span>{isDirectVideo(selectedLesson?.videoUrl) ? "Video" : "YouTube"}</span>
+                  <span>
+                    {isDirectVideo(selectedLesson?.videoUrl) ? "Video" : "YouTube"}
+                  </span>
                 </div>
               </div>
 
@@ -804,7 +866,10 @@ function CoursePlayer() {
                   <strong>{getLessonPercentage(selectedLesson)}%</strong>
                 </div>
                 <div className="lesson-progress-main-track">
-                  <div className="lesson-progress-main-fill" style={{ width: `${getLessonPercentage(selectedLesson)}%` }} />
+                  <div
+                    className="lesson-progress-main-fill"
+                    style={{ width: `${getLessonPercentage(selectedLesson)}%` }}
+                  />
                 </div>
               </div>
             </section>

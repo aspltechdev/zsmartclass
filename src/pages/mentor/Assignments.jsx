@@ -1,10 +1,21 @@
 // src/pages/mentor/Assignments.jsx
 
 import { useEffect, useState } from "react";
-import { Plus, Eye, X, Edit, Trash2 } from "lucide-react";
+import { Plus, Eye, X, Edit, Trash2, Download } from "lucide-react";
 import api from "../../services/api";
 import "./Assignments.css";
 import "./MentorShared.css";
+
+/* Uploaded files are served from the server root (…/uploads/…), while the API
+   base URL ends with /api. Strip it so submission links resolve. */
+const fileUrl = (p) => {
+  if (!p) return "";
+  if (p.startsWith("http://") || p.startsWith("https://")) return p;
+  const base = (api.defaults?.baseURL || "http://localhost:5000/api")
+    .replace(/\/$/, "")
+    .replace(/\/api$/, "");
+  return `${base}${p.startsWith("/") ? p : `/${p}`}`;
+};
 
 function Assignments() {
   const [assignments, setAssignments] = useState([]);
@@ -15,6 +26,13 @@ function Assignments() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Submissions + grading for the currently-viewed assignment
+  const [submissions, setSubmissions] = useState([]);
+  const [loadingSubs, setLoadingSubs] = useState(false);
+  const [gradeDrafts, setGradeDrafts] = useState({}); // { [submissionId]: { marks, feedback } }
+  const [gradingId, setGradingId] = useState(null);
+  const [subMsg, setSubMsg] = useState(null); // { type, text }
 
   const [formData, setFormData] = useState({
     courseId: "",
@@ -118,6 +136,66 @@ function Assignments() {
   };
 
   // ===========================
+  // Submissions + grading
+  // ===========================
+  const openView = (assignment) => {
+    setSelectedAssignment(assignment);
+    setIsEditing(false);
+    setShowViewModal(true);
+    setGradeDrafts({});
+    setSubMsg(null);
+    fetchSubmissions(assignment.id);
+  };
+
+  const fetchSubmissions = async (assignmentId) => {
+    try {
+      setLoadingSubs(true);
+      const res = await api.get(`/assignments/${assignmentId}/submissions`);
+      setSubmissions(res.data?.data || []);
+    } catch (err) {
+      console.error("Error fetching submissions:", err);
+      setSubmissions([]);
+    } finally {
+      setLoadingSubs(false);
+    }
+  };
+
+  const setGradeDraft = (id, patch) =>
+    setGradeDrafts((d) => ({ ...d, [id]: { ...(d[id] || {}), ...patch } }));
+
+  const saveGrade = async (submission) => {
+    const draft = gradeDrafts[submission.id] || {};
+    const marks = draft.marks ?? submission.marks;
+
+    if (marks === "" || marks === null || marks === undefined) {
+      setSubMsg({ type: "error", text: "Enter a mark before saving." });
+      return;
+    }
+
+    try {
+      setGradingId(submission.id);
+      setSubMsg(null);
+      await api.put(`/assignments/submissions/${submission.id}/grade`, {
+        marks: Number(marks),
+        feedback: (draft.feedback ?? submission.feedback) || "",
+      });
+      setSubMsg({
+        type: "success",
+        text: `Saved grade for ${submission.student?.name || "student"}.`,
+      });
+      await fetchSubmissions(selectedAssignment.id);
+      fetchAssignments();
+    } catch (err) {
+      setSubMsg({
+        type: "error",
+        text: err.response?.data?.message || "Could not save the grade.",
+      });
+    } finally {
+      setGradingId(null);
+    }
+  };
+
+  // ===========================
   // Format Date
   // ===========================
   const formatDate = (date) => {
@@ -178,11 +256,7 @@ function Assignments() {
                       <button
                         className="view-btn"
                         title="View Assignment"
-                        onClick={() => {
-                          setSelectedAssignment(assignment);
-                          setShowViewModal(true);
-                          setIsEditing(false);
-                        }}
+                        onClick={() => openView(assignment)}
                       >
                         <Eye size={16} />
                       </button>
@@ -404,11 +478,129 @@ function Assignments() {
               </div>
 
               <label>Submissions</label>
-              <input
-                type="text"
-                disabled
-                value={`${selectedAssignment.submissions?.length || 0} submissions`}
-              />
+              {!isEditing && (
+                <div className="submissions-panel">
+                  {loadingSubs ? (
+                    <div className="submissions-loading">
+                      Loading submissions…
+                    </div>
+                  ) : submissions.length === 0 ? (
+                    <div className="submissions-empty">
+                      No students have submitted this assignment yet.
+                    </div>
+                  ) : (
+                    <div className="submissions-list">
+                      {submissions.map((s) => {
+                        const draft = gradeDrafts[s.id] || {};
+                        const graded =
+                          (s.status || "").toUpperCase() === "GRADED";
+                        return (
+                          <div key={s.id} className="submission-row">
+                            <div className="submission-row-head">
+                              <div className="submission-student">
+                                <strong>
+                                  {s.student?.name || "Student"}
+                                </strong>
+                                <span>{s.student?.email || ""}</span>
+                              </div>
+                              <span
+                                className={`submission-tag ${
+                                  graded ? "graded" : "pending"
+                                }`}
+                              >
+                                {graded
+                                  ? `Graded · ${s.marks ?? 0}/${
+                                      selectedAssignment.totalMarks ?? 0
+                                    }`
+                                  : "Awaiting grade"}
+                              </span>
+                            </div>
+
+                            {s.attachment ? (
+                              <a
+                                className="submission-download"
+                                href={fileUrl(s.attachment)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Download size={14} /> Download file
+                              </a>
+                            ) : (
+                              <span className="submission-nofile">
+                                No file attached
+                              </span>
+                            )}
+
+                            {s.submissionText && (
+                              <p className="submission-note-text">
+                                “{s.submissionText}”
+                              </p>
+                            )}
+
+                            <div className="grade-row">
+                              <div className="grade-marks">
+                                <label>Marks</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={selectedAssignment.totalMarks || undefined}
+                                  placeholder={`/ ${
+                                    selectedAssignment.totalMarks ?? 0
+                                  }`}
+                                  value={
+                                    draft.marks ??
+                                    (s.marks ?? "")
+                                  }
+                                  onChange={(e) =>
+                                    setGradeDraft(s.id, {
+                                      marks: e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="grade-feedback">
+                                <label>Feedback</label>
+                                <input
+                                  type="text"
+                                  placeholder="Optional feedback for the student"
+                                  value={
+                                    draft.feedback ??
+                                    (s.feedback ?? "")
+                                  }
+                                  onChange={(e) =>
+                                    setGradeDraft(s.id, {
+                                      feedback: e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="grade-save-btn"
+                              disabled={gradingId === s.id}
+                              onClick={() => saveGrade(s)}
+                            >
+                              {gradingId === s.id
+                                ? "Saving…"
+                                : graded
+                                ? "Update Grade"
+                                : "Save Grade"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {subMsg?.text && (
+                    <div className={`submissions-msg ${subMsg.type}`}>
+                      {subMsg.text}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="popup-buttons">
                 {!isEditing ? (
