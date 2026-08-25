@@ -980,3 +980,54 @@
 @media (max-width: 480px) {
   .grade-row { grid-template-columns: 1fr; }
 }
+/* =========================================================
+   ASSIGNMENTS PAGE TITLE
+========================================================= */
+
+.assignments-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.assignments-title-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  color: #111827;
+  stroke:#111827;
+  stroke-width: 2;
+}
+
+.assignments-title h1 {
+  margin: 0;
+  padding: 0;
+}
+/* =========================================================
+   ASSIGNMENTS HEADING WITH ICON
+========================================================= */
+
+.assignment-header > div:first-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.assignments-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.assignments-title-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  color: #4f46e5;
+  stroke-width: 2;
+}
+
+.assignments-title h1 {
+  margin: 0;
+  padding: 0;
+}

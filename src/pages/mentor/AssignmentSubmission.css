@@ -1,0 +1,1258 @@
+/* =========================================================
+   ASSIGNMENT SUBMISSIONS PAGE
+========================================================= */
+
+.mentor-assignment-submissions {
+  width: 100%;
+  min-height: 100vh;
+  padding: 24px 32px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: "Poppins", system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.assignment-submission-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+/* ICON + HEADING */
+.assignment-submission-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+}
+
+/* HEADER ICON */
+.assignment-submission-title svg {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  color: #111827;
+  stroke-width: 2.2;
+}
+
+/* HEADER TITLE */
+.assignment-submission-title h1 {
+  margin: 0;
+  padding: 0;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* HEADER DESCRIPTION */
+.assignment-submission-header p {
+  margin: 7px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+.submission-search {
+  height: 46px;
+  width: 100%;
+  max-width: 520px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 0 15px;
+  margin-bottom: 22px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  box-sizing: border-box;
+}
+
+.submission-search svg {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.submission-search input {
+  width: 100%;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.submission-search input::placeholder {
+  color: #9ca3af;
+}
+
+/* =========================================================
+   MAIN LAYOUT
+========================================================= */
+
+.assignment-submission-layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+
+  gap: 20px;
+
+  align-items: start;
+}
+
+/* =========================================================
+   LEFT ASSIGNMENT PANEL
+========================================================= */
+
+.assignment-list-panel {
+  background: #ffffff;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   PANEL TITLE
+========================================================= */
+
+.panel-title {
+  padding: 18px 20px;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.panel-title h2 {
+  margin: 0;
+
+  font-size: 17px;
+  color: #1f2937;
+}
+
+.panel-title span {
+  display: block;
+
+  margin-top: 4px;
+
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* =========================================================
+   ASSIGNMENT LIST
+========================================================= */
+
+.assignment-selection-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================================
+   ASSIGNMENT CARD
+========================================================= */
+
+.assignment-selection-card {
+  position: relative;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  width: 100%;
+
+  padding: 17px 18px;
+
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+
+  background: #ffffff;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.assignment-selection-card:last-child {
+  border-bottom: none;
+}
+
+.assignment-selection-card:hover {
+  background: #f8fafc;
+}
+
+.assignment-selection-card.selected {
+  background: #f1f5ff;
+
+  box-shadow: inset 3px 0 0 #4f46e5;
+}
+
+/* =========================================================
+   ASSIGNMENT ICON
+========================================================= */
+
+.assignment-card-icon {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 9px;
+
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+/* =========================================================
+   ASSIGNMENT CONTENT
+========================================================= */
+
+.assignment-card-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.assignment-card-content h3 {
+  margin: 0;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  color: #1f2937;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assignment-card-content p {
+  margin: 4px 0;
+
+  font-size: 12px;
+  color: #6b7280;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================================================
+   ASSIGNMENT META
+========================================================= */
+
+.assignment-card-meta {
+  display: flex;
+
+  gap: 12px;
+
+  margin-top: 7px;
+}
+
+.assignment-card-meta span {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* =========================================================
+   SUBMISSION COUNT
+========================================================= */
+
+.assignment-submission-count {
+  min-width: 27px;
+  height: 27px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 7px;
+
+  border-radius: 20px;
+
+  background: #f3f4f6;
+
+  color: #374151;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   RIGHT SUBMISSIONS PANEL
+========================================================= */
+
+.student-submissions-panel {
+  min-width: 0;
+
+  background: #ffffff;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   SUBMISSIONS HEADER
+========================================================= */
+
+.submissions-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 20px;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.submissions-panel-header h2 {
+  margin: 0;
+
+  color: #1f2937;
+
+  font-size: 19px;
+}
+
+.submissions-panel-header p {
+  margin: 5px 0 0;
+
+  color: #6b7280;
+
+  font-size: 13px;
+}
+
+.submission-total {
+  flex-shrink: 0;
+
+  padding: 8px 12px;
+
+  border-radius: 20px;
+
+  background: #f3f4f6;
+
+  color: #374151;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   SELECT ASSIGNMENT PLACEHOLDER
+========================================================= */
+
+.select-assignment-placeholder {
+  min-height: 500px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 40px;
+
+  text-align: center;
+}
+
+.select-assignment-placeholder svg {
+  width: 48px;
+  height: 48px;
+
+  margin-bottom: 4px;
+
+  color: #4f46e5;
+
+  stroke-width: 1.8;
+}
+
+.select-assignment-placeholder h2 {
+  margin: 15px 0 6px;
+
+  color: #374151;
+
+  font-size: 19px;
+}
+
+.select-assignment-placeholder p {
+  max-width: 420px;
+
+  margin: 0;
+
+  color: #9ca3af;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   LOADING / EMPTY
+========================================================= */
+
+.submission-loading,
+.submission-empty {
+  min-height: 280px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  text-align: center;
+
+  color: #9ca3af;
+}
+
+.submission-empty svg {
+  color: #d1d5db;
+}
+
+.submission-empty h3 {
+  margin: 13px 0 5px;
+
+  color: #4b5563;
+
+  font-size: 16px;
+}
+
+.submission-empty p {
+  margin: 0;
+
+  font-size: 13px;
+}
+
+/* =========================================================
+   STUDENT SUBMISSION LIST
+========================================================= */
+
+.student-submission-list {
+  padding: 18px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 14px;
+}
+
+/* =========================================================
+   STUDENT SUBMISSION CARD
+========================================================= */
+
+.student-submission-card {
+  padding: 18px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.student-submission-card:hover {
+  border-color: #d1d5db;
+
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.06);
+}
+
+/* =========================================================
+   STUDENT HEADER
+========================================================= */
+
+.student-submission-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+}
+
+.student-information {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  min-width: 0;
+}
+
+.student-avatar {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.student-information h3 {
+  margin: 0;
+
+  color: #1f2937;
+
+  font-size: 15px;
+}
+
+.student-information p {
+  margin: 4px 0 0;
+
+  color: #9ca3af;
+
+  font-size: 12px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================================================
+   SUBMISSION STATUS
+========================================================= */
+
+.submission-status {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  padding: 6px 10px;
+
+  border-radius: 20px;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.submission-status.submitted {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.submission-status.graded {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.submission-status.graded svg {
+  width: 15px;
+  height: 15px;
+
+  color: #047857;
+
+  flex-shrink: 0;
+
+  stroke-width: 2;
+}
+
+/* =========================================================
+   SUBMISSION INFORMATION
+========================================================= */
+
+.submission-information {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  margin-top: 18px;
+
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.submission-info-item {
+  padding: 13px 12px;
+
+  border-right: 1px solid #f1f5f9;
+}
+
+.submission-info-item:last-child {
+  border-right: none;
+}
+
+.submission-info-item span {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #9ca3af;
+
+  font-size: 11px;
+}
+
+.submission-info-item strong {
+  color: #374151;
+
+  font-size: 13px;
+}
+
+/* =========================================================
+   STUDENT NOTE
+========================================================= */
+
+.submission-note {
+  margin-top: 15px;
+
+  padding: 12px 14px;
+
+  border-radius: 9px;
+
+  background: #f8fafc;
+}
+
+.submission-note span {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #6b7280;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.submission-note p {
+  margin: 0;
+
+  color: #4b5563;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   SUBMISSION ACTIONS
+========================================================= */
+
+.submission-actions {
+  display: flex;
+
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  margin-top: 15px;
+}
+
+.download-submission-btn,
+.review-submission-btn {
+  height: 36px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 0 13px;
+
+  border-radius: 8px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  text-decoration: none;
+
+  box-sizing: border-box;
+}
+
+.download-submission-btn {
+  border: 1px solid #e5e7eb;
+
+  background: #ffffff;
+
+  color: #374151;
+}
+
+.download-submission-btn:hover {
+  background: #f9fafb;
+}
+
+.review-submission-btn {
+  border: none;
+
+  background: #4f46e5;
+
+  color: #ffffff;
+}
+
+.review-submission-btn:hover {
+  background: #4338ca;
+}
+
+.review-submission-btn svg {
+  width: 16px;
+  height: 16px;
+
+  color: #ffffff;
+
+  flex-shrink: 0;
+
+  stroke-width: 2;
+}
+
+.no-file {
+  margin-right: auto;
+
+  color: #9ca3af;
+
+  font-size: 12px;
+}
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+.submission-message {
+  margin: 15px 18px 0;
+
+  padding: 11px 13px;
+
+  border-radius: 8px;
+
+  font-size: 13px;
+}
+
+.submission-message.success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.submission-message.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* =========================================================
+   REVIEW MODAL
+========================================================= */
+
+.submission-modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 25px;
+
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.submission-review-modal {
+  width: 100%;
+
+  max-width: 650px;
+  max-height: 90vh;
+
+  overflow-y: auto;
+
+  border-radius: 15px;
+
+  background: #ffffff;
+
+  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.2);
+}
+
+/* =========================================================
+   MODAL HEADER
+========================================================= */
+
+.submission-modal-header {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 20px;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.submission-modal-header h2 {
+  margin: 0;
+
+  color: #1f2937;
+
+  font-size: 19px;
+}
+
+.submission-modal-header p {
+  margin: 5px 0 0;
+
+  color: #6b7280;
+
+  font-size: 12px;
+}
+
+.submission-modal-close {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+
+  border-radius: 7px;
+
+  background: #f3f4f6;
+
+  color: #6b7280;
+
+  cursor: pointer;
+}
+
+.submission-modal-close:hover {
+  background: #e5e7eb;
+}
+
+/* =========================================================
+   REVIEW STUDENT
+========================================================= */
+
+.review-student {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 18px 20px;
+
+  background: #f8fafc;
+}
+
+.review-student-avatar {
+  width: 45px;
+  height: 45px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #e0e7ff;
+
+  color: #4f46e5;
+
+  font-weight: 700;
+}
+
+.review-student h3 {
+  margin: 0;
+
+  color: #1f2937;
+
+  font-size: 15px;
+}
+
+.review-student p {
+  margin: 4px 0 0;
+
+  color: #6b7280;
+
+  font-size: 12px;
+}
+
+/* =========================================================
+   REVIEW SECTIONS
+========================================================= */
+
+.review-section {
+  padding: 18px 20px 0;
+}
+
+.review-section h3 {
+  margin: 0 0 10px;
+
+  color: #374151;
+
+  font-size: 14px;
+}
+
+/* =========================================================
+   REVIEW FILE
+========================================================= */
+
+.review-file {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 13px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 9px;
+}
+
+.review-file > svg {
+  color: #4f46e5;
+
+  flex-shrink: 0;
+}
+
+.review-file > div {
+  flex: 1;
+
+  min-width: 0;
+}
+
+.review-file strong {
+  color: #374151;
+
+  font-size: 13px;
+}
+
+.review-file p {
+  margin: 3px 0 0;
+
+  color: #9ca3af;
+
+  font-size: 11px;
+}
+
+.review-file a {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  color: #4f46e5;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  text-decoration: none;
+}
+
+.review-file a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   STUDENT NOTE MODAL
+========================================================= */
+
+.student-note-box {
+  padding: 12px 14px;
+
+  border-radius: 8px;
+
+  background: #f8fafc;
+
+  color: #4b5563;
+
+  font-size: 13px;
+
+  line-height: 1.6;
+}
+
+/* =========================================================
+   GRADE FORM
+========================================================= */
+
+.grade-form {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 15px;
+}
+
+.grade-form label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #374151;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   MARKS INPUT
+========================================================= */
+
+.marks-input-wrapper {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+.marks-input-wrapper input {
+  width: 130px;
+  height: 40px;
+
+  padding: 0 11px;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 8px;
+
+  outline: none;
+
+  color: #1f2937;
+
+  font-size: 14px;
+
+  box-sizing: border-box;
+}
+
+.marks-input-wrapper input:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.marks-input-wrapper span {
+  color: #6b7280;
+
+  font-size: 13px;
+}
+
+/* =========================================================
+   FEEDBACK
+========================================================= */
+
+.feedback-field textarea {
+  width: 100%;
+
+  padding: 11px;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 8px;
+
+  resize: vertical;
+
+  outline: none;
+
+  font-family: inherit;
+
+  font-size: 13px;
+
+  box-sizing: border-box;
+}
+
+.feedback-field textarea:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* =========================================================
+   MODAL BUTTONS
+========================================================= */
+
+.review-modal-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  margin-top: 20px;
+
+  padding: 17px 20px;
+
+  border-top: 1px solid #e5e7eb;
+}
+
+.cancel-review-btn,
+.save-grade-btn {
+  height: 38px;
+
+  padding: 0 17px;
+
+  border-radius: 8px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.cancel-review-btn {
+  border: 1px solid #d1d5db;
+
+  background: #ffffff;
+
+  color: #4b5563;
+}
+
+.cancel-review-btn:hover {
+  background: #f9fafb;
+}
+
+.save-grade-btn {
+  border: none;
+
+  background: #4f46e5;
+
+  color: #ffffff;
+}
+
+.save-grade-btn:hover {
+  background: #4338ca;
+}
+
+.save-grade-btn:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1050px) {
+  .assignment-submission-layout {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 850px) {
+  .assignment-submission-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .assignment-list-panel {
+    max-height: 400px;
+
+    overflow-y: auto;
+  }
+
+  .submission-information {
+    grid-template-columns: 1fr;
+  }
+
+  .submission-info-item {
+    border-right: none;
+
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .submission-info-item:last-child {
+    border-bottom: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .mentor-assignment-submissions {
+    padding: 20px 15px;
+  }
+
+  .assignment-submission-header h1 {
+    font-size: 23px;
+  }
+
+  .assignment-submission-title {
+    gap: 9px;
+  }
+
+  .assignment-submission-title svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .assignment-submission-title h1 {
+    font-size: 23px;
+  }
+
+  .student-submission-top {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .submission-actions {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+  .download-submission-btn,
+  .review-submission-btn {
+    width: 100%;
+  }
+
+  .no-file {
+    margin-right: 0;
+  }
+
+  .submission-modal-overlay {
+    padding: 10px;
+  }
+
+  .submission-review-modal {
+    max-height: 95vh;
+  }
+}

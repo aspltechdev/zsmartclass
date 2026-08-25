@@ -9,6 +9,8 @@ import {
   Star,
   ClipboardList,
   FileQuestion,
+  FileText,
+    BadgeCheck,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
@@ -24,6 +26,8 @@ const menu = [
   { title: "Quiz Marks", path: "/mentor/quizmark", icon: FileQuestion, category: "Engagement" },
   { title: "Certificates", path: "/mentor/certificates", icon: Award, category: "Engagement" },
   { title: "Assignments", path: "/mentor/assignments", icon: ClipboardList, category: "Engagement" },
+
+{ title: "Assignment Submission", path: "/mentor/assignment-submissions", icon:   BadgeCheck, category: "Engagement" },
 
   { title: "Reviews", path: "/mentor/reviews", icon: Star, category: "Analytics" },
 ];

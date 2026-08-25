@@ -438,17 +438,31 @@ function Modules() {
 
       <div className="page-header">
 
+          <div className="quiz-marks-header">
+
         <div>
 
-          <h1>
-            Module Management
-          </h1>
+          <div className="quizmarks-title">
 
-          <p className="subtitle">
-            Create modules, then add lessons and quizzes inside them
+            <Layers
+              className="quizmarks-title-icon"
+            />
+
+            <h1>
+              Modules
+            </h1>
+
+          </div>
+
+          <p>
+            View students' quiz
+            performance module by
+            module.
           </p>
 
         </div>
+
+      </div>
 
         <button
           type="button"
