@@ -61,8 +61,13 @@ class ModuleService {
 
     // ==========================================
     // GET MODULE BY ID
+    // `requester` is the authenticated user (or undefined for anonymous
+    // callers, since the route uses optional auth). Lesson videoUrls are a
+    // protected resource: students receive them only through the gated
+    // /player/* endpoints, so here we strip videoUrl unless the requester is
+    // a MENTOR or ADMIN (this route backs the authoring UIs).
     // ==========================================
-    async getById(id) {
+    async getById(id, requester) {
         const module = await prisma.courseModule.findUnique({
             where: {
                 id: Number(id)
@@ -78,6 +83,16 @@ class ModuleService {
 
         if (!module) {
             throw new Error("Module not found.");
+        }
+
+        const privileged =
+            requester?.role === "MENTOR" || requester?.role === "ADMIN";
+
+        if (!privileged && Array.isArray(module.lessons)) {
+            module.lessons = module.lessons.map((lesson) => ({
+                ...lesson,
+                videoUrl: null,
+            }));
         }
 
         return module;

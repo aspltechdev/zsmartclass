@@ -16,8 +16,19 @@ router.get(
 );
 
 // ============================================
+// GATING (module unlock / quiz-pass state)
+// Must be declared before "/course/:courseId".
+// ============================================
+router.get(
+    "/course/:courseId/gating",
+    authMiddleware,
+    roleMiddleware("STUDENT"),
+    playerController.getCourseGating
+);
+
+// ============================================
 // Course Player
-// Get complete course with modules & lessons
+// Get complete course with modules & lessons (gated)
 // ============================================
 router.get(
     "/course/:courseId",
@@ -27,7 +38,8 @@ router.get(
 );
 
 // ============================================
-// Open Lesson
+// Open Lesson (gated; only path to a playable video URL)
+// courseId is passed as a query param: /lesson/:lessonId?courseId=123
 // ============================================
 router.get(
     "/lesson/:lessonId",
@@ -37,49 +49,12 @@ router.get(
 );
 
 // ============================================
-// Mark Lesson Completed
+// Save Watch Time (drives lesson completion + course progress)
 // ============================================
 router.post(
     "/lesson/:lessonId/watch-time",
     authMiddleware,
     playerController.saveWatchTime
-);
-
-router.post(
-    "/complete/:lessonId",
-    authMiddleware,
-    roleMiddleware("STUDENT"),
-    playerController.markCompleted
-);
-
-// ============================================
-// Continue Learning
-// ============================================
-router.get(
-    "/continue/:courseId",
-    authMiddleware,
-    roleMiddleware("STUDENT"),
-    playerController.continueLearning
-);
-
-// ============================================
-// Previous Lesson
-// ============================================
-router.get(
-    "/previous/:lessonId",
-    authMiddleware,
-    roleMiddleware("STUDENT"),
-    playerController.previousLesson
-);
-
-// ============================================
-// Next Lesson
-// ============================================
-router.get(
-    "/next/:lessonId",
-    authMiddleware,
-    roleMiddleware("STUDENT"),
-    playerController.nextLesson
 );
 
 module.exports = router;

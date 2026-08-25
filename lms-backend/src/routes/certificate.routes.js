@@ -25,14 +25,6 @@ router.get(
     certificateController.getPendingCertificatesAdmin
 );
 
-// Trigger the auto-verify job immediately (Admin)
-router.post(
-    "/admin/verify-now",
-    authMiddleware,
-    roleMiddleware("ADMIN","MENTOR"),
-    certificateController.verifyPendingNow
-);
-
 router.put(
     "/admin/:id/approve",
     authMiddleware,
@@ -76,6 +68,16 @@ router.post(
     authMiddleware,
     roleMiddleware("STUDENT"),
     certificateController.generateCertificate
+);
+
+// ==========================================
+// Certificate eligibility (student)
+// ==========================================
+router.get(
+    "/eligibility/:courseId",
+    authMiddleware,
+    roleMiddleware("STUDENT"),
+    certificateController.checkEligibility
 );
 
 // ==========================================

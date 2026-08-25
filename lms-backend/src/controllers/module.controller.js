@@ -55,7 +55,9 @@ exports.getAll = async (req, res) => {
 // ==========================================
 exports.getById = async (req, res) => {
     try {
-        const result = await moduleService.getById(req.params.id);
+        // Pass the requester (may be undefined for anon) so the service can
+        // decide whether to expose lesson videoUrls. Only MENTOR/ADMIN do.
+        const result = await moduleService.getById(req.params.id, req.user);
         res.json({
             success: true,
             data: result

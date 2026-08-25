@@ -14,6 +14,7 @@ createFolder("uploads/resources");
 createFolder("uploads/documents");
 createFolder("uploads/profile-images");
 createFolder("uploads/videos");
+createFolder("uploads/submissions");
 
 const storage = multer.diskStorage({
 
@@ -30,6 +31,9 @@ const storage = multer.diskStorage({
         }
         else if (file.fieldname === "video") {
             cb(null, "uploads/videos");
+        }
+        else if (file.fieldname === "submission") {
+            cb(null, "uploads/submissions");
         }
         else {
             cb(null, "uploads/documents");
@@ -84,7 +88,16 @@ const fileFilter = (req, file, cb) => {
         return cb(null, true);
     }
 
-    cb(new Error("Invalid file type"));
+    // Student assignment uploads: documents, archives and common image types.
+    const submissionTypes = /pdf|doc|docx|ppt|pptx|xls|xlsx|zip|rar|txt|png|jpe?g/;
+    if (
+        file.fieldname === "submission" &&
+        submissionTypes.test(ext)
+    ) {
+        return cb(null, true);
+    }
+
+    cb(new Error("Invalid file type."));
 
 };
 

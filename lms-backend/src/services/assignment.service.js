@@ -1,5 +1,6 @@
 // src/services/assignment.service.js
 const prisma = require("../config/prisma");
+const { computeCourseGating } = require("./gating.service");
 
 /**
  * NOTE ON NAMING: the Prisma schema names these relations `Course`, `User`
@@ -117,13 +118,89 @@ class AssignmentService {
     return { success: true, message: "Assignment deleted successfully." };
   }
 
-  async submit(assignmentId, studentId, data) {
+  // Idempotent submit: one submission per (assignment, student). There is no
+  // @@unique([assignmentId, studentId]) to upsert on, so findFirst → update /
+  // create. A re-submission before grading is fresh work, so it resets to an
+  // ungraded "SUBMITTED" state and refreshes the timestamp. Once a mentor has
+  // graded the work it LOCKS — the student can no longer overwrite the grade.
+  //
+  // GATE: the assignment only opens once the student has finished the whole
+  // course (every module's lessons AND quizzes). This mirrors the student flow
+  // "complete all lessons + quizzes → assignment unlocks → submit → certificate".
+  async submit(assignmentId, studentId, data = {}) {
+    const aId = Number(assignmentId);
+    const sId = Number(studentId);
+
+    const attachment = data.attachment || null;
+    const submissionText = data.submissionText
+      ? String(data.submissionText).trim()
+      : null;
+
+    // The assignment must exist — we also need its course to gate submission.
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: aId },
+      select: { id: true, courseId: true },
+    });
+    if (!assignment) {
+      const e = new Error("Assignment not found.");
+      e.statusCode = 404;
+      throw e;
+    }
+
+    // Enforce course completion server-side. A course with no modules has
+    // nothing to gate behind, so its assignment is open immediately.
+    const gating = await computeCourseGating(sId, assignment.courseId);
+    const hasModules = gating.modules.length > 0;
+    if (hasModules && !gating.allModulesComplete) {
+      const e = new Error(
+        "Finish all lessons and quizzes in this course before submitting the assignment."
+      );
+      e.statusCode = 403;
+      throw e;
+    }
+
+    // The flow is upload-based: a file is required (an optional note may ride along).
+    if (!attachment) {
+      const e = new Error(
+        "Please attach a file (PDF, DOCX, ZIP, etc.) to submit your assignment."
+      );
+      e.statusCode = 400;
+      throw e;
+    }
+
+    const existing = await prisma.assignmentSubmission.findFirst({
+      where: { assignmentId: aId, studentId: sId },
+      select: { id: true, status: true },
+    });
+
+    if (existing) {
+      if (existing.status === "GRADED") {
+        const e = new Error(
+          "This assignment has already been graded and can no longer be resubmitted."
+        );
+        e.statusCode = 409;
+        throw e;
+      }
+      return await prisma.assignmentSubmission.update({
+        where: { id: existing.id },
+        data: {
+          submissionText,
+          attachment,
+          status: "SUBMITTED",
+          marks: null,
+          feedback: null,
+          submittedAt: new Date(),
+        },
+      });
+    }
+
     return await prisma.assignmentSubmission.create({
       data: {
-        assignmentId: Number(assignmentId),
-        studentId: Number(studentId),
-        submissionText: data.submissionText || null,
-        attachment: data.attachment || null,
+        assignmentId: aId,
+        studentId: sId,
+        submissionText,
+        attachment,
+        status: "SUBMITTED",
       },
     });
   }
@@ -170,10 +247,29 @@ class AssignmentService {
       byAssignment[sub.assignmentId] = sub;
     });
 
+    // Assignments unlock only after the student finishes the whole course
+    // (every module's lessons AND quizzes). Compute gating once per course that
+    // actually carries an assignment, then tag each assignment locked/unlocked.
+    const assignmentCourseIds = [...new Set(assignments.map((a) => a.courseId))];
+    const gatingByCourse = {};
+    await Promise.all(
+      assignmentCourseIds.map(async (cId) => {
+        gatingByCourse[cId] = await computeCourseGating(sId, cId);
+      })
+    );
+
     const now = new Date();
 
     return assignments.map((a) => {
       const mySubmission = byAssignment[a.id] || null;
+
+      const gating = gatingByCourse[a.courseId];
+      const hasModules = !!gating && gating.modules.length > 0;
+      // A course with no modules has nothing to complete first, so its
+      // assignment is open right away; otherwise it stays locked until done.
+      const courseComplete = hasModules ? gating.allModulesComplete : true;
+      const locked = !courseComplete;
+
       return {
         ...a,
         mySubmission,
@@ -181,7 +277,11 @@ class AssignmentService {
         status: mySubmission ? mySubmission.status : "PENDING",
         marks: mySubmission?.marks ?? null,
         feedback: mySubmission?.feedback ?? null,
-        overdue: !mySubmission && new Date(a.dueDate) < now
+        overdue: !mySubmission && new Date(a.dueDate) < now,
+        locked,
+        lockReason: locked
+          ? "Finish all lessons and quizzes in this course to unlock this assignment."
+          : null,
       };
     });
   }

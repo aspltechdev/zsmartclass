@@ -103,7 +103,7 @@ exports.remove = async (req, res) => {
 
     try {
 
-        const result = await assignmentService.delete(
+        const result = await assignmentService.remove(
             req.params.id
         );
 
@@ -125,13 +125,22 @@ exports.submit = async (req, res) => {
 
     try {
 
-        const result = await assignmentService.submitAssignment(
+        // The uploaded file (multer field "submission") is the student's work.
+        // Store the public path; the optional note travels as submissionText.
+        const attachment = req.file
+            ? `/uploads/submissions/${req.file.filename}`
+            : null;
+
+        const result = await assignmentService.submit(
 
             req.params.id,
 
             req.user.id,
 
-            req.body
+            {
+                submissionText: req.body.submissionText,
+                attachment,
+            }
 
         );
 

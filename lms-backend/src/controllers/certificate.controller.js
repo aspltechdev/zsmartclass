@@ -8,13 +8,40 @@ exports.generateCertificate = async (req, res) => {
     try {
         const studentId = req.user.id;
         const { courseId } = req.params;
+        const { studentName } = req.body;
 
         const result = await certificateService.generateCertificate(
+            studentId,
+            Number(courseId),
+            studentName
+        );
+
+        return res.status(201).json({
+            success: true,
+            data: result
+        });
+    } catch (err) {
+        return res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// ==========================================
+// Certificate eligibility (student)
+// ==========================================
+exports.checkEligibility = async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const { courseId } = req.params;
+
+        const result = await certificateService.checkCertificateEligibility(
             studentId,
             Number(courseId)
         );
 
-        return res.status(201).json({
+        return res.status(200).json({
             success: true,
             data: result
         });
@@ -273,20 +300,15 @@ exports.upsertTemplate = async (req, res) => {
 };
 
 // ==========================================
-// ADMIN: Trigger auto-verify immediately (no waiting for the 10-min timer)
+// ADMIN: bulk auto-verify — DISABLED
+// Certificates require individual admin approval. This endpoint no longer
+// auto-approves anything; it is kept only so any stale caller gets a clear
+// message instead of a 404.
 // ==========================================
 exports.verifyPendingNow = async (req, res) => {
-    try {
-        const result = await certificateService.autoVerifyPendingCertificates();
-        res.json({
-            success: true,
-            message: `Verified now: issued ${result.issued}, still pending ${result.skipped}.`,
-            data: result
-        });
-    } catch (err) {
-        res.status(err.statusCode || 400).json({
-            success: false,
-            message: err.message
-        });
-    }
+    return res.status(410).json({
+        success: false,
+        message:
+            "Automatic verification has been disabled. Approve each certificate individually from the review queue."
+    });
 };

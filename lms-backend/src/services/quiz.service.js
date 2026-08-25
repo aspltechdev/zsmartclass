@@ -1,5 +1,6 @@
 // src/services/quiz.service.js
 const prisma = require("../config/prisma");
+const { getModuleGating, PASS_MARK } = require("./gating.service");
 
 const QUESTION_TYPES = ["RADIO", "CHECKBOX"];
 
@@ -290,7 +291,14 @@ class QuizService {
   // ============================================================
   // READ
   // ============================================================
-  async getModuleQuizzes(moduleId) {
+  //
+  // `isCorrect` is a protected answer key. It is returned ONLY to the quiz's
+  // authoring audience (MENTOR / ADMIN) so the editing UI can pre-select the
+  // correct options. Students (and anonymous callers) get options without it —
+  // grading happens server-side in submitQuizAttempt.
+  async getModuleQuizzes(moduleId, user) {
+    const privileged = user?.role === "MENTOR" || user?.role === "ADMIN";
+
     const quizzes = await prisma.quiz.findMany({
       where: { moduleId: Number(moduleId) },
       orderBy: { createdAt: "desc" },
@@ -323,13 +331,15 @@ class QuizService {
         options: qq.QuizOption.map((o) => ({
           id: o.id,
           text: o.text,
-          isCorrect: o.isCorrect,
+          ...(privileged ? { isCorrect: o.isCorrect } : {}),
         })),
       })),
     }));
   }
 
-  async getQuizById(quizId) {
+  async getQuizById(quizId, user) {
+    const privileged = user?.role === "MENTOR" || user?.role === "ADMIN";
+
     const quiz = await prisma.quiz.findUnique({
       where: { id: Number(quizId) },
       include: {
@@ -363,180 +373,192 @@ class QuizService {
         options: qq.QuizOption.map((o) => ({
           id: o.id,
           text: o.text,
-          isCorrect: o.isCorrect,
+          ...(privileged ? { isCorrect: o.isCorrect } : {}),
         })),
       })),
     };
   }
 
-  // In src/services/quiz.service.js
+  // ============================================================
+  // SUBMIT ATTEMPT  (server-graded)
+  // ============================================================
+  //
+  // Security model: the client sends ONLY which options it picked
+  //   data.answers = [{ questionId, selectedOptionIds: [id, ...] }, ...]
+  // The server never trusts a client-supplied score. It re-grades against the
+  // stored answer key, enforces the gating rules (must be enrolled AND the
+  // module's lessons must be complete), and persists the result.
+  //
+  // A question is awarded its full marks only when the chosen option-id set is
+  // exactly the correct set (no partial credit; works for RADIO and CHECKBOX).
+  //
+  // Persistence: one QuizMark per (quiz, student). Attempts are unlimited and
+  // "best wins" — a lower re-take never downgrades a previously-earned score
+  // (which would otherwise re-lock a module the student already unlocked). The
+  // student always sees THIS attempt's result in the return value.
+  async submitQuizAttempt(quizId, userId, data = {}) {
+    const studentId = Number(userId);
 
-  // src/services/quiz.service.js
-
-async submitQuizAttempt(quizId, userId, data) {
-  // 1. Fetch the quiz with questions and options, AND the courseId
-  const quiz = await prisma.quiz.findUnique({
-    where: { id: Number(quizId) },
-    include: {
-      QuizQuestion: {
-        include: {
-          QuizOption: true,
-        },
-      },
-    },
-  });
-
-  if (!quiz) {
-    const err = new Error("Quiz not found.");
-    err.statusCode = 404;
-    throw err;
-  }
-
-  const { answers, score, totalMarks, percentage } = data;
-  
-  // 2. Calculate Pass/Fail (Assuming 50% is the passing mark)
-  const passed = percentage >= 50;
-
-  // 3. Build the nested QuizAnswer data (Mapping Frontend indices to DB IDs)
-  const quizAnswersData = [];
-
-  for (const question of quiz.QuizQuestion) {
-    // Frontend sends keys as 0, 1, 2... based on question position.
-    // We map it to the DB position (1, 2, 3...) 
-    const userAnswerIndices = answers[question.position - 1] || [];
-
-    for (const optionIndex of userAnswerIndices) {
-      const selectedOption = question.QuizOption[optionIndex];
-
-      if (selectedOption) {
-        quizAnswersData.push({
-          questionId: question.id,
-          optionId: selectedOption.id,
-          isCorrect: selectedOption.isCorrect,
-        });
-      }
-    }
-  }
-
-  // 4. Create or Update the QuizMark with the 'passed' status
-  const mark = await prisma.quizMark.upsert({
-    where: {
-      quizId_studentId: {
-        quizId: Number(quizId),
-        studentId: Number(userId),
-      },
-    },
-    update: {
-      obtainedMarks: Number(score || 0),
-      totalMarks: Number(totalMarks || quiz.totalMarks),
-      percentage: Number(percentage || 0),
-      passed: passed,
-      // IMPORTANT: Delete old answers first, then recreate to avoid duplicates
-      QuizAnswer: {
-        deleteMany: {}, // Deletes all previous answers for this specific mark
-        create: quizAnswersData,
-      },
-    },
-    create: {
-      quizId: Number(quizId),
-      studentId: Number(userId),
-      obtainedMarks: Number(score || 0),
-      totalMarks: Number(totalMarks || quiz.totalMarks),
-      percentage: Number(percentage || 0),
-      passed: passed,
-      QuizAnswer: {
-        create: quizAnswersData,
-      },
-    },
-  });
-
-  // ==========================================
-  // 5. RECALCULATE COURSE PROGRESS
-  // ==========================================
-  
-  // Since the quiz is passed, recalculate the overall course progress
-  if (passed) {
-    const courseId = quiz.courseId;
-
-    // Get all modules assigned to this course, including their lessons and quizzes
-    const moduleAssignments = await prisma.courseModuleAssignment.findMany({
-      where: { courseId: Number(courseId) },
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: Number(quizId) },
       include: {
-        CourseModule: {
-          include: {
-            lessons: { select: { id: true } },
-            Quiz: { select: { id: true } },
-          },
+        QuizQuestion: {
+          orderBy: { position: "asc" },
+          include: { QuizOption: true },
         },
       },
     });
 
-    // Get the student's progress for all lessons in this course
-    const lessonIds = moduleAssignments.flatMap(ma => 
-      ma.CourseModule.lessons.map(l => l.id)
+    if (!quiz) {
+      const err = new Error("Quiz not found.");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // 1. Resolve the course this attempt belongs to. Prefer the course the
+    //    student is viewing (data.courseId); fall back to the quiz's own course.
+    //    _resolveCourseId also asserts the module is actually part of that course.
+    const courseId = await this._resolveCourseId(
+      quiz.moduleId,
+      data.courseId || quiz.courseId
     );
 
-    const lessonProgresses = await prisma.lessonProgress.findMany({
-      where: {
-        studentId: Number(userId),
-        lessonId: { in: lessonIds },
-      },
-      select: { lessonId: true, completed: true },
+    // 2. Enrollment gate — a quiz attempt writes a mark, so the caller must own
+    //    a seat in the course.
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { userId: studentId, courseId: Number(courseId) },
+      select: { id: true },
     });
+    if (!enrollment) {
+      const err = new Error("You are not enrolled in this course.");
+      err.statusCode = 403;
+      throw err;
+    }
 
-    const completedLessonIds = new Set(
-      lessonProgresses.filter(lp => lp.completed).map(lp => lp.lessonId)
-    );
+    // 3. Gating gate — the module must be unlocked and its lessons complete
+    //    before the quiz can be taken. Mirrors the unlock rules exactly.
+    const moduleGating = await getModuleGating(studentId, courseId, quiz.moduleId);
+    if (!moduleGating) {
+      const err = new Error("This quiz's module is not part of the course.");
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!moduleGating.unlocked) {
+      const err = new Error(
+        moduleGating.reason || "This module is locked. Complete the previous module first."
+      );
+      err.statusCode = 403;
+      throw err;
+    }
+    if (!moduleGating.lessonsComplete) {
+      const err = new Error(
+        "Finish all lessons in this module before taking the quiz."
+      );
+      err.statusCode = 403;
+      throw err;
+    }
 
-    // Get the student's passed quizzes for this course
-    const passedQuizIds = new Set(
-      await prisma.quizMark.findMany({
-        where: {
-          studentId: Number(userId),
-          passed: true,
-          quiz: { courseId: Number(courseId) },
-        },
-        select: { quizId: true },
-      }).then(marks => marks.map(m => m.quizId))
-    );
-
-    // Calculate overall progress
-    let totalTasks = 0;
-    let completedTasks = 0;
-
-    for (const assignment of moduleAssignments) {
-      // Count Lessons
-      for (const lesson of assignment.CourseModule.lessons) {
-        totalTasks++;
-        if (completedLessonIds.has(lesson.id)) completedTasks++;
-      }
-
-      // Count Quizzes
-      for (const quizItem of assignment.CourseModule.Quiz) {
-        totalTasks++;
-        if (passedQuizIds.has(quizItem.id)) completedTasks++;
+    // 4. Normalise the submitted picks into questionId -> Set(optionId).
+    const chosenByQuestion = new Map();
+    if (Array.isArray(data.answers)) {
+      for (const a of data.answers) {
+        const qId = Number(a?.questionId);
+        if (!qId) continue;
+        const ids = Array.isArray(a?.selectedOptionIds)
+          ? a.selectedOptionIds.map(Number).filter((n) => Number.isFinite(n))
+          : [];
+        chosenByQuestion.set(qId, new Set(ids));
       }
     }
 
-    const newCourseProgress = totalTasks > 0 
-      ? Math.round((completedTasks / totalTasks) * 100) 
-      : 0;
+    // 5. Grade server-side against the stored answer key.
+    let obtainedMarks = 0;
+    let totalPossible = 0;
+    let correctCount = 0;
+    const answerRows = [];
 
-    // Update the Enrollment table
-    await prisma.enrollment.updateMany({
-      where: {
-        userId: Number(userId),
-        courseId: Number(courseId),
-      },
-      data: {
-        progress: newCourseProgress,
-        completed: newCourseProgress === 100 ? true : false,
-      },
+    for (const q of quiz.QuizQuestion) {
+      totalPossible += q.marks;
+
+      const correctSet = new Set(
+        q.QuizOption.filter((o) => o.isCorrect).map((o) => o.id)
+      );
+      const chosen = chosenByQuestion.get(q.id) || new Set();
+
+      // Record the picks (only option ids that really belong to this question).
+      for (const optId of chosen) {
+        const opt = q.QuizOption.find((o) => o.id === optId);
+        if (opt) {
+          answerRows.push({
+            questionId: q.id,
+            optionId: opt.id,
+            isCorrect: opt.isCorrect,
+          });
+        }
+      }
+
+      const fullyCorrect =
+        correctSet.size > 0 &&
+        chosen.size === correctSet.size &&
+        [...chosen].every((id) => correctSet.has(id));
+
+      if (fullyCorrect) {
+        obtainedMarks += q.marks;
+        correctCount += 1;
+      }
+    }
+
+    const totalQuestions = quiz.QuizQuestion.length;
+    const percentage =
+      totalPossible > 0 ? Math.round((obtainedMarks / totalPossible) * 100) : 0;
+    const passed = percentage >= PASS_MARK;
+
+    // 6. Persist — one row per (quiz, student), best-attempt wins. No `passed`
+    //    column exists (derived at read time); no compound-unique exists, so we
+    //    findFirst then update/create rather than upsert.
+    const existing = await prisma.quizMark.findFirst({
+      where: { quizId: Number(quizId), studentId },
+      select: { id: true, percentage: true },
     });
-  }
 
-  return mark;
-}
+    if (!existing) {
+      await prisma.quizMark.create({
+        data: {
+          quizId: Number(quizId),
+          studentId,
+          obtainedMarks,
+          totalMarks: totalPossible,
+          percentage,
+          QuizAnswer: { create: answerRows },
+        },
+      });
+    } else if (percentage > existing.percentage) {
+      // New personal best → replace the mark and its recorded answers atomically.
+      await prisma.$transaction([
+        prisma.quizAnswer.deleteMany({ where: { quizMarkId: existing.id } }),
+        prisma.quizMark.update({
+          where: { id: existing.id },
+          data: {
+            obtainedMarks,
+            totalMarks: totalPossible,
+            percentage,
+            submittedAt: new Date(),
+            QuizAnswer: { create: answerRows },
+          },
+        }),
+      ]);
+    }
+    // else: existing best is >= this attempt → keep it untouched.
+
+    return {
+      obtainedMarks,
+      totalMarks: totalPossible,
+      percentage,
+      passed,
+      correctCount,
+      totalQuestions,
+    };
+  }
 
 
   async getQuizMarks(quizId, user) {

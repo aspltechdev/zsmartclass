@@ -52,7 +52,10 @@ exports.deleteQuiz = async (req, res) => {
 // Quizzes inside a module
 exports.getModuleQuizzes = async (req, res) => {
   try {
-    const quizzes = await quizService.getModuleQuizzes(req.params.moduleId);
+    const quizzes = await quizService.getModuleQuizzes(
+      req.params.moduleId,
+      req.user
+    );
     res.json({ success: true, data: quizzes });
   } catch (err) {
     fail(res, err, 500);
@@ -62,7 +65,7 @@ exports.getModuleQuizzes = async (req, res) => {
 // Single quiz (with questions + options)
 exports.getQuizById = async (req, res) => {
   try {
-    const quiz = await quizService.getQuizById(req.params.quizId);
+    const quiz = await quizService.getQuizById(req.params.quizId, req.user);
     res.json({ success: true, data: quiz });
   } catch (err) {
     fail(res, err, 500);

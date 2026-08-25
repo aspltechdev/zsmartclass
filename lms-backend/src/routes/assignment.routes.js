@@ -14,6 +14,23 @@ const assignmentController = require("../controllers/assignment.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
+const upload = require("../middleware/upload.middleware");
+
+// The global error handler isn't mounted in app.js, so translate any multer
+// error (bad file type, size limit) into the same JSON envelope the rest of
+// the API uses instead of letting Express emit an HTML 500.
+const uploadSubmission = (req, res, next) => {
+    upload.single("submission")(req, res, (err) => {
+        if (err) {
+            const message =
+                err.code === "LIMIT_FILE_SIZE"
+                    ? "That file is too large."
+                    : err.message || "Upload failed.";
+            return res.status(400).json({ success: false, message });
+        }
+        next();
+    });
+};
 
 /* =========================================================
    STUDENT + MENTOR + ADMIN
@@ -84,6 +101,7 @@ router.post(
     "/:id/submit",
     authMiddleware,
     roleMiddleware("STUDENT"),
+    uploadSubmission,
     assignmentController.submit
 );
 

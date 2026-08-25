@@ -46,6 +46,7 @@ router.get(
 router.post(
   "/:quizId/attempts",
   authMiddleware,
+  roleMiddleware("STUDENT"),
   quizController.submitQuizAttempt
 );
 
