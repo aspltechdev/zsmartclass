@@ -570,21 +570,16 @@ function Modules() {
 
       <div className="toolbar">
 
-        <div className="search-box">
+      <div className="modules-search">
+  <Search size={19} />
 
-          <Search size={18} />
-
-          <input
-            type="text"
-            placeholder="Search modules..."
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-          />
-
-        </div>
-
+  <input
+    type="text"
+    placeholder="Search modules..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+  />
+</div>
         <button
           type="button"
           className="refresh-btn"

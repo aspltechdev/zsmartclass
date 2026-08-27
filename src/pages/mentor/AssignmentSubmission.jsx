@@ -6,7 +6,6 @@ import {
   Clock,
   Award,
   Search,
-  BadgeCheck,
   X,
 } from "lucide-react";
 import api from "../../services/api";
@@ -16,6 +15,7 @@ import "./MentorShared.css";
 /* =========================================================
    FILE URL
 ========================================================= */
+
 const fileUrl = (path) => {
   if (!path) return "";
 
@@ -118,8 +118,7 @@ function AssignmentSubmission() {
 
     setGradeDraft({
       marks:
-        submission.marks !== null &&
-        submission.marks !== undefined
+        submission.marks !== null && submission.marks !== undefined
           ? submission.marks
           : "",
       feedback: submission.feedback || "",
@@ -205,7 +204,9 @@ function AssignmentSubmission() {
         text: "Submission graded successfully.",
       });
 
-      /* Refresh submissions */
+      /*
+       * Refresh submissions so the new marks/status appear immediately.
+       */
       const res = await api.get(
         `/assignments/${selectedAssignment.id}/submissions`
       );
@@ -293,12 +294,11 @@ function AssignmentSubmission() {
       {/* =====================================================
           HEADER
       ===================================================== */}
+
       <div className="assignment-submission-header">
-        <div>
-          <div className="assignment-submission-title">
-  <BadgeCheck size={34} />
-  <h1>Assignment Submissions</h1>
-</div>
+        <div><h1>
+       <CheckCircle size={24} /> Assignment Submission</h1>
+
           <p>
             Review student submissions, download assignments,
             and provide marks and feedback.
@@ -336,7 +336,6 @@ function AssignmentSubmission() {
           <div className="panel-title">
             <div>
               <h2>Assignments</h2>
-
               <span>
                 {filteredAssignments.length} assignment
                 {filteredAssignments.length !== 1 ? "s" : ""}
@@ -350,7 +349,6 @@ function AssignmentSubmission() {
             </div>
           ) : filteredAssignments.length === 0 ? (
             <div className="submission-empty">
-
               <FileText size={35} />
 
               <h3>No assignments found</h3>
@@ -359,13 +357,10 @@ function AssignmentSubmission() {
                 Create an assignment first to receive student
                 submissions.
               </p>
-
             </div>
           ) : (
             <div className="assignment-selection-list">
-
               {filteredAssignments.map((assignment) => (
-
                 <button
                   key={assignment.id}
                   type="button"
@@ -376,13 +371,11 @@ function AssignmentSubmission() {
                   }`}
                   onClick={() => fetchSubmissions(assignment)}
                 >
-
                   <div className="assignment-card-icon">
                     <FileText size={20} />
                   </div>
 
                   <div className="assignment-card-content">
-
                     <h3>{assignment.title}</h3>
 
                     <p>
@@ -390,7 +383,6 @@ function AssignmentSubmission() {
                     </p>
 
                     <div className="assignment-card-meta">
-
                       <span>
                         Due: {formatDate(assignment.dueDate)}
                       </span>
@@ -398,22 +390,16 @@ function AssignmentSubmission() {
                       <span>
                         {assignment.totalMarks} marks
                       </span>
-
                     </div>
-
                   </div>
 
                   <div className="assignment-submission-count">
                     {assignment.submissions?.length || 0}
                   </div>
-
                 </button>
-
               ))}
-
             </div>
           )}
-
         </div>
 
         {/* ===================================================
@@ -423,10 +409,8 @@ function AssignmentSubmission() {
         <div className="student-submissions-panel">
 
           {!selectedAssignment ? (
-
             <div className="select-assignment-placeholder">
-
-              <BadgeCheck size={48} />
+              <FileText size={48} />
 
               <h2>Select an Assignment</h2>
 
@@ -434,17 +418,12 @@ function AssignmentSubmission() {
                 Select an assignment from the left to view the
                 students who submitted their work.
               </p>
-
             </div>
-
           ) : (
-
             <>
-
               <div className="submissions-panel-header">
 
                 <div>
-
                   <h2>{selectedAssignment.title}</h2>
 
                   <p>
@@ -452,15 +431,12 @@ function AssignmentSubmission() {
                       "Course"}{" "}
                     • {selectedAssignment.totalMarks} marks
                   </p>
-
                 </div>
 
                 <div className="submission-total">
-
                   {loadingSubmissions
                     ? "..."
                     : `${submissions.length} submitted`}
-
                 </div>
 
               </div>
@@ -474,13 +450,10 @@ function AssignmentSubmission() {
               )}
 
               {loadingSubmissions ? (
-
                 <div className="submission-loading">
                   Loading student submissions...
                 </div>
-
               ) : submissions.length === 0 ? (
-
                 <div className="submission-empty">
 
                   <Clock size={40} />
@@ -493,9 +466,7 @@ function AssignmentSubmission() {
                   </p>
 
                 </div>
-
               ) : (
-
                 <div className="student-submission-list">
 
                   {submissions.map((submission) => {
@@ -505,7 +476,6 @@ function AssignmentSubmission() {
                         .toUpperCase() === "GRADED";
 
                     return (
-
                       <div
                         key={submission.id}
                         className="student-submission-card"
@@ -518,18 +488,15 @@ function AssignmentSubmission() {
                           <div className="student-information">
 
                             <div className="student-avatar">
-
                               {(
                                 submission.student?.name ||
                                 "S"
                               )
                                 .charAt(0)
                                 .toUpperCase()}
-
                             </div>
 
                             <div>
-
                               <h3>
                                 {submission.student?.name ||
                                   "Student"}
@@ -539,7 +506,6 @@ function AssignmentSubmission() {
                                 {submission.student?.email ||
                                   "No email available"}
                               </p>
-
                             </div>
 
                           </div>
@@ -551,10 +517,9 @@ function AssignmentSubmission() {
                                 : "submitted"
                             }`}
                           >
-
                             {isGraded ? (
                               <>
-                                <BadgeCheck size={15} />
+                                <CheckCircle size={15} />
                                 Graded
                               </>
                             ) : (
@@ -563,7 +528,6 @@ function AssignmentSubmission() {
                                 Awaiting Review
                               </>
                             )}
-
                           </div>
 
                         </div>
@@ -573,7 +537,6 @@ function AssignmentSubmission() {
                         <div className="submission-information">
 
                           <div className="submission-info-item">
-
                             <span>Submitted</span>
 
                             <strong>
@@ -581,11 +544,9 @@ function AssignmentSubmission() {
                                 submission.submittedAt
                               )}
                             </strong>
-
                           </div>
 
                           <div className="submission-info-item">
-
                             <span>Marks</span>
 
                             <strong>
@@ -595,18 +556,14 @@ function AssignmentSubmission() {
                                   }`
                                 : "Not graded"}
                             </strong>
-
                           </div>
 
                           <div className="submission-info-item">
-
                             <span>Status</span>
 
                             <strong>
-                              {submission.status ||
-                                "SUBMITTED"}
+                              {submission.status || "SUBMITTED"}
                             </strong>
-
                           </div>
 
                         </div>
@@ -614,7 +571,6 @@ function AssignmentSubmission() {
                         {/* NOTE */}
 
                         {submission.submissionText && (
-
                           <div className="submission-note">
 
                             <span>Student Note</span>
@@ -624,7 +580,6 @@ function AssignmentSubmission() {
                             </p>
 
                           </div>
-
                         )}
 
                         {/* ACTIONS */}
@@ -632,7 +587,6 @@ function AssignmentSubmission() {
                         <div className="submission-actions">
 
                           {submission.attachment ? (
-
                             <a
                               href={fileUrl(
                                 submission.attachment
@@ -644,13 +598,10 @@ function AssignmentSubmission() {
                               <Download size={16} />
                               Download Submission
                             </a>
-
                           ) : (
-
                             <span className="no-file">
                               No file attached
                             </span>
-
                           )}
 
                           <button
@@ -660,28 +611,22 @@ function AssignmentSubmission() {
                               openSubmission(submission)
                             }
                           >
-
-                            <BadgeCheck size={16} />
+                            <Award size={16} />
 
                             {isGraded
                               ? "Review Grade"
                               : "Review Submission"}
-
                           </button>
 
                         </div>
 
                       </div>
-
                     );
                   })}
 
                 </div>
-
               )}
-
             </>
-
           )}
 
         </div>
@@ -693,29 +638,23 @@ function AssignmentSubmission() {
       ===================================================== */}
 
       {selectedSubmission && selectedAssignment && (
-
         <div
           className="submission-modal-overlay"
           onClick={closeSubmission}
         >
-
           <div
             className="submission-review-modal"
             onClick={(e) => e.stopPropagation()}
           >
 
-            {/* MODAL HEADER */}
-
             <div className="submission-modal-header">
 
               <div>
-
                 <h2>Review Submission</h2>
 
                 <p>
                   {selectedAssignment.title}
                 </p>
-
               </div>
 
               <button
@@ -733,18 +672,15 @@ function AssignmentSubmission() {
             <div className="review-student">
 
               <div className="review-student-avatar">
-
                 {(
                   selectedSubmission.student?.name ||
                   "S"
                 )
                   .charAt(0)
                   .toUpperCase()}
-
               </div>
 
               <div>
-
                 <h3>
                   {selectedSubmission.student?.name ||
                     "Student"}
@@ -753,7 +689,6 @@ function AssignmentSubmission() {
                 <p>
                   {selectedSubmission.student?.email || ""}
                 </p>
-
               </div>
 
             </div>
@@ -767,12 +702,10 @@ function AssignmentSubmission() {
               <div className="review-file">
 
                 {selectedSubmission.attachment ? (
-
                   <>
                     <FileText size={25} />
 
                     <div>
-
                       <strong>
                         Student Assignment
                       </strong>
@@ -783,7 +716,6 @@ function AssignmentSubmission() {
                           selectedSubmission.submittedAt
                         )}
                       </p>
-
                     </div>
 
                     <a
@@ -796,13 +728,9 @@ function AssignmentSubmission() {
                       <Download size={16} />
                       Download
                     </a>
-
                   </>
-
                 ) : (
-
                   <p>No file was attached.</p>
-
                 )}
 
               </div>
@@ -812,7 +740,6 @@ function AssignmentSubmission() {
             {/* STUDENT NOTE */}
 
             {selectedSubmission.submissionText && (
-
               <div className="review-section">
 
                 <h3>Student Note</h3>
@@ -822,7 +749,6 @@ function AssignmentSubmission() {
                 </div>
 
               </div>
-
             )}
 
             {/* GRADING */}
@@ -905,7 +831,6 @@ function AssignmentSubmission() {
                 onClick={saveGrade}
                 disabled={grading}
               >
-
                 {grading
                   ? "Saving..."
                   : String(
@@ -913,15 +838,12 @@ function AssignmentSubmission() {
                     ).toUpperCase() === "GRADED"
                   ? "Update Grade"
                   : "Save Grade"}
-
               </button>
 
             </div>
 
           </div>
-
         </div>
-
       )}
 
     </div>
