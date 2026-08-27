@@ -160,7 +160,7 @@ function Students() {
           </p>
         </div>
         <button className="std-refresh" onClick={fetchEnrollments}>
-          <RefreshCw size={16} /> Refresh
+          <RefreshCw size={16} /> 
         </button>
       </div>
 

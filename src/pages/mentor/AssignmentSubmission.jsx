@@ -6,6 +6,7 @@ import {
   Clock,
   Award,
   Search,
+  RefreshCw,
   X,
 } from "lucide-react";
 import api from "../../services/api";
@@ -43,6 +44,7 @@ function AssignmentSubmission() {
 
   const [loadingAssignments, setLoadingAssignments] = useState(true);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -106,6 +108,80 @@ function AssignmentSubmission() {
       });
     } finally {
       setLoadingSubmissions(false);
+    }
+  };
+
+  /* =========================================================
+     REFRESH ASSIGNMENTS + SUBMISSIONS
+  ========================================================= */
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      setMessage(null);
+
+      // Add a timestamp so the browser/proxy cannot reuse a cached GET.
+      const assignmentsRes = await api.get("/assignments", {
+        params: { _refresh: Date.now() },
+      });
+
+      const updatedAssignments = assignmentsRes.data?.data || [];
+      setAssignments(updatedAssignments);
+
+      // Refresh submissions for the assignment currently selected.
+      if (selectedAssignment?.id) {
+        setLoadingSubmissions(true);
+
+        const submissionsRes = await api.get(
+          `/assignments/${selectedAssignment.id}/submissions`,
+          { params: { _refresh: Date.now() } }
+        );
+
+        const updatedSubmissions = submissionsRes.data?.data || [];
+        setSubmissions(updatedSubmissions);
+
+        // Replace the selected assignment with the fresh assignment object.
+        const freshAssignment = updatedAssignments.find(
+          (assignment) =>
+            Number(assignment.id) === Number(selectedAssignment.id)
+        );
+
+        if (freshAssignment) {
+          setSelectedAssignment(freshAssignment);
+        }
+
+        // Keep the opened submission in sync if it still exists.
+        if (selectedSubmission?.id) {
+          const freshSubmission = updatedSubmissions.find(
+            (submission) =>
+              Number(submission.id) === Number(selectedSubmission.id)
+          );
+
+          if (freshSubmission) {
+            setSelectedSubmission(freshSubmission);
+            setGradeDraft({
+              marks:
+                freshSubmission.marks !== null &&
+                freshSubmission.marks !== undefined
+                  ? freshSubmission.marks
+                  : "",
+              feedback: freshSubmission.feedback || "",
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error refreshing assignment submissions:", err);
+
+      setMessage({
+        type: "error",
+        text:
+          err.response?.data?.message ||
+          "Unable to refresh assignment submissions.",
+      });
+    } finally {
+      setLoadingSubmissions(false);
+      setRefreshing(false);
     }
   };
 
@@ -296,14 +372,32 @@ function AssignmentSubmission() {
       ===================================================== */}
 
       <div className="assignment-submission-header">
-        <div><h1>
-       <CheckCircle size={24} /> Assignment Submission</h1>
-
-          <p>
-            Review student submissions, download assignments,
-            and provide marks and feedback.
-          </p>
+        <div className="assignment-submission-title">
+          <CheckCircle />
+          <div>
+            <h1>Assignment Submission</h1>
+            <p>
+              Review student submissions, download assignments,
+              and provide marks and feedback.
+            </p>
+          </div>
         </div>
+
+        <button
+          type="button"
+          className="assignment-refresh-btn"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Refresh assignments and submissions"
+          aria-label="Refresh assignments and submissions"
+        >
+          <RefreshCw
+            size={17}
+            className={
+              refreshing ? "assignment-refresh-spinning" : ""
+            }
+          />
+        </button>
       </div>
 
       {/* =====================================================

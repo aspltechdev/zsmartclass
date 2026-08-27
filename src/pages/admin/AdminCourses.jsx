@@ -177,15 +177,7 @@ function AdminCourses() {
 
   const languages = [
     "English",
-    "Hindi",
     "Tamil",
-    "Telugu",
-    "Malayalam",
-    "Kannada",
-    "Spanish",
-    "French",
-    "German",
-    "Chinese",
   ];
 
   /* =========================================================

@@ -169,7 +169,9 @@ function MentorReviews() {
     // RATING FILTERS
     // -------------------------
 
-    if (["1", "2", "3", "4", "5"].includes(filter)) {
+    if (
+      ["1", "2", "3", "4", "5"].includes(filter)
+    ) {
       result = result.filter(
         (review) =>
           Number(review.rating) === Number(filter)
@@ -451,22 +453,21 @@ function MentorReviews() {
 
       <div className="reviews-header">
 
-       <div className="quizmarks-title">
+        <div className="quizmarks-title">
+          <Star className="quizmarks-title-icon" />
 
-            <Star
-              className="quizmarks-title-icon"
-            />
-
-            <h1>
+          <h1>
             Reviews
-            </h1>
+          </h1>
+        </div>
 
-          </div>
-
+        {/* COMPACT REFRESH BUTTON */}
         <button
           className="review-refresh-btn"
           onClick={handleRefresh}
           disabled={refreshing}
+          title="Refresh reviews"
+          aria-label="Refresh reviews"
         >
           <RefreshCw
             size={17}
@@ -476,10 +477,6 @@ function MentorReviews() {
                 : ""
             }
           />
-
-          {refreshing
-            ? "Refreshing..."
-            : "Refresh"}
         </button>
 
       </div>
@@ -491,7 +488,6 @@ function MentorReviews() {
       <div className="review-stats">
 
         <div className="review-stat-card">
-
           <div className="review-stat-icon purple">
             <MessageSquare size={21} />
           </div>
@@ -500,11 +496,9 @@ function MentorReviews() {
             <h3>{totalReviews}</h3>
             <p>Total Reviews</p>
           </div>
-
         </div>
 
         <div className="review-stat-card">
-
           <div className="review-stat-icon orange">
             <Clock size={21} />
           </div>
@@ -513,11 +507,9 @@ function MentorReviews() {
             <h3>{unreadReviews}</h3>
             <p>Unread</p>
           </div>
-
         </div>
 
         <div className="review-stat-card">
-
           <div className="review-stat-icon green">
             <CheckCircle size={21} />
           </div>
@@ -526,11 +518,9 @@ function MentorReviews() {
             <h3>{repliedReviews}</h3>
             <p>Replied</p>
           </div>
-
         </div>
 
         <div className="review-stat-card">
-
           <div className="review-stat-icon blue">
             <Star size={21} />
           </div>
@@ -539,7 +529,6 @@ function MentorReviews() {
             <h3>{averageRating}</h3>
             <p>Average Rating</p>
           </div>
-
         </div>
 
       </div>
@@ -572,6 +561,7 @@ function MentorReviews() {
             setFilter(e.target.value)
           }
         >
+
           <option value="ALL">
             All Reviews
           </option>
@@ -603,6 +593,7 @@ function MentorReviews() {
           <option value="1">
             1 Star
           </option>
+
         </select>
 
       </div>
@@ -651,6 +642,7 @@ function MentorReviews() {
                   "Course";
 
                 return (
+
                   <div
                     key={review.id}
                     className={`review-card ${
@@ -746,17 +738,23 @@ function MentorReviews() {
                       {review.reply ? (
 
                         <span className="replied-badge">
+
                           <Check size={13} />
+
                           Replied
+
                         </span>
 
                       ) : (
 
                         <span className="pending-badge">
+
                           <MessageSquare
                             size={13}
                           />
+
                           Pending Reply
+
                         </span>
 
                       )}
@@ -780,6 +778,7 @@ function MentorReviews() {
                           )
                         }
                       >
+
                         <MessageSquare
                           size={14}
                         />
@@ -787,11 +786,13 @@ function MentorReviews() {
                         {review.reply
                           ? "Edit Reply"
                           : "Reply"}
+
                       </button>
 
                     </div>
 
                   </div>
+
                 );
               }
             )}
@@ -942,17 +943,22 @@ function MentorReviews() {
                 >
 
                   {submittingReply ? (
+
                     <>
                       <div className="button-spinner"></div>
                       Sending...
                     </>
+
                   ) : (
+
                     <>
                       <Send size={17} />
+
                       {selectedReview.reply
                         ? "Update Reply"
                         : "Send Reply"}
                     </>
+
                   )}
 
                 </button>
@@ -969,4 +975,4 @@ function MentorReviews() {
   );
 }
 
-export default MentorReviews; 
+export default MentorReviews;
