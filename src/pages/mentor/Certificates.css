@@ -1,205 +1,519 @@
 /* =========================================================
    MENTOR — CERTIFICATES
+
    Page-specific only; shared kit handles the rest.
+
    ========================================================= */
 
 .cert-page {
+
   width: 100%;
+
   min-height: 100%;
+
   padding: 24px;
+
   box-sizing: border-box;
+
   background: #f8fafc;
+
   color: #0f172a;
+
   font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+
 }
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
 
 .cert-header h1 {
+
   display: flex;
+
   align-items: center;
+
   gap: 10px;
+
   margin: 0;
+
   font-size: 26px;
+
   font-weight: 700;
+
   letter-spacing: -0.5px;
+
+  color: #0f172a;
+
 }
 
-/* ---------- Tabs ---------- */
-.cert-tabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  margin-bottom: 18px;
-  border: 1px solid #e8ecf3;
-  border-radius: 12px;
-  background: #fff;
+
+/* Keep certificate heading icon aligned with all other pages */
+
+.cert-header h1 svg {
+
+  width: 24px;
+
+  height: 24px;
+
+  flex-shrink: 0;
+
+  color: #0f172a;
+
+  stroke: #0f172a;
+
+  stroke-width: 2;
+
 }
+
+
+/* =========================================================
+   TABS
+   ========================================================= */
+
+.cert-tabs {
+
+  display: inline-flex;
+
+  gap: 4px;
+
+  padding: 4px;
+
+  margin-bottom: 18px;
+
+  border: 1px solid #e8ecf3;
+
+  border-radius: 12px;
+
+  background: #fff;
+
+}
+
 
 .cert-tabs button {
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 7px;
+
   padding: 9px 16px;
+
   border: none;
+
   border-radius: 9px;
+
   background: transparent;
+
   color: #64748b;
+
   font-family: inherit;
+
   font-size: 13.5px;
+
   font-weight: 600;
+
   white-space: nowrap;
+
   cursor: pointer;
+
   transition: all 0.2s ease;
+
 }
+
 
 .cert-tabs button:hover {
+
   background: #f6f7fb;
+
   color: #0f172a;
+
 }
+
 
 .cert-tabs button.active {
+
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
+
   color: #fff;
+
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
+
 }
 
-/* ---------- Cards ---------- */
+
+/* =========================================================
+   CERTIFICATE LIST
+   ========================================================= */
+
 .cert-list {
+
   display: flex;
+
   flex-direction: column;
+
   gap: 12px;
+
 }
+
+
+/* =========================================================
+   CERTIFICATE CARD
+   ========================================================= */
 
 .cert-card {
+
   display: flex;
+
   align-items: center;
+
   gap: 14px;
+
   padding: 16px 18px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+  transition:
+
+    transform 0.2s ease,
+
+    box-shadow 0.2s ease,
+
+    border-color 0.2s ease;
+
 }
+
 
 .cert-card:hover {
+
   transform: translateY(-2px);
+
 }
+
+
+/* =========================================================
+   CERTIFICATE ICON
+   ========================================================= */
 
 .cert-card-icon {
+
   width: 44px;
+
   height: 44px;
+
   flex-shrink: 0;
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   border-radius: 12px;
+
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
+
   color: #fff;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.26);
+
+  box-shadow:
+
+    0 4px 12px rgba(99, 102, 241, 0.26);
+
 }
+
+
+/* =========================================================
+   CERTIFICATE BODY
+   ========================================================= */
 
 .cert-card-body {
+
   flex: 1;
+
   min-width: 0;
+
 }
+
+
+/* =========================================================
+   CARD TOP
+   ========================================================= */
 
 .cert-card-top {
+
   display: flex;
+
   align-items: center;
+
   gap: 10px;
+
   flex-wrap: wrap;
+
 }
+
+
+/* =========================================================
+   STUDENT
+   ========================================================= */
 
 .cert-student {
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 6px;
+
   color: #0f172a;
+
   font-size: 14.5px;
+
   font-weight: 600;
+
 }
+
+
+/* =========================================================
+   CERTIFICATE NUMBER
+   ========================================================= */
 
 .cert-no {
+
   padding: 3px 9px;
+
   border-radius: 6px;
+
   background: #f1f5f9;
+
   color: #475569;
+
   font-size: 11.5px;
+
   font-weight: 600;
+
 }
+
+
+/* =========================================================
+   CARD META
+   ========================================================= */
 
 .cert-card-meta {
+
   display: flex;
+
   align-items: center;
+
   gap: 14px;
+
   flex-wrap: wrap;
+
   margin-top: 6px;
+
   color: #94a3b8;
+
   font-size: 12.5px;
+
 }
 
-.cert-card-meta>span {
+
+.cert-card-meta > span {
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 5px;
+
   min-width: 0;
+
   overflow-wrap: anywhere;
+
 }
+
+
+/* =========================================================
+   CARD ACTIONS
+   ========================================================= */
 
 .cert-card-actions {
+
   display: flex;
+
   gap: 8px;
+
   flex-shrink: 0;
+
 }
 
-/* ---------- Notices ---------- */
+
+/* =========================================================
+   NOTICES
+   ========================================================= */
+
 .cert-notice {
+
   padding: 11px 14px;
+
   margin-bottom: 16px;
+
   border: 1px solid #a7f3d0;
+
   border-radius: 10px;
+
   background: #ecfdf5;
+
   color: #047857;
+
   font-size: 13.5px;
+
 }
+
 
 .cert-alert {
+
   padding: 11px 14px;
+
   margin-bottom: 16px;
+
   border: 1px solid #fecaca;
+
   border-radius: 10px;
+
   background: #fef2f2;
+
   color: #b91c1c;
+
   font-size: 13.5px;
+
 }
 
-/* ---------- Reject modal ---------- */
+
+/* =========================================================
+   REJECT MODAL
+   ========================================================= */
+
 .cert-modal {
+
   width: min(480px, 100%);
+
 }
+
 
 .cert-modal-text {
+
   margin: 0 0 14px;
+
   color: #475569;
+
   font-size: 13.5px;
+
   line-height: 1.55;
+
 }
+
 
 .cert-label {
+
   display: block;
+
   margin-bottom: 6px;
+
   font-size: 13px;
+
   font-weight: 600;
+
   color: #374151;
+
 }
 
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
 @media (max-width: 768px) {
-  .cert-header h1 {
-    font-size: 21px;
+
+  .cert-page {
+
+    padding: 20px;
+
   }
+
+
+  .cert-header h1 {
+
+    font-size: 21px;
+
+  }
+
+
+  .cert-header h1 svg {
+
+    width: 21px;
+
+    height: 21px;
+
+  }
+
 
   .cert-tabs {
+
     width: 100%;
+
   }
 
+
   .cert-tabs button {
+
     flex: 1;
+
     justify-content: center;
+
   }
+
+}
+
+
+@media (max-width: 420px) {
+
+  .cert-page {
+
+    padding: 16px 12px;
+
+  }
+
+
+  .cert-header h1 {
+
+    font-size: 20px;
+
+  }
+
+
+  .cert-header h1 svg {
+
+    width: 20px;
+
+    height: 20px;
+
+  }
+
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .cert-card,
+
+  .cert-tabs button {
+
+    transition: none;
+
+  }
+
 }
