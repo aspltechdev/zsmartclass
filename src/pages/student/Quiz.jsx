@@ -284,7 +284,7 @@ const Quiz = () => {
       <div className="quiz-results-container">
         <div className="quiz-results-header">
           <Award size={48} className={passed ? 'passed-icon' : 'failed-icon'} />
-          <h2>{passed ? '🎉 Quiz Passed!' : '😅 Keep Learning!'}</h2>
+          <h2>{passed ? 'Quiz Passed!' : 'Keep Learning!'}</h2>
           <p>{passed ? 'Great job! You passed the quiz. Your module is now complete.' : 'Review the material and try again.'}</p>
         </div>
 
@@ -304,7 +304,7 @@ const Quiz = () => {
           <div className="result-stat">
             <span className="result-label">Status</span>
             <span className={`result-value ${passed ? 'passed' : 'failed'}`}>
-              {passed ? '✅ Passed' : '❌ Failed'}
+              {passed ? 'Passed' : 'Failed'}
             </span>
           </div>
         </div>
@@ -370,7 +370,7 @@ const Quiz = () => {
           </p>
 
           <div className="quiz-debug-info">
-            <strong>💡 Tip:</strong><br />
+            <strong>Tip:</strong><br />
             Go to your course player and click the quiz link in the sidebar.
           </div>
 
@@ -417,7 +417,7 @@ const Quiz = () => {
         <div className="quiz-header">
           <div>
             <h1 className="quiz-title">
-              <Award size={28} />
+              <ClipboardList size={28} />
               Quiz Results
             </h1>
             <p className="quiz-subtitle">

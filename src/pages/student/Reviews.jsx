@@ -513,13 +513,6 @@ function Reviews() {
             <CheckCircle size={17} />
             <span>{success}</span>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setSuccess("")}
-          >
-            <X size={16} />
-          </button>
         </div>
       )}
 

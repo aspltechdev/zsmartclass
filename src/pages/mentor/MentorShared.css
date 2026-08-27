@@ -190,17 +190,18 @@
   color: var(--m-primary) !important;
 }
 
-/* --- icon-only squares --- */
+/* --- icon-only squares: toolbar refresh (40x40). The modal close (X) button
+   is intentionally NOT here — buttons.css styles every .modal-close /
+   .modal-close-btn as one canonical 34x34 square (neutral, red on hover),
+   reaching portaled modals too, so it stays identical across all panels. --- */
 .mentor-content .refresh-btn,
-.mentor-content .review-refresh-btn,
-.mentor-content .modal-close,
-.mentor-content .modal-close-btn,
-.mentor-content .detail-close-btn {
+.mentor-content .review-refresh-btn {
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
   width: 40px;
   height: 40px;
+  min-height: 0 !important;
   padding: 0 !important;
   border-radius: 10px !important;
   border: 1px solid var(--m-line) !important;
@@ -215,12 +216,22 @@
   border-color: #c7d2fe !important;
   color: var(--m-primary) !important;
 }
-.mentor-content .modal-close:hover,
-.mentor-content .modal-close-btn:hover,
-.mentor-content .detail-close-btn:hover {
-  background: #fef2f2 !important;
-  border-color: #fecaca !important;
-  color: #dc2626 !important;
+
+/* --- CANCEL / "Cancel" text buttons that live in review/reply modals ---
+   .detail-close-btn wraps the text "Cancel" (NOT an icon), so it must be a
+   normal text button, never a 40x40 square. It renders in a portaled modal,
+   so the global buttons.css rule is what actually styles it; this scoped copy
+   keeps it correct for any in-panel usage too. */
+.mentor-content .detail-close-btn,
+.mentor-content .cancel-review-btn {
+  background: #fff !important;
+  color: #475569 !important;
+  border-color: var(--m-line) !important;
+  box-shadow: none !important;
+}
+.mentor-content .detail-close-btn:hover:not(:disabled),
+.mentor-content .cancel-review-btn:hover:not(:disabled) {
+  background: #f8fafc !important;
 }
 
 /* row-level icon actions (lessons, modules, reviews) */
@@ -532,6 +543,25 @@ body > .cert-modal-overlay > .cert-modal {
 }
 .mentor-content textarea { resize: vertical; min-height: 90px; }
 
+/* Selects: custom chevron + right padding so the arrow never crowds the text */
+.mentor-content select,
+.mentor-content .form-select,
+.mentor-content .category-select,
+.mentor-content .module-picker,
+.mentor-content .quiz-filter-select,
+.mentor-content .std-select,
+.mentor-content .review-filter {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 40px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+}
+
 .mentor-content .error-text,
 .mentor-content .quiz-marks-error,
 .mentor-content .cert-alert,
@@ -582,10 +612,24 @@ body > .cert-modal-overlay > .cert-modal {
   border-radius: 10px;
   padding: 0 13px;
   color: var(--m-faint);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+
+/* focus affordance lives on the WRAPPER, not the inner input, so the
+   ring hugs the rounded box instead of overlaying the text inside it */
+.mentor-content .search-box:focus-within,
+.mentor-content .cert-search:focus-within,
+.mentor-content .std-search:focus-within,
+.mentor-content .submission-search:focus-within,
+.mentor-content .review-search:focus-within {
+  border-color: var(--m-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+}
+
 .mentor-content .search-box input,
 .mentor-content .cert-search input,
 .mentor-content .std-search input,
+.mentor-content .submission-search input,
 .mentor-content .review-search input {
   border: none !important;
   outline: none;
@@ -595,6 +639,17 @@ body > .cert-modal-overlay > .cert-modal {
   font-size: 14px;
   background: transparent;
   color: var(--m-text);
+  box-shadow: none !important;
+}
+
+/* the inner input must never draw its own ring (the wrapper handles it) */
+.mentor-content .search-box input:focus,
+.mentor-content .cert-search input:focus,
+.mentor-content .std-search input:focus,
+.mentor-content .submission-search input:focus,
+.mentor-content .review-search input:focus {
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* ==========================================================================

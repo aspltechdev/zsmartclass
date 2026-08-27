@@ -677,3 +677,42 @@
     min-width: 100px;
   }
 }
+.quizmarks-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quizmarks-title-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  color: #4f46e5;
+  stroke-width: 2;
+}
+
+.quizmarks-title h1 {
+  margin: 0;
+}
+/* =========================================================
+   QUIZ MARKS PAGE TITLE
+========================================================= */
+
+.quizmarks-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quizmarks-title-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  color: #111827;
+  stroke:#111827;
+  stroke-width: 2;
+}
+
+.quizmarks-title h1 {
+  margin: 0;
+}

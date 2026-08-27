@@ -1,5 +1,6 @@
-// src/pages/admin/AdminProfile.jsx
+// src/pages/mentor/Profile.jsx
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   Mail,
@@ -11,12 +12,13 @@ import {
   AlertCircle,
   CheckCircle,
   Loader,
-  Edit,
   Lock,
   Eye,
   EyeOff,
   Globe,
   Award,
+  CalendarDays,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
@@ -24,7 +26,8 @@ import "./Profile.css";
 import "./MentorShared.css";
 
 function Profile() {
-  const { user: authUser, updateUser: updateAuthUser } = useAuth();
+  const navigate = useNavigate();
+  const { user: authUser, updateUser: updateAuthUser, logout } = useAuth();
 
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
@@ -211,22 +214,45 @@ function Profile() {
   };
 
   const getInitials = (name) => {
-    if (!name) return "A";
+    if (!name) return "M";
     return name.split(" ").map((word) => word[0]).join("").toUpperCase().slice(0, 2);
   };
+
+  const handleLogout = () => {
+    if (typeof logout === "function") logout();
+    else {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    navigate("/login", { replace: true });
+  };
+
+  const roleLabel = (form.role || "Mentor").toString();
+  const rolePretty = roleLabel.charAt(0).toUpperCase() + roleLabel.slice(1).toLowerCase();
+
+  const joinedLabel = authUser?.createdAt
+    ? new Date(authUser.createdAt).toLocaleDateString("en-IN", {
+        day: "numeric", month: "long", year: "numeric",
+      })
+    : "—";
 
   return (
     <div className="profile-page">
       <div className="profile-container">
         <div className="profile-header">
-          <div>
-            <h1>Profile Settings</h1>
-            <p className="subtitle">Manage your personal details</p>
+          <div className="profile-heading">
+            <div className="profile-heading-icon">
+              <User size={26} />
+            </div>
+            <div>
+              <h1>My Profile</h1>
+              <p className="subtitle">Manage your personal details</p>
+            </div>
           </div>
           <div className="profile-actions">
             {!isEditing ? (
               <button className="btn-primary" onClick={() => setIsEditing(true)}>
-                <Edit size={18} /> Edit Profile
+                <User size={18} /> Edit Profile
               </button>
             ) : (
               <>
@@ -279,11 +305,24 @@ function Profile() {
                   </div>
                 )}
               </div>
+
+              <h2 className="profile-name">{form.name || "Mentor"}</h2>
+
+              <span className="profile-role-badge">
+                <Shield size={13} /> {rolePretty}
+              </span>
+
+              <span className="profile-joined">
+                <CalendarDays size={13} /> Joined {joinedLabel}
+              </span>
             </div>
 
-            <div className="profile-quick-actions" style={{ marginTop: "1.5rem", width: "100%" }}>
+            <div className="profile-quick-actions">
               <button className="quick-action-btn" onClick={() => setShowPasswordModal(true)}>
                 <Lock size={16} /> Change Password
+              </button>
+              <button className="quick-action-btn danger" onClick={handleLogout}>
+                <LogOut size={16} /> Log Out
               </button>
             </div>
           </div>

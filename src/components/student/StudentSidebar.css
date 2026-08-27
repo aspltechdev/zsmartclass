@@ -14,6 +14,7 @@
   --sb-text-hover: #111827;
   --sb-active-bg: #eef2ff;
   --sb-active-text: #4f46e5;
+  --sb-category: #a0aec0;
   --sb-hover-bg: #f6f7fb;
 
   position: fixed;
@@ -118,6 +119,20 @@
   border-radius: 999px;
 }
 .student-sidebar .sidebar-nav::-webkit-scrollbar-thumb:hover { background: #cbd2e0; }
+
+.student-sidebar .nav-category {
+  padding: 16px 12px 8px;
+  color: var(--sb-category);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.student-sidebar .sidebar-nav > div:first-child .nav-category {
+  padding-top: 4px;
+}
 
 .student-sidebar .nav-item {
   position: relative;
@@ -226,6 +241,7 @@
 .student-sidebar.collapsed .sidebar-header { justify-content: center; padding: 0; }
 .student-sidebar.collapsed .logo-text,
 .student-sidebar.collapsed .nav-label,
+.student-sidebar.collapsed .nav-category,
 .student-sidebar.collapsed .logout-btn span { display: none; }
 
 .student-sidebar.collapsed .nav-item,
@@ -277,6 +293,7 @@
   .student-sidebar.collapsed { width: var(--admin-sidebar-width, 260px); }
   .student-sidebar.collapsed .logo-text,
   .student-sidebar.collapsed .nav-label,
+  .student-sidebar.collapsed .nav-category,
   .student-sidebar.collapsed .logout-btn span { display: block; }
 
   .student-sidebar.collapsed .nav-item,

@@ -177,7 +177,7 @@ const Assignments = () => {
       <div className="assignments-container">
         <div className="assignments-header">
           <div>
-            <h1 className="assignments-title">Assignments</h1>
+            <h1 className="assignments-title"><FileText size={25} />Assignments</h1>
             <p className="assignments-subtitle">
               Submit your work and track marks &amp; feedback
             </p>
@@ -316,20 +316,6 @@ const Assignments = () => {
                       <span className="meta-label">Total Marks</span>
                       <span className="meta-value">
                         {assignment.totalMarks ?? 0}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="meta-item">
-                    <div className="meta-icon">
-                      <BookOpen size={19} />
-                    </div>
-                    <div>
-                      <span className="meta-label">Course</span>
-                      <span className="meta-value">
-                        {assignment.course?.title ||
-                          assignment.Course?.title ||
-                          "Course"}
                       </span>
                     </div>
                   </div>

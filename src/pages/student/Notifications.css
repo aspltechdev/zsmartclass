@@ -78,6 +78,30 @@
   pointer-events: none;
 }
 
+.notifications-heading {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.notifications-heading-icon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.28);
+}
+
+.notifications-heading-icon svg { color: #fff; }
+
 .notifications-title {
   position: relative;
   z-index: 1;

@@ -201,40 +201,40 @@
   gap: 12px;
 }
 
-.quick-action-btn {
-  min-height: 92px !important;
+.quick-actions-grid .quick-action-btn {
+  min-height: 54px !important;
   display: flex !important;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 14px 12px !important;
-  border: 1px solid #e5e7eb !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 9px !important;
+  padding: 0 18px !important;
+  border: none !important;
   border-radius: 12px !important;
-  background: #fff !important;
-  color: #475569 !important;
-  font-size: 12.5px !important;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  color: #fff !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: none !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25) !important;
 }
 
-.quick-action-btn svg {
-  color: #f3f3f7;
+.quick-actions-grid .quick-action-btn svg {
+  color: #fff !important;
+  flex-shrink: 0;
   transition: transform 0.2s ease;
 }
 
-.quick-action-btn:hover {
-  background: #eef2ff !important;
-  border-color: #c7d2fe !important;
-  color: #4338ca !important;
+.quick-actions-grid .quick-action-btn:hover {
   transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.38) !important;
+  filter: brightness(1.04);
 }
 
-.quick-action-btn:hover svg {
-  transform: translateY(-2px);
-  color: #4338ca;
+.quick-actions-grid .quick-action-btn:hover svg {
+  transform: scale(1.08);
+  color: #fff !important;
 }
 
 .dashboard-error {

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import {
   Bell,
   Send,
+  Inbox,
   Search,
   RefreshCw,
   Plus,
@@ -18,6 +19,10 @@ import {
   TrendingUp,
   CalendarDays,
   CheckCheck,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Info,
 } from "lucide-react";
 import api from "../../services/api";
 import "./AdminNotifications.css";
@@ -34,6 +39,22 @@ const CHANNELS = [
 
 const channelMeta = (value) =>
   CHANNELS.find((c) => c.value === value) || CHANNELS[CHANNELS.length - 1];
+
+// Icon + accent for a received notification, keyed off its `type`.
+const RECEIVED_META = {
+  SUCCESS: { icon: CheckCircle, color: "#10b981" },
+  WARNING: { icon: AlertTriangle, color: "#f59e0b" },
+  ERROR: { icon: XCircle, color: "#ef4444" },
+  ANNOUNCEMENT: { icon: Megaphone, color: "#6366f1" },
+  NEW_ARRIVAL: { icon: Sparkles, color: "#10b981" },
+  PROGRESS: { icon: TrendingUp, color: "#f59e0b" },
+  EVENT: { icon: CalendarDays, color: "#ec4899" },
+  PAYMENT: { icon: CheckCircle, color: "#10b981" },
+  GENERAL: { icon: Info, color: "#64748b" },
+};
+
+const receivedMeta = (type) =>
+  RECEIVED_META[(type || "").toUpperCase()] || RECEIVED_META.GENERAL;
 
 const AUDIENCES = [
   { value: "ALL", label: "All users", icon: Users },
@@ -53,11 +74,21 @@ const emptyForm = {
 };
 
 function AdminNotifications() {
+  // Which side of the mailbox we're looking at.
+  const [view, setView] = useState("sent"); // "sent" | "received"
+
+  // Sent (broadcast history)
   const [history, setHistory] = useState([]);
   const [users, setUsers] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState("");
+
+  // Received (this admin's own inbox)
+  const [inbox, setInbox] = useState([]);
+  const [inboxLoading, setInboxLoading] = useState(true);
+  const [inboxFilter, setInboxFilter] = useState("all"); // "all" | "unread"
+  const [busyId, setBusyId] = useState(null);
 
   const [search, setSearch] = useState("");
   const [channelFilter, setChannelFilter] = useState("all");
@@ -71,6 +102,7 @@ function AdminNotifications() {
 
   useEffect(() => {
     fetchAll();
+    fetchInbox();
   }, []);
 
   const fetchAll = async () => {
@@ -89,21 +121,73 @@ function AdminNotifications() {
         const res = await api.get("/notifications/admin");
         setHistory(res.data?.data || res.data || []);
       } catch {
-        setApiError("Could not load notification history. Check the backend.");
+        setApiError("Couldn't load your sent notifications. Please check the server and try again.");
         setHistory([]);
       }
     } catch {
-      setApiError("Something went wrong while loading the page.");
+      setApiError("Something went wrong while loading this page. Please refresh.");
     } finally {
       setLoading(false);
     }
   };
 
-  const students = useMemo(
-    () => users.filter((u) => (u.role || "").toUpperCase() === "STUDENT"),
-    [users]
-  );
+  const fetchInbox = async () => {
+    try {
+      setInboxLoading(true);
+      const res = await api.get("/notifications");
+      const data = res.data?.data ?? res.data ?? [];
+      setInbox(Array.isArray(data) ? data : []);
+    } catch {
+      setInbox([]);
+    } finally {
+      setInboxLoading(false);
+    }
+  };
 
+  const refresh = () => {
+    fetchAll();
+    fetchInbox();
+  };
+
+  // ---- Received actions ----
+  const markAsRead = async (id) => {
+    try {
+      setBusyId(id);
+      await api.put(`/notifications/${id}/read`);
+      setInbox((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    } catch (err) {
+      alert(err.response?.data?.message || "Couldn't mark this as read.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      setBusyId("all");
+      await api.put("/notifications/read-all");
+      setInbox((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      alert(err.response?.data?.message || "Couldn't mark all as read.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const removeInboxItem = async (id) => {
+    if (!window.confirm("Delete this notification from your inbox?")) return;
+    try {
+      setBusyId(id);
+      await api.delete(`/notifications/${id}`);
+      setInbox((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || "Couldn't delete this notification.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // ---- Derived data ----
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return history.filter((h) => {
@@ -116,6 +200,23 @@ function AdminNotifications() {
       return matchesSearch && matchesChannel;
     });
   }, [history, search, channelFilter]);
+
+  const inboxUnread = useMemo(
+    () => inbox.filter((n) => !n.isRead).length,
+    [inbox]
+  );
+
+  const filteredInbox = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return inbox.filter((n) => {
+      const matchesSearch =
+        !q ||
+        n.title?.toLowerCase().includes(q) ||
+        n.message?.toLowerCase().includes(q);
+      const matchesFilter = inboxFilter === "all" || !n.isRead;
+      return matchesSearch && matchesFilter;
+    });
+  }, [inbox, search, inboxFilter]);
 
   const stats = useMemo(() => {
     const totalSent = history.reduce((s, h) => s + (h.recipientCount || 0), 0);
@@ -139,12 +240,12 @@ function AdminNotifications() {
 
   const submit = async () => {
     setFormError("");
-    if (!form.title.trim()) return setFormError("Title is required.");
-    if (!form.message.trim()) return setFormError("Message is required.");
+    if (!form.title.trim()) return setFormError("Please add a title.");
+    if (!form.message.trim()) return setFormError("Please write a message.");
     if (form.audience === "COURSE" && !form.courseId)
-      return setFormError("Please select a course.");
+      return setFormError("Please choose a course.");
     if (form.audience === "USER" && !form.userId)
-      return setFormError("Please select a user.");
+      return setFormError("Please choose a user.");
 
     const payload = {
       title: form.title.trim(),
@@ -164,7 +265,7 @@ function AdminNotifications() {
       await fetchAll();
       alert(res.data?.message || "Notification sent.");
     } catch (err) {
-      setFormError(err.response?.data?.message || "Failed to send. Try again.");
+      setFormError(err.response?.data?.message || "Couldn't send the notification. Please try again.");
     } finally {
       setSending(false);
     }
@@ -177,7 +278,7 @@ function AdminNotifications() {
       await api.delete("/notifications/admin/batch", { data: { ids: item.ids } });
       await fetchAll();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete.");
+      alert(err.response?.data?.message || "Couldn't delete the notification.");
     } finally {
       setDeletingKey(null);
     }
@@ -186,16 +287,19 @@ function AdminNotifications() {
   return (
     <div className="ntf-page">
       <div className="ntf-header">
-        <div>
-          <h1 className="ntf-title">
-            <Bell size={26} /> Notifications
-          </h1>
-          <p className="ntf-subtitle">
-            Send announcements, course updates, and progress nudges.
-          </p>
+        <div className="ntf-heading">
+          <div className="ntf-heading-icon">
+            <Bell size={26} />
+          </div>
+          <div>
+            <h1 className="ntf-title">Notifications</h1>
+            <p className="ntf-subtitle">
+              Send announcements and updates to your users, and review the ones you've received.
+            </p>
+          </div>
         </div>
         <div className="ntf-actions">
-          <button className="ntf-btn ntf-btn-ghost" onClick={fetchAll}>
+          <button className="ntf-btn ntf-btn-ghost" onClick={refresh} title="Refresh">
             <RefreshCw size={18} />
           </button>
           <button className="ntf-btn ntf-btn-primary" onClick={openCompose}>
@@ -204,96 +308,221 @@ function AdminNotifications() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="ntf-stats">
-        <div className="ntf-stat">
-          <div className="ntf-stat-icon indigo"><Send size={20} /></div>
-          <div>
-            <div className="ntf-stat-value">{stats.broadcasts}</div>
-            <div className="ntf-stat-label">Notifications Sent</div>
-          </div>
-        </div>
-        <div className="ntf-stat">
-          <div className="ntf-stat-icon green"><Users size={20} /></div>
-          <div>
-            <div className="ntf-stat-value">{stats.totalSent}</div>
-            <div className="ntf-stat-label">Total Recipients</div>
-          </div>
-        </div>
-        <div className="ntf-stat">
-          <div className="ntf-stat-icon amber"><CheckCheck size={20} /></div>
-          <div>
-            <div className="ntf-stat-value">{stats.readRate}%</div>
-            <div className="ntf-stat-label">Read Rate</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Toolbar */}
-      <div className="ntf-toolbar">
-        <div className="ntf-search">
-          <Search size={18} />
-          <input
-            placeholder="Search notifications…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <select
-          className="ntf-select"
-          value={channelFilter}
-          onChange={(e) => setChannelFilter(e.target.value)}
+      {/* Sent / Received toggle */}
+      <div className="ntf-tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={view === "sent"}
+          className={`ntf-tab ${view === "sent" ? "active" : ""}`}
+          onClick={() => setView("sent")}
         >
-          <option value="all">All channels</option>
-          {CHANNELS.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
+          <Send size={16} /> Sent
+          <span className="ntf-tab-count">{history.length}</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={view === "received"}
+          className={`ntf-tab ${view === "received" ? "active" : ""}`}
+          onClick={() => setView("received")}
+        >
+          <Inbox size={16} /> Received
+          {inboxUnread > 0 && <span className="ntf-tab-count unread">{inboxUnread}</span>}
+        </button>
       </div>
 
-      {apiError && <div className="ntf-alert">{apiError}</div>}
-
-      {/* History */}
-      {loading ? (
-        <div className="ntf-empty">Loading…</div>
-      ) : filtered.length === 0 ? (
-        <div className="ntf-empty">No notifications yet. Click “New notification” to send one.</div>
-      ) : (
-        <div className="ntf-list">
-          {filtered.map((item) => {
-            const meta = channelMeta(item.channel);
-            const Icon = meta.icon;
-            return (
-              <div className="ntf-card" key={item.key}>
-                <div className="ntf-card-icon" style={{ background: meta.color }}>
-                  <Icon size={18} color="#fff" />
-                </div>
-                <div className="ntf-card-body">
-                  <div className="ntf-card-top">
-                    <span className="ntf-card-title">{item.title}</span>
-                    <span className="ntf-badge" style={{ color: meta.color, borderColor: meta.color }}>
-                      {meta.label}
-                    </span>
-                  </div>
-                  <p className="ntf-card-message">{item.message}</p>
-                  <div className="ntf-card-meta">
-                    <span><Users size={13} /> {item.recipientCount} recipient{item.recipientCount === 1 ? "" : "s"}</span>
-                    <span><CheckCheck size={13} /> {item.readCount} read</span>
-                    <span><CalendarDays size={13} /> {fmtDateTime(item.sentAt)}</span>
-                  </div>
-                </div>
-                <button
-                  className="ntf-icon-btn danger"
-                  title="Delete for all recipients"
-                  onClick={() => deleteBroadcast(item)}
-                  disabled={deletingKey === item.key}
-                >
-                  <Trash2 size={16} />
-                </button>
+      {/* ===================== SENT ===================== */}
+      {view === "sent" && (
+        <>
+          {/* Stats */}
+          <div className="ntf-stats">
+            <div className="ntf-stat">
+              <div className="ntf-stat-icon indigo"><Send size={20} /></div>
+              <div>
+                <div className="ntf-stat-value">{stats.broadcasts}</div>
+                <div className="ntf-stat-label">Notifications Sent</div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+            <div className="ntf-stat">
+              <div className="ntf-stat-icon green"><Users size={20} /></div>
+              <div>
+                <div className="ntf-stat-value">{stats.totalSent}</div>
+                <div className="ntf-stat-label">Total Recipients</div>
+              </div>
+            </div>
+            <div className="ntf-stat">
+              <div className="ntf-stat-icon amber"><CheckCheck size={20} /></div>
+              <div>
+                <div className="ntf-stat-value">{stats.readRate}%</div>
+                <div className="ntf-stat-label">Read Rate</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Toolbar */}
+          <div className="ntf-toolbar">
+            <div className="ntf-search">
+              <Search size={18} />
+              <input
+                placeholder="Search sent notifications…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <select
+              className="ntf-select"
+              value={channelFilter}
+              onChange={(e) => setChannelFilter(e.target.value)}
+            >
+              <option value="all">All channels</option>
+              {CHANNELS.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {apiError && <div className="ntf-alert">{apiError}</div>}
+
+          {/* History */}
+          {loading ? (
+            <div className="ntf-empty">Loading…</div>
+          ) : filtered.length === 0 ? (
+            <div className="ntf-empty">
+              You haven't sent any notifications yet. Click “New notification” to send your first.
+            </div>
+          ) : (
+            <div className="ntf-list">
+              {filtered.map((item) => {
+                const meta = channelMeta(item.channel);
+                const Icon = meta.icon;
+                return (
+                  <div className="ntf-card" key={item.key}>
+                    <div className="ntf-card-icon" style={{ background: meta.color }}>
+                      <Icon size={18} color="#fff" />
+                    </div>
+                    <div className="ntf-card-body">
+                      <div className="ntf-card-top">
+                        <span className="ntf-card-title">{item.title}</span>
+                        <span className="ntf-badge" style={{ color: meta.color, borderColor: meta.color }}>
+                          {meta.label}
+                        </span>
+                      </div>
+                      <p className="ntf-card-message">{item.message}</p>
+                      <div className="ntf-card-meta">
+                        <span><Users size={13} /> {item.recipientCount} recipient{item.recipientCount === 1 ? "" : "s"}</span>
+                        <span><CheckCheck size={13} /> {item.readCount} read</span>
+                        <span><CalendarDays size={13} /> {fmtDateTime(item.sentAt)}</span>
+                      </div>
+                    </div>
+                    <button
+                      className="ntf-icon-btn danger"
+                      title="Delete for all recipients"
+                      onClick={() => deleteBroadcast(item)}
+                      disabled={deletingKey === item.key}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ===================== RECEIVED ===================== */}
+      {view === "received" && (
+        <>
+          <div className="ntf-toolbar">
+            <div className="ntf-search">
+              <Search size={18} />
+              <input
+                placeholder="Search your inbox…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="ntf-segment">
+              <button
+                className={inboxFilter === "all" ? "active" : ""}
+                onClick={() => setInboxFilter("all")}
+              >
+                All ({inbox.length})
+              </button>
+              <button
+                className={inboxFilter === "unread" ? "active" : ""}
+                onClick={() => setInboxFilter("unread")}
+              >
+                Unread ({inboxUnread})
+              </button>
+            </div>
+            {inboxUnread > 0 && (
+              <button
+                className="ntf-btn ntf-btn-ghost"
+                onClick={markAllRead}
+                disabled={busyId === "all"}
+              >
+                <CheckCheck size={16} /> {busyId === "all" ? "Marking…" : "Mark all read"}
+              </button>
+            )}
+          </div>
+
+          {inboxLoading ? (
+            <div className="ntf-empty">Loading…</div>
+          ) : filteredInbox.length === 0 ? (
+            <div className="ntf-empty">
+              {inboxFilter === "unread"
+                ? "You're all caught up — no unread notifications."
+                : "Your inbox is empty. Updates sent to you will show up here."}
+            </div>
+          ) : (
+            <div className="ntf-list">
+              {filteredInbox.map((n) => {
+                const meta = receivedMeta(n.type);
+                const Icon = meta.icon;
+                return (
+                  <div
+                    className={`ntf-card ${n.isRead ? "" : "unread"}`}
+                    key={n.id}
+                  >
+                    <div className="ntf-card-icon" style={{ background: meta.color }}>
+                      <Icon size={18} color="#fff" />
+                    </div>
+                    <div className="ntf-card-body">
+                      <div className="ntf-card-top">
+                        <span className="ntf-card-title">{n.title}</span>
+                        {!n.isRead && <span className="ntf-unread-dot" title="Unread" />}
+                      </div>
+                      <p className="ntf-card-message">{n.message}</p>
+                      <div className="ntf-card-meta">
+                        <span><CalendarDays size={13} /> {fmtDateTime(n.createdAt)}</span>
+                      </div>
+                    </div>
+                    <div className="ntf-card-actions">
+                      {!n.isRead && (
+                        <button
+                          className="ntf-btn ntf-btn-ghost ntf-read-btn"
+                          onClick={() => markAsRead(n.id)}
+                          disabled={busyId === n.id}
+                          title="Mark as read"
+                        >
+                          <CheckCheck size={15} /> Read
+                        </button>
+                      )}
+                      <button
+                        className="ntf-icon-btn danger"
+                        title="Delete"
+                        onClick={() => removeInboxItem(n.id)}
+                        disabled={busyId === n.id}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* Compose Modal */}

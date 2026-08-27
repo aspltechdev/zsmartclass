@@ -64,6 +64,29 @@
   font-size: 14px;
 }
 
+/* heading group: brand-gradient icon tile + title/subtitle */
+.profile-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.profile-heading-icon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.28);
+}
+
+.profile-heading-icon svg { color: #fff; }
+
 .profile-actions {
   display: flex;
   gap: 10px;

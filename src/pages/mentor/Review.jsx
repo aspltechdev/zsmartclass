@@ -451,13 +451,17 @@ function MentorReviews() {
 
       <div className="reviews-header">
 
-        <div>
-          <h1>Reviews</h1>
+       <div className="quizmarks-title">
 
-          <p>
-            View and respond to student reviews.
-          </p>
-        </div>
+            <Star
+              className="quizmarks-title-icon"
+            />
+
+            <h1>
+            Reviews
+            </h1>
+
+          </div>
 
         <button
           className="review-refresh-btn"

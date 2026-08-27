@@ -1,4 +1,4 @@
-﻿import { Routes, Route, Navigate } from 'react-router-dom';
+﻿import { Routes, Route, Navigate } from "react-router-dom";
 
 import MentorModules from "../pages/mentor/Modules";
 import MentorQuiz from "../pages/mentor/Quiz";
@@ -18,20 +18,76 @@ import AssignmentSubmission from "../pages/mentor/AssignmentSubmission";
 function MentorRoutes() {
   return (
     <Routes>
-      <Route index element={<Navigate to="dashboard" />} />
-          <Route path="dashboard" element={<MentorDashboard />} />
-          <Route path="courses" element={<MentorCourses />} />
-          <Route path="modules" element={<MentorModules />} />
-          <Route path="quiz" element={<MentorQuiz />} />
-          <Route path="lessons" element={<MentorLessons />} />
-          <Route path="students" element={<MentorStudents />} />
-          <Route path="quizmark" element={<QuizMarks />} />
-          <Route path="notifications" element={<MentorNotification />} />
-          <Route path="profile" element={<MentorProfile />} />
-          <Route path="certificates" element={<MentorCertificates />} />
-          <Route path="assignments" element={<MentorAssignments />} />          
-          <Route path="reviews" element={<MentorReviews />} />
-          <Route path="assignment-submissions" element={<AssignmentSubmission />} />
+      <Route
+        index
+        element={<Navigate to="dashboard" replace />}
+      />
+
+      <Route
+        path="dashboard"
+        element={<MentorDashboard />}
+      />
+
+      <Route
+        path="courses"
+        element={<MentorCourses />}
+      />
+
+      <Route
+        path="modules"
+        element={<MentorModules />}
+      />
+
+      <Route
+        path="quiz"
+        element={<MentorQuiz />}
+      />
+
+      <Route
+        path="lessons"
+        element={<MentorLessons />}
+      />
+
+      <Route
+        path="students"
+        element={<MentorStudents />}
+      />
+
+      <Route
+        path="quizmark"
+        element={<QuizMarks />}
+      />
+
+      <Route
+        path="notifications"
+        element={<MentorNotification />}
+      />
+
+      <Route
+        path="profile"
+        element={<MentorProfile />}
+      />
+
+      <Route
+        path="certificates"
+        element={<MentorCertificates />}
+      />
+
+      <Route
+        path="assignments"
+        element={<MentorAssignments />}
+      />
+
+      {/* THIS IS THE IMPORTANT ROUTE */}
+      <Route
+        path="assignment-submissions"
+        element={<AssignmentSubmission />}
+      />
+
+      <Route
+        path="reviews"
+        element={<MentorReviews />}
+      />
     </Routes>
   );
 }

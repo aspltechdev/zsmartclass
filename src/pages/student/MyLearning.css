@@ -29,12 +29,19 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 11px;
+  gap: 13px;
 }
 
 .my-learning-title-row > svg {
+  width: 46px;
+  height: 46px;
+  padding: 11px;
+  box-sizing: border-box;
   flex-shrink: 0;
-  color: #6366f1;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.28);
 }
 
 .my-learning-title-row h1 {
@@ -147,7 +154,7 @@
 
 .my-learning-page .course-search:focus-within {
   border-color: #a5b4fc !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08) !important;
 }
 
 .my-learning-page .course-search > svg {
@@ -227,7 +234,7 @@
 
 .my-learning-page .course-filter:focus-within {
   border-color: #a5b4fc !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08) !important;
 }
 
 .my-learning-page .course-filter > svg {

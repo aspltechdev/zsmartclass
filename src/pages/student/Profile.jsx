@@ -20,7 +20,7 @@ import "./StudentShared.css";
 
 function Profile() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { updateUser: updateAuthUser, logout } = useAuth();
 
   const [form, setForm] = useState({
     name: "", email: "", bio: "", profileImage: "", createdAt: "",
@@ -113,6 +113,11 @@ function Profile() {
         bio: updated.bio ?? prev.bio,
         profileImage: updated.profileImage ?? prev.profileImage,
       }));
+
+      // Sync into AuthContext (and storage) so the header avatar reflects
+      // the new photo/name immediately, without needing a re-login.
+      if (updated && typeof updated === "object") updateAuthUser(updated);
+
       setImageFile(null);
       setIsEditing(false);
       flash("success", "Profile updated.");
@@ -196,9 +201,14 @@ function Profile() {
       <div className="profile-container">
 
         <div className="profile-header">
-          <div>
-            <h1>My Profile</h1>
-            <p className="subtitle">Manage your personal details</p>
+          <div className="profile-heading">
+            <div className="profile-heading-icon">
+              <User size={26} />
+            </div>
+            <div>
+              <h1>My Profile</h1>
+              <p className="subtitle">Manage your personal details</p>
+            </div>
           </div>
 
           <div className="profile-actions">

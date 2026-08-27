@@ -31,32 +31,42 @@ const StudentSidebar = ({
       path: "/student/dashboard",
       icon: LayoutDashboard,
       label: "Dashboard",
+      category: "Main",
     },
     {
       path: "/student/my-courses",
       icon: GraduationCap,
       label: "My Learning",
+      category: "Learning",
     },
     {
       path: "/student/assignments",
       icon: FileText,
       label: "Assignments",
+      category: "Learning",
     },
     {
       path: "/student/certificates",
       icon: Award,
       label: "Certificates",
+      category: "Learning",
     },
     {
       path: "/student/notifications",
       icon: Bell,
       label: "Notifications",
+      category: "Activity",
     },
     {
       path: "/student/reviews",
       icon: Star,
       label: "Reviews",
+      category: "Activity",
     },
+  ];
+
+  const categories = [
+    ...new Set(navItems.map((item) => item.category)),
   ];
 
   const handleLogout = () => {
@@ -95,9 +105,10 @@ const StudentSidebar = ({
           </div>
 
           {!collapsed && (
-            <span className="logo-text">
-              ZSmartClass
-            </span>
+            <div className="logo-text">
+              <span>ZSmartClass</span>
+              <span>Student Panel</span>
+            </div>
           )}
 
         </div>
@@ -110,43 +121,58 @@ const StudentSidebar = ({
 
       <nav className="sidebar-nav">
 
-        {navItems.map(
-          (item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              data-title={item.label}
-              className={({ isActive }) =>
-                `nav-item ${
-                  isActive
-                    ? "active"
-                    : ""
-                }`
-              }
-              onClick={() => {
-                if (
-                  mobileOpen &&
-                  onMobileClose
-                ) {
-                  onMobileClose();
-                }
-              }}
-            >
+        {categories.map((category) => (
+          <div key={category}>
 
-              <item.icon
-                size={20}
-                className="nav-icon"
-              />
+            {!collapsed && (
+              <div className="nav-category">
+                {category}
+              </div>
+            )}
 
-              {!collapsed && (
-                <span className="nav-label">
-                  {item.label}
-                </span>
-              )}
+            {navItems
+              .filter(
+                (item) =>
+                  item.category === category
+              )
+              .map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  data-title={item.label}
+                  className={({ isActive }) =>
+                    `nav-item ${
+                      isActive
+                        ? "active"
+                        : ""
+                    }`
+                  }
+                  onClick={() => {
+                    if (
+                      mobileOpen &&
+                      onMobileClose
+                    ) {
+                      onMobileClose();
+                    }
+                  }}
+                >
 
-            </NavLink>
-          )
-        )}
+                  <item.icon
+                    size={20}
+                    className="nav-icon"
+                  />
+
+                  {!collapsed && (
+                    <span className="nav-label">
+                      {item.label}
+                    </span>
+                  )}
+
+                </NavLink>
+              ))}
+
+          </div>
+        ))}
 
       </nav>
 

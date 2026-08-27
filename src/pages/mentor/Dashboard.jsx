@@ -194,7 +194,7 @@ function Dashboard() {
             return (
               <button
                 key={a.label}
-                className="quick-action-btn add-btn"
+                className="quick-action-btn"
                 onClick={() => navigate(a.path)}
               >
                 <Icon size={20} />

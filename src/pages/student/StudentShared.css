@@ -78,6 +78,36 @@
   flex-wrap: wrap;
 }
 
+/* Shared page-heading: brand icon tile + title/subtitle group.
+   Every student page header uses this so the leading icon is identical
+   everywhere (44px rounded-square, indigo→violet gradient, white glyph). */
+.student-layout .page-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+.student-layout .page-heading-icon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: var(--s-gradient);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.28);
+}
+.student-layout .page-heading-icon svg { color: #fff; }
+.student-layout .page-heading > div { min-width: 0; }
+.student-layout .page-heading h1 { margin: 0; }
+.student-layout .page-heading p {
+  margin: 4px 0 0;
+  color: var(--s-muted);
+  font-size: 14px;
+}
+
 /* ==========================================================================
    3. BUTTONS
    ========================================================================== */
@@ -192,6 +222,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
+  min-height: 0 !important;
   padding: 0 !important;
   border-radius: 10px !important;
   border: 1px solid var(--s-line) !important;
@@ -206,6 +237,33 @@
   border-color: #c7d2fe !important;
   color: var(--s-primary) !important;
 }
+
+/* row-level icon-only actions (e.g. notifications: mark-read / delete).
+   34x34 squares — !important beats both the text-button base above and the
+   global buttons.css rules for shared modifier names like .delete-btn. */
+.student-layout .action-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 34px !important;
+  height: 34px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--s-line) !important;
+  background: #fff !important;
+  color: #475569 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.student-layout .action-btn.read-btn {
+  background: #ecfeff !important; color: #0e7490 !important; border-color: #a5f3fc !important;
+}
+.student-layout .action-btn.read-btn:hover:not(:disabled) { background: #cffafe !important; }
+.student-layout .action-btn.delete-btn {
+  background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important;
+}
+.student-layout .action-btn.delete-btn:hover:not(:disabled) { background: #fee2e2 !important; }
 
 /* back link — pill */
 .student-layout .back-link {
@@ -486,10 +544,24 @@
 .student-layout select:focus,
 .student-layout textarea:focus {
   border-color: var(--s-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.08);
 }
 
 .student-layout textarea { resize: vertical; min-height: 90px; }
+
+/* Selects: custom chevron + right padding so the arrow never crowds the text.
+   (The custom filter pill on My Learning opts out via its own !important rules.) */
+.student-layout select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 40px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+}
 
 .student-layout .toolbar,
 .student-layout .filters-bar {
@@ -762,7 +834,7 @@
 .student-modal select:focus,
 .student-modal textarea:focus {
   border-color: var(--s-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.08);
 }
 
 /* buttons inside portaled modals */

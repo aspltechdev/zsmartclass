@@ -1,0 +1,348 @@
+/* ==========================================================================
+   src/styles/buttons.css  —  GLOBAL BUTTON SYSTEM (single source of truth)
+
+   Loaded once from main.jsx, so it is present on EVERY screen (admin, mentor,
+   student and auth) and — unlike the panel-scoped *Shared.css files — it also
+   reaches buttons rendered inside portaled modals (createPortal → document.body),
+   which live outside .admin-content / .mentor-content / .student-layout.
+
+   GOAL: every button of a given role looks identical everywhere.
+     • one SIZE per role   (height, padding, radius, font)
+     • one COLOR per role  (the palette below)
+
+   COLOUR = MEANING ("colour symbol"). Each action has one signal colour:
+     PRIMARY / Save / Save changes / Send / Submit / Add ... indigo→violet gradient
+     EDIT ................................................ soft indigo
+     DELETE / Danger / Reject / Exit ..................... soft red
+     CANCEL / Secondary / Close(text) ................... white / slate
+     VIEW ............................................... soft cyan   (see *Shared.css)
+     APPROVE / Download / Success ....................... soft green  (see *Shared.css)
+     CLOSE (icon ✕) ..................................... neutral square, red on hover
+
+   The panel *Shared.css files consume the SAME tokens, so a scoped rule and this
+   global rule always resolve to identical pixels — order/specificity ties are
+   therefore harmless. Change a value ONCE here and it updates the whole app.
+   ========================================================================== */
+
+:root {
+  /* ---- shared typography ------------------------------------------------ */
+  --btn-font: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  /* ---- text-button geometry (one size everywhere) ---------------------- */
+  --btn-height: 40px;
+  --btn-pad-x: 16px;
+  --btn-radius: 10px;
+  --btn-font-size: 14px;
+  --btn-font-weight: 600;
+  --btn-gap: 8px;
+  --btn-transition: all 0.2s ease;
+
+  /* ---- icon-only geometry ---------------------------------------------- */
+  --btn-icon-size: 40px;          /* header / toolbar / refresh squares      */
+  --btn-icon-radius: 10px;
+  --btn-close-size: 34px;         /* modal close ✕                           */
+  --btn-close-radius: 8px;
+  --btn-row-size: 34px;           /* table / list row icon actions           */
+  --btn-row-radius: 8px;
+
+  /* ---- PRIMARY / SAVE / SEND / SUBMIT / ADD ---------------------------- */
+  --btn-primary-bg: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --btn-primary-fg: #ffffff;
+  --btn-primary-shadow: 0 4px 12px rgba(99, 102, 241, 0.30);
+  --btn-primary-shadow-hover: 0 6px 18px rgba(99, 102, 241, 0.42);
+
+  /* ---- EDIT ------------------------------------------------------------- */
+  --btn-edit-bg: #eef2ff;
+  --btn-edit-fg: #4338ca;
+  --btn-edit-border: #c7d2fe;
+  --btn-edit-bg-hover: #e0e7ff;
+
+  /* ---- DELETE / DANGER -------------------------------------------------- */
+  --btn-danger-bg: #fef2f2;
+  --btn-danger-fg: #dc2626;
+  --btn-danger-border: #fecaca;
+  --btn-danger-bg-hover: #fee2e2;
+
+  /* ---- CANCEL / SECONDARY / CLOSE(text) -------------------------------- */
+  --btn-cancel-bg: #ffffff;
+  --btn-cancel-fg: #475569;
+  --btn-cancel-border: #e5e7eb;
+  --btn-cancel-bg-hover: #f8fafc;
+
+  /* ---- VIEW (cyan) ------------------------------------------------------ */
+  --btn-view-bg: #ecfeff;
+  --btn-view-fg: #0e7490;
+  --btn-view-border: #a5f3fc;
+  --btn-view-bg-hover: #cffafe;
+
+  /* ---- APPROVE / DOWNLOAD / SUCCESS (green) ---------------------------- */
+  --btn-approve-bg: #ecfdf5;
+  --btn-approve-fg: #047857;
+  --btn-approve-border: #a7f3d0;
+  --btn-approve-bg-hover: #d1fae5;
+
+  /* ---- neutral icon square --------------------------------------------- */
+  --btn-icon-bg: #ffffff;
+  --btn-icon-fg: #475569;
+  --btn-icon-border: #e5e7eb;
+  --btn-icon-bg-hover: #eef2ff;
+  --btn-icon-fg-hover: #6366f1;
+  --btn-icon-border-hover: #c7d2fe;
+}
+
+/* ==========================================================================
+   1. TEXT BUTTONS — one shape for every role
+   Single-class selectors + !important so they win over page CSS AND reach
+   portaled modals. (Panel-scoped *Shared.css rules are more specific and use
+   identical token values, so scoped buttons match these exactly.)
+   ========================================================================== */
+.btn-save, .save-btn, .btn-update, .update-btn,
+.btn-primary, .primary-button, .add-btn, .add-module-btn, .submit-btn,
+.invite-user-button, .invite-button,
+.ntf-btn-primary, .pay-btn-primary, .rp-btn.primary,
+.cert-btn.primary, .welcome-btn.primary,
+.detail-reply-btn, .grade-save-btn, .save-grade-btn,
+.review-submission-btn, .submission-submit-btn,
+.continue-btn, .continue-course-btn, .dashboard-continue-button,
+.start-btn, .resume-btn, .apply-btn, .apply-certificate-btn,
+.write-review-btn, .quiz-take-btn, .quiz-retry-btn, .quiz-empty-btn,
+.assignment-retry-btn, .quiz-submit-btn,
+.courses-primary-btn, .module-add-btn, .browse-btn,
+.mark-all-btn, .retry-btn,
+.btn-edit, .edit-btn, .edit-review-btn, .edit-template-btn,
+.btn-delete, .delete-btn, .btn-danger, .danger-button,
+.delete-review-btn, .delete-confirm, .modal-delete,
+.reject-btn, .cert-btn.reject, .quiz-exit-btn,
+.btn-cancel, .cancel-btn, .btn-secondary, .secondary-button, .secondary-btn,
+.ntf-btn-ghost, .pay-btn-ghost, .cancel-review-btn, .detail-close-btn,
+.download-btn, .download-certificate-btn, .download-submission-btn,
+.approve-btn, .cert-btn.approve {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--btn-gap) !important;
+  min-height: var(--btn-height) !important;
+  padding: 0 var(--btn-pad-x) !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--btn-radius) !important;
+  font-family: var(--btn-font) !important;
+  font-size: var(--btn-font-size) !important;
+  font-weight: var(--btn-font-weight) !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: var(--btn-transition) !important;
+}
+
+/* keep any glyph from being squashed */
+.btn-save svg, .save-btn svg, .btn-primary svg, .add-btn svg, .submit-btn svg,
+.btn-edit svg, .edit-btn svg, .btn-delete svg, .delete-btn svg, .btn-danger svg,
+.btn-cancel svg, .cancel-btn svg, .btn-secondary svg,
+.ntf-btn-primary svg, .ntf-btn-ghost svg, .detail-reply-btn svg,
+.detail-close-btn svg, .cancel-review-btn svg { flex-shrink: 0; }
+
+/* ---- PRIMARY / SAVE / SAVE-CHANGES / SEND / SUBMIT / ADD --------------- */
+.btn-save, .save-btn, .btn-update, .update-btn,
+.btn-primary, .primary-button, .add-btn, .add-module-btn, .submit-btn,
+.invite-user-button, .invite-button,
+.ntf-btn-primary, .pay-btn-primary, .rp-btn.primary,
+.cert-btn.primary, .welcome-btn.primary,
+.detail-reply-btn, .grade-save-btn, .save-grade-btn,
+.review-submission-btn, .submission-submit-btn,
+.continue-btn, .continue-course-btn, .dashboard-continue-button,
+.start-btn, .resume-btn, .apply-btn, .apply-certificate-btn,
+.write-review-btn, .quiz-take-btn, .quiz-retry-btn, .quiz-empty-btn,
+.assignment-retry-btn, .quiz-submit-btn,
+.courses-primary-btn, .module-add-btn, .browse-btn,
+.mark-all-btn, .retry-btn {
+  background: var(--btn-primary-bg) !important;
+  color: var(--btn-primary-fg) !important;
+  border-color: transparent !important;
+  box-shadow: var(--btn-primary-shadow) !important;
+}
+.btn-save:hover:not(:disabled), .save-btn:hover:not(:disabled),
+.btn-update:hover:not(:disabled), .update-btn:hover:not(:disabled),
+.btn-primary:hover:not(:disabled), .primary-button:hover:not(:disabled),
+.add-btn:hover:not(:disabled), .add-module-btn:hover:not(:disabled),
+.submit-btn:hover:not(:disabled),
+.invite-user-button:hover:not(:disabled), .invite-button:hover:not(:disabled),
+.ntf-btn-primary:hover:not(:disabled), .pay-btn-primary:hover:not(:disabled),
+.rp-btn.primary:hover:not(:disabled),
+.cert-btn.primary:hover:not(:disabled), .welcome-btn.primary:hover:not(:disabled),
+.detail-reply-btn:hover:not(:disabled), .grade-save-btn:hover:not(:disabled),
+.save-grade-btn:hover:not(:disabled),
+.review-submission-btn:hover:not(:disabled), .submission-submit-btn:hover:not(:disabled),
+.continue-btn:hover:not(:disabled), .continue-course-btn:hover:not(:disabled),
+.dashboard-continue-button:hover:not(:disabled),
+.start-btn:hover:not(:disabled), .resume-btn:hover:not(:disabled),
+.apply-btn:hover:not(:disabled), .apply-certificate-btn:hover:not(:disabled),
+.write-review-btn:hover:not(:disabled), .quiz-take-btn:hover:not(:disabled),
+.quiz-retry-btn:hover:not(:disabled), .quiz-empty-btn:hover:not(:disabled),
+.assignment-retry-btn:hover:not(:disabled), .quiz-submit-btn:hover:not(:disabled),
+.courses-primary-btn:hover:not(:disabled), .module-add-btn:hover:not(:disabled),
+.browse-btn:hover:not(:disabled),
+.mark-all-btn:hover:not(:disabled), .retry-btn:hover:not(:disabled) {
+  box-shadow: var(--btn-primary-shadow-hover) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ---- EDIT -------------------------------------------------------------- */
+.btn-edit, .edit-btn, .edit-review-btn, .edit-template-btn {
+  background: var(--btn-edit-bg) !important;
+  color: var(--btn-edit-fg) !important;
+  border-color: var(--btn-edit-border) !important;
+  box-shadow: none !important;
+}
+.btn-edit:hover:not(:disabled), .edit-btn:hover:not(:disabled),
+.edit-review-btn:hover:not(:disabled), .edit-template-btn:hover:not(:disabled) {
+  background: var(--btn-edit-bg-hover) !important;
+}
+
+/* ---- DELETE / DANGER / REJECT / EXIT ---------------------------------- */
+.btn-delete, .delete-btn, .btn-danger, .danger-button,
+.delete-review-btn, .delete-confirm, .modal-delete,
+.reject-btn, .cert-btn.reject, .quiz-exit-btn {
+  background: var(--btn-danger-bg) !important;
+  color: var(--btn-danger-fg) !important;
+  border-color: var(--btn-danger-border) !important;
+  box-shadow: none !important;
+}
+.btn-delete:hover:not(:disabled), .delete-btn:hover:not(:disabled),
+.btn-danger:hover:not(:disabled), .danger-button:hover:not(:disabled),
+.delete-review-btn:hover:not(:disabled), .delete-confirm:hover:not(:disabled),
+.modal-delete:hover:not(:disabled), .reject-btn:hover:not(:disabled),
+.cert-btn.reject:hover:not(:disabled), .quiz-exit-btn:hover:not(:disabled) {
+  background: var(--btn-danger-bg-hover) !important;
+}
+
+/* ---- CANCEL / SECONDARY / CLOSE(text) --------------------------------- */
+.btn-cancel, .cancel-btn, .btn-secondary, .secondary-button, .secondary-btn,
+.ntf-btn-ghost, .pay-btn-ghost, .cancel-review-btn, .detail-close-btn {
+  background: var(--btn-cancel-bg) !important;
+  color: var(--btn-cancel-fg) !important;
+  border-color: var(--btn-cancel-border) !important;
+  box-shadow: none !important;
+}
+.btn-cancel:hover:not(:disabled), .cancel-btn:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled), .secondary-button:hover:not(:disabled),
+.secondary-btn:hover:not(:disabled), .ntf-btn-ghost:hover:not(:disabled),
+.pay-btn-ghost:hover:not(:disabled), .cancel-review-btn:hover:not(:disabled),
+.detail-close-btn:hover:not(:disabled) {
+  background: var(--btn-cancel-bg-hover) !important;
+}
+
+/* ---- DOWNLOAD / APPROVE / SUCCESS (green) ----------------------------- */
+.download-btn, .download-certificate-btn, .download-submission-btn,
+.approve-btn, .cert-btn.approve {
+  background: var(--btn-approve-bg) !important;
+  color: var(--btn-approve-fg) !important;
+  border-color: var(--btn-approve-border) !important;
+  box-shadow: none !important;
+}
+.download-btn:hover:not(:disabled), .download-certificate-btn:hover:not(:disabled),
+.download-submission-btn:hover:not(:disabled), .approve-btn:hover:not(:disabled),
+.cert-btn.approve:hover:not(:disabled) {
+  background: var(--btn-approve-bg-hover) !important;
+}
+
+/* ---- disabled (uniform everywhere) ------------------------------------ */
+.btn-save:disabled, .save-btn:disabled, .btn-update:disabled, .update-btn:disabled,
+.btn-primary:disabled, .primary-button:disabled, .add-btn:disabled,
+.add-module-btn:disabled, .submit-btn:disabled, .invite-user-button:disabled,
+.invite-button:disabled, .ntf-btn-primary:disabled, .pay-btn-primary:disabled,
+.detail-reply-btn:disabled, .grade-save-btn:disabled, .save-grade-btn:disabled,
+.review-submission-btn:disabled, .submission-submit-btn:disabled,
+.continue-btn:disabled, .continue-course-btn:disabled, .quiz-take-btn:disabled,
+.quiz-submit-btn:disabled, .apply-certificate-btn:disabled,
+.btn-edit:disabled, .edit-btn:disabled,
+.btn-delete:disabled, .delete-btn:disabled, .btn-danger:disabled,
+.btn-cancel:disabled, .cancel-btn:disabled, .btn-secondary:disabled,
+.ntf-btn-ghost:disabled, .pay-btn-ghost:disabled, .cancel-review-btn:disabled,
+.detail-close-btn:disabled, .download-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* ==========================================================================
+   2. CLOSE (icon ✕) — one neutral square everywhere, red on hover
+   ========================================================================== */
+.modal-close, .modal-close-btn, .cert-modal-close, .mobile-close-btn,
+.submission-modal-close, .close-btn, .ntf-icon-btn, .pay-icon-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  width: var(--btn-close-size) !important;
+  height: var(--btn-close-size) !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--btn-icon-border) !important;
+  border-radius: var(--btn-close-radius) !important;
+  background: var(--btn-icon-bg) !important;
+  color: var(--btn-icon-fg) !important;
+  cursor: pointer !important;
+  transition: var(--btn-transition) !important;
+}
+.modal-close:hover:not(:disabled), .modal-close-btn:hover:not(:disabled),
+.cert-modal-close:hover:not(:disabled), .mobile-close-btn:hover:not(:disabled),
+.submission-modal-close:hover:not(:disabled), .close-btn:hover:not(:disabled),
+.ntf-icon-btn:hover:not(:disabled), .pay-icon-btn:hover:not(:disabled),
+.ntf-icon-btn.danger:hover:not(:disabled) {
+  background: var(--btn-danger-bg) !important;
+  border-color: var(--btn-danger-border) !important;
+  color: var(--btn-danger-fg) !important;
+}
+
+/* ==========================================================================
+   3. ROW ICON ACTIONS (table / list) — one square, colour by meaning on hover
+   ========================================================================== */
+.edit-lesson-btn, .delete-lesson-btn, .preview-lesson-btn, .module-action-btn,
+.review-view-btn, .card-edit-btn, .card-delete-btn, .marks-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  width: var(--btn-row-size) !important;
+  height: var(--btn-row-size) !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--btn-icon-border) !important;
+  border-radius: var(--btn-row-radius) !important;
+  background: var(--btn-icon-bg) !important;
+  color: var(--btn-icon-fg) !important;
+  cursor: pointer !important;
+  transition: var(--btn-transition) !important;
+}
+/* edit-ish → indigo */
+.edit-lesson-btn:hover:not(:disabled), .card-edit-btn:hover:not(:disabled),
+.review-view-btn:hover:not(:disabled) {
+  background: var(--btn-edit-bg) !important;
+  color: var(--btn-edit-fg) !important;
+  border-color: var(--btn-edit-border) !important;
+}
+/* delete-ish → red */
+.delete-lesson-btn:hover:not(:disabled), .card-delete-btn:hover:not(:disabled) {
+  background: var(--btn-danger-bg) !important;
+  color: var(--btn-danger-fg) !important;
+  border-color: var(--btn-danger-border) !important;
+}
+/* preview → green */
+.preview-lesson-btn:hover:not(:disabled) {
+  background: var(--btn-approve-bg) !important;
+  color: var(--btn-approve-fg) !important;
+  border-color: var(--btn-approve-border) !important;
+}
+/* neutral hover */
+.module-action-btn:hover:not(:disabled),
+.marks-btn:hover:not(:disabled) {
+  background: var(--btn-icon-bg-hover) !important;
+  color: var(--btn-icon-fg-hover) !important;
+  border-color: var(--btn-icon-border-hover) !important;
+}
+.card-edit-btn:disabled, .card-delete-btn:disabled, .edit-lesson-btn:disabled,
+.delete-lesson-btn:disabled, .preview-lesson-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}

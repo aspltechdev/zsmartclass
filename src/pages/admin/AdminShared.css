@@ -86,7 +86,8 @@
   gap: 8px;
   border: 1px solid transparent;
   border-radius: 10px;
-  padding: 10px 16px;
+  min-height: 40px;        /* canonical button height — matches buttons.css */
+  padding: 0 16px;
   font-size: 14px;
   font-weight: 600;
   line-height: 1;
@@ -146,12 +147,13 @@
 
 /* Categories uses .view-btn/.edit-btn as compact ICON-ONLY squares in the
    table. Keep that shape (don't stretch them like icon+text buttons) but
-   align the colours with the rest of the system. */
+   align the size + colours with the rest of the system (34x34, radius 8). */
 .admin-content .action-buttons .view-btn,
 .admin-content .action-buttons .edit-btn,
 .admin-content .action-buttons .delete-btn {
-  width: 36px;
-  height: 36px;
+  width: 34px !important;
+  height: 34px !important;
+  min-height: 0 !important;
   padding: 0 !important;
   gap: 0;
   border-radius: 8px !important;
@@ -214,26 +216,46 @@
   color: var(--a-primary) !important;
 }
 
-/* Small action buttons inside table rows */
+/* Small action buttons inside table rows — icon-only 34x34 squares.
+   Uses !important on the box metrics so it beats the global text-button rules
+   in buttons.css for shared modifier names (.approve-btn/.reject-btn/
+   .download-btn/.delete-btn), which would otherwise stretch a single icon into
+   a 40px pill. Colours align to the shared token palette. */
 .admin-content .action-btn {
   display: inline-flex !important;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 7px 11px;
+  width: 34px !important;
+  height: 34px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
   font-size: 13px;
   font-weight: 600;
-  border-radius: 8px;
-  border: 1px solid var(--a-line);
-  background: #fff;
-  color: #475569;
+  border-radius: 8px !important;
+  border: 1px solid var(--a-line) !important;
+  background: #fff !important;
+  color: #475569 !important;
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.admin-content .action-btn:hover { background: #f1f5f9; }
+.admin-content .action-btn:hover:not(:disabled) { background: #f1f5f9 !important; }
+.admin-content .action-btn.view-btn {
+  background: #ecfeff !important; color: #0e7490 !important; border-color: #a5f3fc !important;
+}
+.admin-content .action-btn.view-btn:hover:not(:disabled) { background: #cffafe !important; }
 .admin-content .action-btn.download-btn,
-.admin-content .action-btn.view-btn { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
-.admin-content .action-btn.delete-btn { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
-.admin-content .action-btn.approve-btn { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+.admin-content .action-btn.approve-btn {
+  background: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important;
+}
+.admin-content .action-btn.download-btn:hover:not(:disabled),
+.admin-content .action-btn.approve-btn:hover:not(:disabled) { background: #d1fae5 !important; }
+.admin-content .action-btn.delete-btn,
+.admin-content .action-btn.reject-btn {
+  background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important;
+}
+.admin-content .action-btn.delete-btn:hover:not(:disabled),
+.admin-content .action-btn.reject-btn:hover:not(:disabled) { background: #fee2e2 !important; }
 
 /* ==========================================================================
    3. STAT CARDS — Dashboard look on every page
@@ -630,7 +652,7 @@
    8. LESSONS / MODULES / COURSES — page-specific pieces folded into the kit
    ========================================================================== */
 
-/* compact icon-square actions on lesson rows */
+/* compact icon-square actions on lesson rows (34x34 — matches buttons.css) */
 .admin-content .preview-lesson-btn,
 .admin-content .edit-lesson-btn,
 .admin-content .delete-lesson-btn,
@@ -638,8 +660,9 @@
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
+  min-height: 0 !important;
   padding: 0 !important;
   border-radius: 8px !important;
   border: 1px solid var(--a-line) !important;
@@ -705,6 +728,47 @@
   outline: none;
 }
 .admin-content .module-picker:focus {
+  border-color: var(--a-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ==========================================================================
+   SELECTS — one look everywhere (custom chevron, roomy padding)
+   ========================================================================== */
+.admin-content select,
+.modal select,
+.admin-content .form-group select,
+.admin-content .module-picker,
+.admin-content .filter-select,
+.admin-content .pay-select,
+.admin-content .role-filter,
+.admin-content .rp-export-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  min-height: 42px;
+  padding: 10px 40px 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--a-font);
+  color: var(--a-text);
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+  outline: none;
+  transition: border 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-content select:focus,
+.modal select:focus,
+.admin-content .form-group select:focus,
+.admin-content .module-picker:focus,
+.admin-content .filter-select:focus,
+.admin-content .pay-select:focus,
+.admin-content .role-filter:focus,
+.admin-content .rp-export-select:focus {
   border-color: var(--a-primary);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }

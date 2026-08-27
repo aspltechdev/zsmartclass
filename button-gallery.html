@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>zSmartClass · Button System Gallery</title>
+<!-- Links the REAL global button system so this page always reflects the app. -->
+<link rel="stylesheet" href="./src/styles/buttons.css" />
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body{
+    margin:0; padding:32px 28px 64px;
+    background:#f5f6fb; color:#1f2937;
+    font-family:'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+  }
+  h1{ font-size:22px; margin:0 0 4px; }
+  .sub{ color:#64748b; font-size:13.5px; margin:0 0 26px; max-width:820px; line-height:1.5; }
+  .sub code{ background:#eef2ff; color:#4338ca; padding:1px 6px; border-radius:5px; font-size:12.5px; }
+  section{ margin:0 0 30px; }
+  section > h2{
+    font-size:13px; text-transform:uppercase; letter-spacing:.06em;
+    color:#6366f1; margin:0 0 14px; padding-bottom:7px; border-bottom:1px solid #e5e7eb;
+  }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+  .card{
+    background:#fff; border:1px solid #eceef3; border-radius:12px;
+    padding:16px 16px 18px; box-shadow:0 1px 2px rgba(16,24,40,.04);
+  }
+  .card .role{ font-size:12px; font-weight:700; color:#0f172a; margin:0 0 2px; }
+  .card .cls{ font-size:11px; color:#94a3b8; margin:0 0 12px; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .row + .lbl{ margin-top:12px; }
+  .lbl{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#b0b7c3; margin:0 0 6px; }
+  .note{ font-size:12px; color:#64748b; margin:6px 0 0; }
+  /* full-width auth submit demo mirrors .login-submit-btn / .register-submit-btn etc. */
+  .authbox{ max-width:360px; }
+  .auth-submit-demo{
+    width:100%; padding:14px 20px; border:none; border-radius:10px;
+    background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:16px; cursor:pointer;
+    box-shadow:0 4px 16px rgba(99,102,241,.25);
+  }
+  .legend{ display:flex; flex-wrap:wrap; gap:16px; margin:0 0 26px; }
+  .legend .item{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:#475569; }
+  .sw{ width:16px; height:16px; border-radius:5px; border:1px solid rgba(0,0,0,.06); }
+</style>
+</head>
+<body>
+  <h1>zSmartClass · Button System</h1>
+  <p class="sub">
+    Every button below is styled by the real <code>src/styles/buttons.css</code> (linked, not copied).
+    Each <strong>action type</strong> has one colour and one size everywhere in the app — admin, mentor,
+    student and auth. <strong>Hover</strong> a button to see its hover state; the last item in each card is
+    <strong>disabled</strong>. If two buttons of the same role ever look different in the app, this page is
+    the source of truth for what they should be.
+  </p>
+
+  <div class="legend">
+    <div class="item"><span class="sw" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)"></span>Primary / Save / Save changes / Send / Submit / Add</div>
+    <div class="item"><span class="sw" style="background:#eef2ff;border-color:#c7d2fe"></span>Edit</div>
+    <div class="item"><span class="sw" style="background:#fef2f2;border-color:#fecaca"></span>Delete / Reject / Exit</div>
+    <div class="item"><span class="sw" style="background:#fff;border-color:#e5e7eb"></span>Cancel / Close (text)</div>
+    <div class="item"><span class="sw" style="background:#ecfeff;border-color:#a5f3fc"></span>View</div>
+    <div class="item"><span class="sw" style="background:#ecfdf5;border-color:#a7f3d0"></span>Approve / Download</div>
+  </div>
+
+  <!-- ============ THE NAMED ACTION TYPES ============ -->
+  <section>
+    <h2>The action types you named</h2>
+    <div class="grid">
+
+      <div class="card">
+        <p class="role">Save</p>
+        <p class="cls">.save-btn / .btn-save</p>
+        <div class="row">
+          <button class="save-btn">Save</button>
+          <button class="save-btn" disabled>Save</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="role">Save changes</p>
+        <p class="cls">.update-btn / .btn-update</p>
+        <div class="row">
+          <button class="update-btn">Save changes</button>
+          <button class="update-btn" disabled>Save changes</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="role">Send</p>
+        <p class="cls">.detail-reply-btn (primary)</p>
+        <div class="row">
+          <button class="detail-reply-btn">Send Reply</button>
+          <button class="detail-reply-btn" disabled>Send Reply</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="role">Submit / Add</p>
+        <p class="cls">.submit-btn / .add-btn</p>
+        <div class="row">
+          <button class="submit-btn">Submit</button>
+          <button class="add-btn">Add</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="role">Edit</p>
+        <p class="cls">.edit-btn / .btn-edit</p>
+        <div class="row">
+          <button class="edit-btn">Edit</button>
+          <button class="edit-btn" disabled>Edit</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="role">Delete</p>
+        <p class="cls">.delete-btn / .btn-delete</p>
+        <div class="row">
+          <button class="delete-btn">Delete</button>
+          <button class="delete-btn" disabled>Delete</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="role">Cancel</p>
+        <p class="cls">.cancel-btn / .btn-cancel</p>
+        <div class="row">
+          <button class="cancel-btn">Cancel</button>
+          <button class="cancel-btn" disabled>Cancel</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="role">Close (text)</p>
+        <p class="cls">.detail-close-btn</p>
+        <div class="row">
+          <button class="detail-close-btn">Close</button>
+          <button class="detail-close-btn" disabled>Close</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ CLOSE (ICON) + ROW ICON ACTIONS ============ -->
+  <section>
+    <h2>Icon buttons — one 34×34 square, colour by meaning on hover</h2>
+    <div class="grid">
+
+      <div class="card">
+        <p class="role">Close ✕ (modal)</p>
+        <p class="cls">.modal-close / .close-btn</p>
+        <div class="row">
+          <button class="modal-close" aria-label="Close">&#10005;</button>
+          <button class="close-btn" aria-label="Close">&#10005;</button>
+        </div>
+        <p class="note">Neutral square, red on hover.</p>
+      </div>
+
+      <div class="card">
+        <p class="role">Row · Edit</p>
+        <p class="cls">.edit-lesson-btn / .card-edit-btn</p>
+        <div class="row">
+          <button class="edit-lesson-btn" aria-label="Edit">&#9998;</button>
+          <button class="card-edit-btn" aria-label="Edit">&#9998;</button>
+        </div>
+        <p class="note">Indigo on hover.</p>
+      </div>
+
+      <div class="card">
+        <p class="role">Row · Delete</p>
+        <p class="cls">.delete-lesson-btn / .card-delete-btn</p>
+        <div class="row">
+          <button class="delete-lesson-btn" aria-label="Delete">&#128465;</button>
+          <button class="card-delete-btn" aria-label="Delete">&#128465;</button>
+        </div>
+        <p class="note">Red on hover.</p>
+      </div>
+
+      <div class="card">
+        <p class="role">Row · Preview</p>
+        <p class="cls">.preview-lesson-btn</p>
+        <div class="row">
+          <button class="preview-lesson-btn" aria-label="Preview">&#128065;</button>
+        </div>
+        <p class="note">Green on hover.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ SEMANTIC EXTRAS ============ -->
+  <section>
+    <h2>Other signal colours</h2>
+    <div class="grid">
+
+      <div class="card">
+        <p class="role">Approve</p>
+        <p class="cls">.approve-btn</p>
+        <div class="row"><button class="approve-btn">Approve</button></div>
+      </div>
+
+      <div class="card">
+        <p class="role">Download</p>
+        <p class="cls">.download-btn</p>
+        <div class="row"><button class="download-btn">Download</button></div>
+      </div>
+
+      <div class="card">
+        <p class="role">Reject (danger)</p>
+        <p class="cls">.reject-btn</p>
+        <div class="row"><button class="reject-btn">Reject</button></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ AUTH SUBMIT ============ -->
+  <section>
+    <h2>Auth submit buttons — full width, same gradient, radius 10</h2>
+    <div class="grid">
+      <div class="card authbox">
+        <p class="role">Sign in / Register / Reset / Verify / Invite</p>
+        <p class="cls">.login-submit-btn · .register-submit-btn · … · .invite-submit-btn</p>
+        <button class="auth-submit-demo">Sign In</button>
+        <p class="note">All six auth forms + the invite form now share this exact look
+          (was radius 12 / off-palette gradient before).</p>
+      </div>
+      <div class="card">
+        <p class="role">Matches the in-app primary</p>
+        <p class="cls">.submit-btn (from buttons.css)</p>
+        <div class="row"><button class="submit-btn">Submit</button></div>
+        <p class="note">Same gradient + radius as the auth submit — that's the point.</p>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>

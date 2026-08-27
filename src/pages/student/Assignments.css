@@ -26,12 +26,24 @@
 .assignments-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 13px;
   margin: 0;
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.5px;
   color: #0f172a;
+}
+
+.assignments-title svg {
+  width: 46px;
+  height: 46px;
+  padding: 11px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.28);
 }
 
 .assignments-subtitle {
@@ -52,9 +64,10 @@
 
 /* ---------- List ---------- */
 .assignments-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr));
   gap: 14px;
+  align-items: start;
 }
 
 .assignment-card {
@@ -81,19 +94,19 @@
 .assignment-header {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 17px 19px 0;
+  gap: 13px;
+  padding: 15px 17px 0;
 }
 
 .assignment-icon {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   display: flex;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 11px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: #fff;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.26);
@@ -136,32 +149,47 @@
 
 /* ---------- Body ---------- */
 .assignment-body {
-  padding: 14px 19px 18px;
+  padding: 12px 17px 16px;
 }
 
 .assignment-description {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   color: #475569;
   font-size: 13.5px;
-  line-height: 1.6;
+  line-height: 1.55;
   overflow-wrap: anywhere;
+}
+
+.assignment-description h3 {
+  margin: 0 0 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.assignment-description p {
+  margin: 0;
 }
 
 /* ---------- Meta grid ---------- */
 .assignment-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  padding-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
   border-top: 1px solid #f1f5f9;
 }
 
 .meta-item {
+  flex: 1 1 160px;
+  max-width: 300px;
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 9px 11px;
   border-radius: 10px;
   background: #fafbfc;
 }
@@ -308,7 +336,11 @@
   }
 
   .assignment-meta-grid {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .meta-item {
+    max-width: none;
   }
 }
 
@@ -354,12 +386,12 @@
 
 /* wrapper below the meta grid */
 .assignment-submission {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid #f1f5f9;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 /* current submission status strip */
@@ -508,7 +540,7 @@
 .submission-note:focus {
   outline: none;
   border-color: #a5b4fc;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .submission-submit-btn {

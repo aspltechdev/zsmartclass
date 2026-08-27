@@ -470,14 +470,20 @@ const Notifications = () => {
 
       <div className="notifications-header">
 
-        <div>
-          <h1 className="notifications-title">
-            Notifications
-          </h1>
+        <div className="notifications-heading">
+          <div className="notifications-heading-icon">
+            <Bell size={26} />
+          </div>
 
-          <p className="notifications-subtitle">
-            Stay updated with your learning progress
-          </p>
+          <div>
+            <h1 className="notifications-title">
+              Notifications
+            </h1>
+
+            <p className="notifications-subtitle">
+              Stay updated with your learning progress
+            </p>
+          </div>
         </div>
 
         <div className="notifications-actions">
@@ -513,7 +519,7 @@ const Notifications = () => {
         <div className="notifications-empty">
 
           <div className="empty-icon">
-            🔔
+            <Bell size={30} />
           </div>
 
           <h2>
