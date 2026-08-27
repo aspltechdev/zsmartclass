@@ -3,6 +3,7 @@
    ============================================ */
 
 /* ----- RESET & BASE ----- */
+
 * {
   margin: 0;
   padding: 0;
@@ -10,6 +11,7 @@
 }
 
 /* ----- WRAPPER ----- */
+
 .login-wrapper {
   min-height: 100vh;
   width: 100%;
@@ -17,13 +19,17 @@
   align-items: center;
   justify-content: center;
   background: #f8fafc;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
   position: relative;
   overflow: hidden;
   padding: 20px;
 }
 
-/* ----- BACKGROUND DECORATION ----- */
+/* ============================================
+   BACKGROUND DECORATION
+   ============================================ */
+
 .login-bg-decoration {
   position: fixed;
   inset: 0;
@@ -35,10 +41,22 @@
 .login-bg-pattern {
   position: absolute;
   inset: 0;
-  background-image: 
-    radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 50% 80%, rgba(79, 70, 229, 0.04) 0%, transparent 50%);
+  background-image:
+    radial-gradient(
+      circle at 20% 50%,
+      rgba(99, 102, 241, 0.05) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(139, 92, 246, 0.05) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 50% 80%,
+      rgba(79, 70, 229, 0.04) 0%,
+      transparent 50%
+    );
 }
 
 .login-bg-glow-1 {
@@ -47,7 +65,11 @@
   right: -10%;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(99, 102, 241, 0.08) 0%,
+    transparent 70%
+  );
   border-radius: 50%;
   animation: float-glow 8s ease-in-out infinite;
 }
@@ -58,7 +80,11 @@
   left: -10%;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(139, 92, 246, 0.06) 0%,
+    transparent 70%
+  );
   border-radius: 50%;
   animation: float-glow 10s ease-in-out infinite reverse;
 }
@@ -69,7 +95,12 @@
   left: -5%;
   width: 40%;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.1),
+    transparent
+  );
   transform: rotate(-20deg);
 }
 
@@ -79,16 +110,30 @@
   right: -5%;
   width: 35%;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.08), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(139, 92, 246, 0.08),
+    transparent
+  );
   transform: rotate(15deg);
 }
 
 @keyframes float-glow {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(30px, -20px) scale(1.1); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(30px, -20px) scale(1.1);
+  }
 }
 
-/* ----- MAIN CONTAINER ----- */
+/* ============================================
+   MAIN CONTAINER
+   ============================================ */
+
 .login-container {
   position: relative;
   z-index: 1;
@@ -99,7 +144,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 32px;
-  box-shadow: 
+  box-shadow:
     0 25px 80px rgba(0, 0, 0, 0.08),
     0 10px 30px rgba(0, 0, 0, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -113,11 +158,19 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+  background: linear-gradient(
+    90deg,
+    #6366f1,
+    #8b5cf6,
+    #a78bfa
+  );
   z-index: 10;
 }
 
-/* ----- GRID LAYOUT ----- */
+/* ============================================
+   GRID LAYOUT
+   ============================================ */
+
 .login-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -127,10 +180,16 @@
 /* ============================================
    LEFT - BRANDING SECTION
    ============================================ */
+
 .login-branding {
   position: relative;
   padding: 48px 44px 40px;
-  background: linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+  background: linear-gradient(
+    145deg,
+    #1e1b4b 0%,
+    #312e81 40%,
+    #4338ca 100%
+  );
   color: white;
   display: flex;
   flex-direction: column;
@@ -142,10 +201,22 @@
 .login-branding-pattern {
   position: absolute;
   inset: 0;
-  background-image: 
-    radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(167, 139, 250, 0.06) 0%, transparent 40%),
-    radial-gradient(circle at 10% 90%, rgba(99, 102, 241, 0.05) 0%, transparent 30%);
+  background-image:
+    radial-gradient(
+      circle at 30% 40%,
+      rgba(255, 255, 255, 0.04) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 70% 70%,
+      rgba(167, 139, 250, 0.06) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 10% 90%,
+      rgba(99, 102, 241, 0.05) 0%,
+      transparent 30%
+    );
   pointer-events: none;
 }
 
@@ -155,10 +226,16 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #fcd34d, #f59e0b, #fbbf24);
+  background: linear-gradient(
+    90deg,
+    #fcd34d,
+    #f59e0b,
+    #fbbf24
+  );
 }
 
-/* Corner Decorations */
+/* ----- Corner Decorations ----- */
+
 .login-corner-tl,
 .login-corner-tr,
 .login-corner-bl,
@@ -176,24 +253,31 @@
   border-top: 2px solid rgba(255, 255, 255, 0.2);
   border-left: 2px solid rgba(255, 255, 255, 0.2);
 }
+
 .login-corner-tr {
   top: 16px;
   right: 16px;
   border-top: 2px solid rgba(255, 255, 255, 0.2);
   border-right: 2px solid rgba(255, 255, 255, 0.2);
 }
+
 .login-corner-bl {
   bottom: 16px;
   left: 16px;
   border-bottom: 2px solid rgba(255, 255, 255, 0.2);
   border-left: 2px solid rgba(255, 255, 255, 0.2);
 }
+
 .login-corner-br {
   bottom: 16px;
   right: 16px;
   border-bottom: 2px solid rgba(255, 255, 255, 0.2);
   border-right: 2px solid rgba(255, 255, 255, 0.2);
 }
+
+/* ============================================
+   BRANDING CONTENT
+   ============================================ */
 
 .login-branding-content {
   position: relative;
@@ -204,7 +288,8 @@
   justify-content: center;
 }
 
-/* Logo Badge */
+/* ----- Logo Badge ----- */
+
 .login-logo-badge {
   display: flex;
   align-items: center;
@@ -215,7 +300,11 @@
 .login-logo-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #fcd34d, #f59e0b);
+  background: linear-gradient(
+    135deg,
+    #fcd34d,
+    #f59e0b
+  );
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -252,7 +341,8 @@
   text-transform: uppercase;
 }
 
-/* Main Heading */
+/* ----- Main Heading ----- */
+
 .login-branding-main {
   margin-bottom: 16px;
 }
@@ -267,13 +357,18 @@
 }
 
 .login-branding-highlight {
-  background: linear-gradient(135deg, #fcd34d, #f59e0b);
+  background: linear-gradient(
+    135deg,
+    #fcd34d,
+    #f59e0b
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Tagline */
+/* ----- Tagline ----- */
+
 .login-branding-tagline {
   font-family: 'Inter', sans-serif;
   font-size: 18px;
@@ -284,7 +379,8 @@
   margin-bottom: 32px;
 }
 
-/* Quote */
+/* ----- Quote ----- */
+
 .login-branding-quote-wrapper {
   padding-top: 28px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -326,7 +422,10 @@
   letter-spacing: 0.5px;
 }
 
-/* Stats */
+/* ============================================
+   STATS
+   ============================================ */
+
 .login-branding-stats {
   position: relative;
   z-index: 2;
@@ -362,6 +461,7 @@
 /* ============================================
    RIGHT - LOGIN FORM SECTION
    ============================================ */
+
 .login-form-wrapper {
   background: white;
   padding: 48px 48px 40px;
@@ -376,7 +476,8 @@
   max-width: 400px;
 }
 
-/* Welcome */
+/* ----- Welcome ----- */
+
 .login-welcome {
   margin-bottom: 36px;
 }
@@ -401,19 +502,27 @@
 .login-welcome-line {
   width: 40px;
   height: 3px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: linear-gradient(
+    90deg,
+    #6366f1,
+    #8b5cf6
+  );
   border-radius: 2px;
   margin-top: 14px;
 }
 
-/* Form */
+/* ============================================
+   FORM
+   ============================================ */
+
 .login-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* Field Groups */
+/* ----- Field Groups ----- */
+
 .login-field-group {
   display: flex;
   flex-direction: column;
@@ -427,6 +536,8 @@
   color: #1f2937;
   letter-spacing: 0.3px;
 }
+
+/* ----- Input ----- */
 
 .login-field-input {
   width: 100%;
@@ -456,7 +567,73 @@
   border-color: #d1d5db;
 }
 
-/* Options Row */
+/* ============================================
+   PASSWORD SHOW / HIDE
+   ============================================ */
+
+.login-password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.login-password-input {
+  padding-right: 48px;
+}
+
+.login-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transform: translateY(-50%);
+
+  padding: 0;
+
+  border: none;
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #6b7280;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.login-password-toggle:hover {
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.login-password-toggle:focus {
+  outline: none;
+  color: #6366f1;
+}
+
+.login-password-toggle:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.35);
+  outline-offset: 2px;
+}
+
+.login-password-toggle svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   OPTIONS ROW
+   ============================================ */
+
 .login-options {
   display: flex;
   align-items: center;
@@ -502,11 +679,18 @@
   text-decoration: underline;
 }
 
-/* Submit Button */
+/* ============================================
+   SUBMIT BUTTON
+   ============================================ */
+
 .login-submit-btn {
   width: 100%;
   padding: 14px 20px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(
+    135deg,
+    #6366f1,
+    #8b5cf6
+  );
   border: none;
   border-radius: 10px;
   font-family: 'Inter', sans-serif;
@@ -516,10 +700,12 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+
   margin-top: 4px;
 }
 
@@ -549,7 +735,8 @@
   font-size: 18px;
 }
 
-.login-submit-btn:hover:not(:disabled) .login-btn-arrow {
+.login-submit-btn:hover:not(:disabled)
+  .login-btn-arrow {
   transform: translateX(4px);
 }
 
@@ -570,10 +757,15 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* Register Link */
+/* ============================================
+   REGISTER LINK
+   ============================================ */
+
 .login-register-wrapper {
   text-align: center;
   margin-top: 6px;
@@ -597,7 +789,10 @@
   text-decoration: underline;
 }
 
-/* ----- RESPONSIVE ----- */
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
 @media (max-width: 1024px) {
   .login-container {
     max-width: 100%;
@@ -667,9 +862,10 @@
   }
 
   .login-branding-stats {
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 12px 24px;
   }
-  
+
   .login-stat-value {
     font-size: 22px;
   }
@@ -691,6 +887,17 @@
     font-size: 14px;
   }
 
+  /* Keep room for eye icon on mobile */
+  .login-password-input {
+    padding-right: 44px;
+  }
+
+  .login-password-toggle {
+    right: 9px;
+    width: 28px;
+    height: 28px;
+  }
+
   .login-options {
     flex-wrap: wrap;
     gap: 8px;
@@ -702,7 +909,10 @@
   }
 }
 
-/* ----- ZSMARTCLASS SPECIFIC BRANDING ----- */
+/* ============================================
+   ZSMARTCLASS SPECIFIC BRANDING
+   ============================================ */
+
 .login-zsmart-brand {
   display: flex;
   align-items: center;
@@ -719,6 +929,36 @@
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .login-bg-glow-1,
+  .login-bg-glow-2,
+  .login-zsmart-brand .brand-dot,
+  .login-loading-text::after {
+    animation: none;
+  }
+
+  .login-password-toggle,
+  .login-field-input,
+  .login-submit-btn,
+  .login-btn-arrow,
+  .login-forgot-link,
+  .login-register-link {
+    transition: none;
+  }
 }

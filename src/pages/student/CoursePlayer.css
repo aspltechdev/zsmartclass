@@ -289,6 +289,7 @@
   width: 100%;
   height: 100%;
   border: none;
+  pointer-events: none !important;
 }
 
 /* native <video> for self-hosted lessons */
@@ -367,17 +368,33 @@ video.youtube-player-wrapper,
 .lesson-information-meta {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  gap: 0;
   margin-top: 9px;
   color: #94a3b8;
   font-size: 12.5px;
+  line-height: 18px;
 }
 
-.lesson-information-meta > span {
+.lesson-meta-item {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 5px;
+  padding: 0;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.lesson-meta-item svg {
+  display: block;
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  color: #94a3b8;
 }
 
 .progress-saving {
@@ -678,20 +695,25 @@ video.youtube-player-wrapper,
   font-size: 13px;
 }
 
-.lesson-information-meta > span {
+.lesson-meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;                /* icon and text were touching */
+  gap: 6px;
   padding: 3px 10px;
   border-radius: 999px;
   background: #f6f7fb;
   color: #64748b;
   font-size: 11.5px;
   font-weight: 600;
+  line-height: 1;
   white-space: nowrap;
 }
 
-.lesson-information-meta svg { flex-shrink: 0; color: #94a3b8; }
+.lesson-meta-item svg {
+  display: block;
+  flex-shrink: 0;
+  color: #94a3b8;
+}
 
 /* lesson progress row */
 .lesson-progress-header > span:last-child,
@@ -1101,4 +1123,229 @@ video.youtube-player-wrapper,
 
 .sidebar-quiz-link {
   animation: quizUnlock 0.4s ease forwards;
+}
+/* =========================================================
+   LMS VIDEO PLAYER CONTROLS
+   Added on top of the existing CoursePlayer styles.
+   The rest of the course-player styling is intentionally unchanged.
+   ========================================================= */
+
+.lms-video-shell {
+  position: relative;
+}
+
+.lms-video-shell .youtube-player-wrapper {
+  z-index: 1;
+}
+
+.student-video-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  min-height: 58px;
+  padding: 10px 12px;
+
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.92),
+    rgba(0, 0, 0, 0.68),
+    rgba(0, 0, 0, 0)
+  );
+
+  color: #fff;
+}
+
+.student-video-control-btn {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.student-video-control-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.student-video-control-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
+.student-video-time {
+  flex: 0 0 auto;
+  min-width: 42px;
+
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.student-video-seek {
+  flex: 1 1 auto;
+  min-width: 70px;
+  height: 4px;
+  margin: 0 3px;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  border-radius: 999px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+}
+
+.student-video-seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.student-video-seek::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+.student-video-seek::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.student-video-seek::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+.student-video-volume {
+  width: 64px;
+  height: 4px;
+  flex: 0 0 64px;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  border-radius: 999px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+}
+
+.student-video-volume::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.student-video-volume::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+
+  width: 11px;
+  height: 11px;
+  margin-top: -3.5px;
+
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+.student-video-volume::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.student-video-volume::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+.lms-video-shell:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+  background: #000;
+}
+
+.lms-video-shell:fullscreen .youtube-player-wrapper,
+.lms-video-shell:fullscreen .native-video-player {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 700px) {
+  .student-video-controls {
+    gap: 5px;
+    min-height: 52px;
+    padding: 8px;
+  }
+
+  .student-video-control-btn {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
+  .student-video-time {
+    min-width: 35px;
+    font-size: 10px;
+  }
+
+  .student-video-volume {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-video-control-btn {
+    transition: none;
+  }
 }

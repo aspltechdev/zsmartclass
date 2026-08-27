@@ -1,26 +1,36 @@
 /* =========================================================
-   ZSMARTCLASS — MENTOR SIDEBAR (LIGHT THEME)
+   ZSMARTCLASS — MENTOR SIDEBAR
 
-   IMPORTANT: every rule is scoped under .mentor-sidebar.
-   The markup uses .sidebar-logo / .logo-circle / .sidebar-nav /
-   .nav-category / .sidebar-link / .sidebar-footer / .logout-btn —
-   the SAME class names as AdminSidebar. CSS is global, so without
-   this scoping the two sidebars would restyle each other.
+   Light theme
+   Fixed navigation rail
+   Logged-in mentor name displayed under ZSMARTCLASS
+
+   ========================================================= */
+
+
+/* =========================================================
+   SIDEBAR
    ========================================================= */
 
 .mentor-sidebar {
+
   --sb-bg: #ffffff;
   --sb-border: #eef0f4;
+
   --sb-text: #64748b;
   --sb-text-hover: #111827;
+
   --sb-active-bg: #eef2ff;
   --sb-active-text: #4f46e5;
+
   --sb-category: #a0aec0;
   --sb-hover-bg: #f6f7fb;
 
   position: fixed;
+
   top: 0;
   left: 0;
+
   z-index: 999;
 
   width: var(--admin-sidebar-width, 260px);
@@ -30,265 +40,582 @@
   flex-direction: column;
 
   background: var(--sb-bg);
+
   border-right: 1px solid var(--sb-border);
 
-  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    "Poppins",
+    system-ui,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
 
-  transition: width 0.3s ease, transform 0.3s ease;
+  transition:
+    width 0.3s ease,
+    transform 0.3s ease;
 }
 
+
 /* =========================================================
-   LOGO
+   SIDEBAR HEADER
    ========================================================= */
 
-.mentor-sidebar .sidebar-logo {
+.mentor-sidebar .sidebar-header {
+
   display: flex;
+
   align-items: center;
+
+  justify-content: space-between;
+
   gap: 12px;
 
   flex-shrink: 0;
 
   height: var(--admin-header-height, 68px);
+
   padding: 0 20px;
 
   border-bottom: 1px solid var(--sb-border);
 }
 
-.mentor-sidebar .logo-circle {
-  width: 38px;
-  height: 38px;
+
+/* =========================================================
+   LOGO CONTAINER
+   ========================================================= */
+
+.mentor-sidebar .logo-container {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  min-width: 0;
+
+  width: 100%;
+}
+
+
+/* =========================================================
+   ZC LOGO
+   ========================================================= */
+
+.mentor-sidebar .logo-icon {
+
+  width: 42px;
+  height: 42px;
+
   flex-shrink: 0;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
-  border-radius: 12px;
+  border-radius: 14px;
 
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: #ffbd22;
 
-  color: #ffffff;
-  font-size: 18px;
+  color: #111827;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: 17px;
+
+  font-weight: 500;
+
+  letter-spacing: -1px;
+
+  box-shadow:
+    0 7px 18px rgba(255, 189, 34, 0.28);
+}
+
+
+/* =========================================================
+   LOGO TEXT
+   ========================================================= */
+
+.mentor-sidebar .logo-text {
+
+  min-width: 0;
+
+  max-width: 170px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+}
+
+
+/* =========================================================
+   ZSMARTCLASS TITLE
+   ========================================================= */
+
+.mentor-sidebar .logo-title {
+
+  display: block;
+
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 15px;
+
   font-weight: 700;
 
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
+  line-height: 1.15;
 
-.mentor-sidebar .sidebar-logo h2 {
-  margin: 0;
-  color: var(--admin-text, #111827);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.2px;
+  letter-spacing: 0.2px;
+
   white-space: nowrap;
 }
 
-.mentor-sidebar .sidebar-logo p {
-  margin: 2px 0 0;
-  color: var(--sb-category);
+
+/* =========================================================
+   LOGGED-IN MENTOR NAME
+   ========================================================= */
+
+.mentor-sidebar .logo-mentor-name {
+
+  display: block;
+
+  margin-top: 4px;
+
+  max-width: 170px;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  color: #64748b;
+
   font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.6px;
+
+  font-weight: 600;
+
+  line-height: 1.2;
+
+  letter-spacing: 0.8px;
+
   text-transform: uppercase;
-  white-space: nowrap;
 }
+
 
 /* =========================================================
    NAVIGATION
    ========================================================= */
 
 .mentor-sidebar .sidebar-nav {
+
   flex: 1;
+
   min-height: 0;
 
   padding: 16px 12px;
 
   overflow-y: auto;
+
   overflow-x: hidden;
 }
 
-.mentor-sidebar .sidebar-nav::-webkit-scrollbar { width: 6px; }
+
+/* =========================================================
+   NAVIGATION SCROLLBAR
+   ========================================================= */
+
+.mentor-sidebar .sidebar-nav::-webkit-scrollbar {
+
+  width: 6px;
+}
+
 .mentor-sidebar .sidebar-nav::-webkit-scrollbar-thumb {
+
   background: #dfe3ec;
+
   border-radius: 999px;
 }
-.mentor-sidebar .sidebar-nav::-webkit-scrollbar-thumb:hover { background: #cbd2e0; }
-.mentor-sidebar .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+
+.mentor-sidebar .sidebar-nav::-webkit-scrollbar-thumb:hover {
+
+  background: #cbd2e0;
+}
+
+.mentor-sidebar .sidebar-nav::-webkit-scrollbar-track {
+
+  background: transparent;
+}
+
+
+/* =========================================================
+   CATEGORY
+   ========================================================= */
 
 .mentor-sidebar .nav-category {
+
   padding: 16px 12px 8px;
 
   color: var(--sb-category);
+
   font-size: 10px;
+
   font-weight: 600;
+
   letter-spacing: 1px;
+
   text-transform: uppercase;
+
   white-space: nowrap;
 }
 
+
+/* First category */
+
 .mentor-sidebar .sidebar-nav > div:first-child .nav-category {
+
   padding-top: 4px;
 }
 
-/* ---------- Link ---------- */
+
+/* =========================================================
+   NAVIGATION ITEM
+   ========================================================= */
 
 .mentor-sidebar .sidebar-link {
+
   position: relative;
 
   display: flex;
+
   align-items: center;
+
   gap: 12px;
 
+  width: 100%;
+
   padding: 10px 12px;
+
   margin-bottom: 2px;
 
   border-radius: 8px;
 
   color: var(--sb-text);
+
   font-size: 13px;
+
   font-weight: 500;
+
   text-decoration: none;
 
   white-space: nowrap;
 
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
-.mentor-sidebar .sidebar-link svg {
+
+/* =========================================================
+   ICON
+   ========================================================= */
+
+.mentor-sidebar .nav-icon {
+
   flex-shrink: 0;
+
   width: 19px;
   height: 19px;
+
   color: #94a3b8;
-  transition: color 0.2s ease;
+
+  transition:
+    color 0.2s ease;
 }
 
+
+/* =========================================================
+   LABEL
+   ========================================================= */
+
+.mentor-sidebar .nav-label {
+
+  min-width: 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
 .mentor-sidebar .sidebar-link:hover {
+
   background: var(--sb-hover-bg);
+
   color: var(--sb-text-hover);
 }
 
-.mentor-sidebar .sidebar-link:hover svg { color: #6366f1; }
+.mentor-sidebar .sidebar-link:hover .nav-icon {
+
+  color: #6366f1;
+}
+
+
+/* =========================================================
+   ACTIVE
+   ========================================================= */
 
 .mentor-sidebar .sidebar-link.active {
+
   background: var(--sb-active-bg);
+
   color: var(--sb-active-text);
+
   font-weight: 600;
 }
 
-.mentor-sidebar .sidebar-link.active svg { color: var(--sb-active-text); }
+.mentor-sidebar .sidebar-link.active .nav-icon {
 
-/* active indicator bar */
+  color: var(--sb-active-text);
+}
+
+
+/* =========================================================
+   ACTIVE INDICATOR
+   ========================================================= */
+
 .mentor-sidebar .sidebar-link.active::before {
+
   content: "";
+
   position: absolute;
+
   left: -12px;
+
   top: 50%;
+
   transform: translateY(-50%);
+
   width: 3px;
+
   height: 20px;
-  border-radius: 0 6px 6px 0;
+
+  border-radius:
+    0 6px 6px 0;
+
   background: #6366f1;
 }
 
+
 /* =========================================================
-   FOOTER / LOGOUT
+   FOOTER
    ========================================================= */
 
 .mentor-sidebar .sidebar-footer {
+
   flex-shrink: 0;
+
   padding: 12px;
+
   border-top: 1px solid var(--sb-border);
 }
 
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
 .mentor-sidebar .logout-btn {
+
   width: 100%;
 
   display: flex;
+
   align-items: center;
+
   gap: 12px;
 
   padding: 10px 12px;
 
-  border: 1px solid var(--admin-border, #e5e7eb);
+  border: 1px solid
+    var(--admin-border, #e5e7eb);
+
   border-radius: 8px;
 
   background: #ffffff;
-  color: var(--admin-text-secondary, #475569);
+
+  color:
+    var(
+      --admin-text-secondary,
+      #475569
+    );
 
   font-family: inherit;
+
   font-size: 13px;
+
   font-weight: 500;
 
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
-.mentor-sidebar .logout-btn svg {
-  flex-shrink: 0;
-  color: var(--admin-text-muted, #94a3b8);
-  transition: color 0.2s ease;
+
+/* =========================================================
+   LOGOUT ICON
+   ========================================================= */
+
+.mentor-sidebar .logout-btn .nav-icon {
+
+  color:
+    var(
+      --admin-text-muted,
+      #94a3b8
+    );
+
+  transition:
+    color 0.2s ease;
 }
+
+
+/* =========================================================
+   LOGOUT HOVER
+   ========================================================= */
 
 .mentor-sidebar .logout-btn:hover {
+
   background: #fee2e2;
+
   border-color: #fecaca;
+
   color: #dc2626;
 }
 
-.mentor-sidebar .logout-btn:hover svg { color: #dc2626; }
+.mentor-sidebar .logout-btn:hover .nav-icon {
+
+  color: #dc2626;
+}
+
 
 /* =========================================================
-   COLLAPSED RAIL (desktop)
+   COLLAPSED RAIL
    ========================================================= */
 
 .mentor-sidebar.collapsed {
-  width: var(--admin-sidebar-collapsed-width, 76px);
+
+  width:
+    var(
+      --admin-sidebar-collapsed-width,
+      76px
+    );
 }
 
-.mentor-sidebar.collapsed .sidebar-logo { justify-content: center; padding: 0; }
 
-.mentor-sidebar.collapsed .sidebar-logo > div:last-child,
-.mentor-sidebar.collapsed .sidebar-link span,
-.mentor-sidebar.collapsed .logout-btn span,
-.mentor-sidebar.collapsed .nav-category {
+/* =========================================================
+   COLLAPSED HEADER
+   ========================================================= */
+
+.mentor-sidebar.collapsed .sidebar-header {
+
+  justify-content: center;
+
+  padding: 0;
+}
+
+
+/* =========================================================
+   HIDE TEXT WHEN COLLAPSED
+   ========================================================= */
+
+.mentor-sidebar.collapsed .logo-text,
+.mentor-sidebar.collapsed .nav-label,
+.mentor-sidebar.collapsed .nav-category,
+.mentor-sidebar.collapsed .logout-btn span {
+
   display: none;
 }
 
+
+/* =========================================================
+   CENTER COLLAPSED ITEMS
+   ========================================================= */
+
 .mentor-sidebar.collapsed .sidebar-link,
 .mentor-sidebar.collapsed .logout-btn {
+
   justify-content: center;
+
   padding-left: 0;
   padding-right: 0;
 }
 
-/* tooltip when collapsed (data-title is already on the links) */
+
+/* =========================================================
+   COLLAPSED TOOLTIP
+   ========================================================= */
+
 .mentor-sidebar.collapsed .sidebar-link::after {
+
   content: attr(data-title);
 
   position: absolute;
+
   left: calc(100% + 10px);
+
   top: 50%;
+
   transform: translateY(-50%);
 
   padding: 6px 10px;
+
   border-radius: 8px;
 
   background: #1f2937;
+
   color: #ffffff;
 
   font-size: 12px;
+
   font-weight: 500;
+
   white-space: nowrap;
 
   opacity: 0;
+
   pointer-events: none;
 
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
-  transition: opacity 0.2s ease;
+  box-shadow:
+    0 4px 12px
+    rgba(15, 23, 42, 0.18);
+
+  transition:
+    opacity 0.2s ease;
+
+  z-index: 10;
 }
 
-.mentor-sidebar.collapsed .sidebar-link:hover::after { opacity: 1; }
+
+.mentor-sidebar.collapsed
+.sidebar-link:hover::after {
+
+  opacity: 1;
+}
+
 
 /* =========================================================
    MOBILE DRAWER
@@ -297,40 +624,118 @@
 @media (max-width: 900px) {
 
   .mentor-sidebar {
+
     transform: translateX(-100%);
+
     box-shadow: none;
   }
 
+
   .mentor-sidebar.mobile-open {
+
     transform: translateX(0);
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+
+    box-shadow:
+      0 12px 30px
+      rgba(15, 23, 42, 0.12);
   }
 
-  /* never collapse to a rail on mobile */
-  .mentor-sidebar.collapsed { width: var(--admin-sidebar-width, 260px); }
 
-  .mentor-sidebar.collapsed .sidebar-link span,
-  .mentor-sidebar.collapsed .logout-btn span,
+  /* Never collapse to rail on mobile */
+
+  .mentor-sidebar.collapsed {
+
+    width:
+      var(
+        --admin-sidebar-width,
+        260px
+      );
+  }
+
+
+  .mentor-sidebar.collapsed .logo-text,
+  .mentor-sidebar.collapsed .nav-label,
   .mentor-sidebar.collapsed .nav-category,
-  .mentor-sidebar.collapsed .sidebar-logo > div:last-child {
+  .mentor-sidebar.collapsed .logout-btn span {
+
     display: block;
   }
 
+
   .mentor-sidebar.collapsed .sidebar-link,
   .mentor-sidebar.collapsed .logout-btn {
+
     justify-content: flex-start;
+
     padding-left: 12px;
+
     padding-right: 12px;
   }
 
-  .mentor-sidebar.collapsed .sidebar-logo {
-    justify-content: flex-start;
+
+  .mentor-sidebar.collapsed .sidebar-header {
+
+    justify-content: space-between;
+
     padding: 0 20px;
+  }
+
+
+  .mentor-sidebar.collapsed .logo-title,
+  .mentor-sidebar.collapsed .logo-mentor-name {
+
+    display: block;
   }
 }
 
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  .mentor-sidebar {
+
+    width:
+      min(
+        var(--admin-sidebar-width, 260px),
+        85vw
+      );
+  }
+
+  .mentor-sidebar.collapsed {
+
+    width:
+      min(
+        var(--admin-sidebar-width, 260px),
+        85vw
+      );
+  }
+
+  .mentor-sidebar .logo-text {
+
+    max-width: 150px;
+  }
+
+  .mentor-sidebar .logo-mentor-name {
+
+    max-width: 150px;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
 @media (prefers-reduced-motion: reduce) {
+
   .mentor-sidebar,
   .mentor-sidebar .sidebar-link,
-  .mentor-sidebar .logout-btn { transition: none; }
+  .mentor-sidebar .logout-btn,
+  .mentor-sidebar .nav-icon {
+
+    transition: none;
+  }
 }

@@ -1,14 +1,9 @@
 /* =========================================================
-   ZSMARTCLASS - ADMIN SIDEBAR  (LIGHT THEME)
-   Fixed navigation rail
-   Tokens come from admin-theme.css; the sidebar-specific
-   colours are overridden below so you do NOT need to edit
-   admin-theme.css.
+   ZSMARTCLASS - ADMIN SIDEBAR
+   LIGHT THEME + ZSMARTCLASS BRANDING
    ========================================================= */
 
 .admin-sidebar {
-
-  /* ---------- Light sidebar palette ---------- */
   --sb-bg: #ffffff;
   --sb-border: #eef0f4;
   --sb-text: #64748b;
@@ -41,25 +36,29 @@
 
 
 /* =========================================================
-   LOGO
+   ZSMARTCLASS LOGO
    ========================================================= */
 
 .admin-sidebar .sidebar-logo {
   display: flex;
   align-items: center;
-  gap: var(--admin-space-3);
+  gap: 12px;
 
   flex-shrink: 0;
 
   height: var(--admin-header-height);
-  padding: 0 var(--admin-space-5);
+
+  padding: 0 20px;
 
   border-bottom: 1px solid var(--sb-border);
 }
 
-.admin-sidebar .logo-circle {
-  width: 38px;
-  height: 38px;
+
+/* Yellow ZC square */
+
+.admin-sidebar .logo-mark {
+  width: 44px;
+  height: 44px;
 
   flex-shrink: 0;
 
@@ -67,37 +66,58 @@
   align-items: center;
   justify-content: center;
 
-  border-radius: var(--admin-radius-lg);
+  border-radius: 13px;
 
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: #ffbd28;
 
-  color: #ffffff;
-  font-size: var(--admin-font-xl);
-  font-weight: 700;
+  color: #171717;
 
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow:
+    0 6px 16px rgba(255, 189, 40, 0.28);
 }
 
-.admin-sidebar .sidebar-logo h2 {
+.admin-sidebar .logo-mark span {
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: 19px;
+  font-weight: 500;
+
+  letter-spacing: -1px;
+}
+
+
+/* Brand text */
+
+.admin-sidebar .logo-brand-text {
+  min-width: 0;
+}
+
+.admin-sidebar .logo-brand-text h2 {
   margin: 0;
 
-  color: var(--admin-text);
+  color: #303030;
+
   font-size: 15px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.2px;
+  font-weight: 700;
+
+  line-height: 1.15;
+
+  letter-spacing: 0.2px;
 
   white-space: nowrap;
 }
 
-.admin-sidebar .sidebar-logo p {
-  margin: 2px 0 0;
+.admin-sidebar .logo-brand-text p {
+  margin: 4px 0 0;
 
-  color: var(--sb-category);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
+  color: #969696;
+
+  font-size: 9px;
+  font-weight: 600;
+
+  line-height: 1;
+
+  letter-spacing: 0.7px;
 
   white-space: nowrap;
 }
@@ -111,7 +131,7 @@
   flex: 1;
   min-height: 0;
 
-  padding: var(--admin-space-4) var(--admin-space-3);
+  padding: 16px 12px;
 
   overflow-y: auto;
   overflow-x: hidden;
@@ -123,7 +143,7 @@
 
 .admin-sidebar .sidebar-nav::-webkit-scrollbar-thumb {
   background: #dfe3ec;
-  border-radius: var(--admin-radius-full);
+  border-radius: 999px;
 }
 
 .admin-sidebar .sidebar-nav::-webkit-scrollbar-thumb:hover {
@@ -135,59 +155,71 @@
 }
 
 
-/* ---------- Group label ---------- */
+/* =========================================================
+   CATEGORY
+   ========================================================= */
 
 .admin-sidebar .nav-category {
-  padding: var(--admin-space-4) var(--admin-space-3) var(--admin-space-2);
+  padding: 16px 12px 8px;
 
   color: var(--sb-category);
+
   font-size: 10px;
   font-weight: 600;
+
   letter-spacing: 1px;
+
   text-transform: uppercase;
 
   white-space: nowrap;
 }
 
 .admin-sidebar .sidebar-nav > div:first-child .nav-category {
-  padding-top: var(--admin-space-1);
+  padding-top: 4px;
 }
 
 
-/* ---------- Link ---------- */
+/* =========================================================
+   LINKS
+   ========================================================= */
 
 .admin-sidebar .sidebar-link {
   position: relative;
 
   display: flex;
   align-items: center;
-  gap: var(--admin-space-3);
 
-  padding: 10px var(--admin-space-3);
+  gap: 12px;
+
+  padding: 10px 12px;
+
   margin-bottom: 2px;
 
-  border-radius: var(--admin-radius-md);
+  border-radius: 8px;
 
   color: var(--sb-text);
-  font-size: var(--admin-font-md);
+
+  font-size: 13px;
   font-weight: 500;
+
   text-decoration: none;
 
   white-space: nowrap;
 
   transition:
-    background var(--admin-transition),
-    color var(--admin-transition);
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .admin-sidebar .sidebar-link svg {
   flex-shrink: 0;
+
   width: 19px;
   height: 19px;
 
   color: #94a3b8;
 
-  transition: color var(--admin-transition);
+  transition: color 0.2s ease;
 }
 
 .admin-sidebar .sidebar-link:hover {
@@ -196,12 +228,14 @@
 }
 
 .admin-sidebar .sidebar-link:hover svg {
-  color: var(--admin-primary);
+  color: #6366f1;
 }
 
 .admin-sidebar .sidebar-link.active {
   background: var(--sb-active-bg);
+
   color: var(--sb-active-text);
+
   font-weight: 600;
 }
 
@@ -209,21 +243,25 @@
   color: var(--sb-active-text);
 }
 
-/* active indicator bar */
+
+/* Active indicator */
+
 .admin-sidebar .sidebar-link.active::before {
   content: "";
 
   position: absolute;
+
   left: -12px;
   top: 50%;
+
   transform: translateY(-50%);
 
   width: 3px;
   height: 20px;
 
-  border-radius: 0 var(--admin-radius-sm) var(--admin-radius-sm) 0;
+  border-radius: 0 6px 6px 0;
 
-  background: var(--admin-primary);
+  background: #6366f1;
 }
 
 
@@ -234,7 +272,7 @@
 .admin-sidebar .sidebar-footer {
   flex-shrink: 0;
 
-  padding: var(--admin-space-3);
+  padding: 12px;
 
   border-top: 1px solid var(--sb-border);
 }
@@ -244,46 +282,50 @@
 
   display: flex;
   align-items: center;
-  gap: var(--admin-space-3);
 
-  padding: 10px var(--admin-space-3);
+  gap: 12px;
 
-  border: 1px solid var(--admin-border);
-  border-radius: var(--admin-radius-md);
+  padding: 10px 12px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 8px;
 
   background: #ffffff;
-  color: var(--admin-text-secondary);
+
+  color: #475569;
 
   font-family: inherit;
-  font-size: var(--admin-font-md);
+
+  font-size: 13px;
   font-weight: 500;
 
   cursor: pointer;
 
-  transition: all var(--admin-transition);
+  transition: all 0.2s ease;
 }
 
 .admin-sidebar .logout-btn svg {
   flex-shrink: 0;
-  color: var(--admin-text-muted);
 
-  transition: color var(--admin-transition);
+  color: #94a3b8;
 }
 
 .admin-sidebar .logout-btn:hover {
-  background: var(--admin-danger-light);
+  background: #fee2e2;
+
   border-color: #fecaca;
-  color: var(--admin-danger);
+
+  color: #dc2626;
 }
 
 .admin-sidebar .logout-btn:hover svg {
-  color: var(--admin-danger);
+  color: #dc2626;
 }
 
 
 /* =========================================================
-   COLLAPSED RAIL (desktop)
-   Add `collapsed` to .admin-sidebar to enable
+   COLLAPSED SIDEBAR
    ========================================================= */
 
 .admin-sidebar.collapsed {
@@ -292,10 +334,11 @@
 
 .admin-sidebar.collapsed .sidebar-logo {
   justify-content: center;
+
   padding: 0;
 }
 
-.admin-sidebar.collapsed .sidebar-logo > div:last-child,
+.admin-sidebar.collapsed .logo-brand-text,
 .admin-sidebar.collapsed .sidebar-link span,
 .admin-sidebar.collapsed .logout-btn span,
 .admin-sidebar.collapsed .nav-category {
@@ -305,36 +348,49 @@
 .admin-sidebar.collapsed .sidebar-link,
 .admin-sidebar.collapsed .logout-btn {
   justify-content: center;
+
   padding-left: 0;
   padding-right: 0;
 }
 
-/* tooltip on hover when collapsed (uses data-title from the JSX) */
+
+/* =========================================================
+   COLLAPSED TOOLTIP
+   ========================================================= */
+
 .admin-sidebar.collapsed .sidebar-link::after {
   content: attr(data-title);
 
   position: absolute;
+
   left: calc(100% + 10px);
   top: 50%;
+
   transform: translateY(-50%);
 
   padding: 6px 10px;
 
-  border-radius: var(--admin-radius-md);
+  border-radius: 6px;
 
   background: #1f2937;
+
   color: #ffffff;
 
-  font-size: var(--admin-font-sm);
+  font-size: 12px;
   font-weight: 500;
+
   white-space: nowrap;
 
   opacity: 0;
+
   pointer-events: none;
 
-  box-shadow: var(--admin-shadow-md);
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.18);
 
-  transition: opacity var(--admin-transition);
+  transition: opacity 0.2s ease;
+
+  z-index: 1000;
 }
 
 .admin-sidebar.collapsed .sidebar-link:hover::after {
@@ -343,44 +399,47 @@
 
 
 /* =========================================================
-   MOBILE DRAWER
-   Slides in when `.mobile-open` is present
+   MOBILE
    ========================================================= */
 
 @media (max-width: 900px) {
 
   .admin-sidebar {
     transform: translateX(-100%);
+
     box-shadow: none;
   }
 
   .admin-sidebar.mobile-open {
     transform: translateX(0);
-    box-shadow: var(--admin-shadow-lg);
+
+    box-shadow:
+      0 12px 30px rgba(15, 23, 42, 0.12);
   }
 
-  /* never collapse to a rail on mobile */
   .admin-sidebar.collapsed {
     width: var(--admin-sidebar-width);
   }
 
+  .admin-sidebar.collapsed .logo-brand-text,
   .admin-sidebar.collapsed .sidebar-link span,
   .admin-sidebar.collapsed .logout-btn span,
-  .admin-sidebar.collapsed .nav-category,
-  .admin-sidebar.collapsed .sidebar-logo > div:last-child {
+  .admin-sidebar.collapsed .nav-category {
     display: block;
   }
 
   .admin-sidebar.collapsed .sidebar-link,
   .admin-sidebar.collapsed .logout-btn {
     justify-content: flex-start;
-    padding-left: var(--admin-space-3);
-    padding-right: var(--admin-space-3);
+
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   .admin-sidebar.collapsed .sidebar-logo {
     justify-content: flex-start;
-    padding: 0 var(--admin-space-5);
+
+    padding: 0 20px;
   }
 }
 
@@ -392,8 +451,8 @@
 @media (prefers-reduced-motion: reduce) {
 
   .admin-sidebar,
-  .sidebar-link,
-  .logout-btn {
+  .admin-sidebar .sidebar-link,
+  .admin-sidebar .logout-btn {
     transition: none;
   }
 }

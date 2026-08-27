@@ -1,7 +1,6 @@
 // src/pages/mentor/QuizMarks.jsx
 
 import { useEffect, useMemo, useState } from "react";
-
 import {
   Search,
   RefreshCw,
@@ -39,6 +38,8 @@ function QuizMarks() {
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [loadingModules, setLoadingModules] = useState(false);
   const [loadingMarks, setLoadingMarks] = useState(false);
+
+  const [refreshing, setRefreshing] = useState(false);
 
   const [error, setError] = useState("");
 
@@ -105,19 +106,16 @@ function QuizMarks() {
       setLoadingModules(true);
       setError("");
 
-      // Get course details which includes its modules
       const res = await api.get(`/courses/${courseId}`);
 
       const courseData = res.data?.data || res.data;
 
-      // The course data should have a modules array
       const modules = courseData.modules || [];
 
       console.log(`Modules for course ${courseId}:`, modules);
 
       setFilteredModules(modules);
 
-      // Auto-select first module if only one exists
       if (modules.length === 1) {
         setSelectedModule(String(modules[0].id));
 
@@ -130,7 +128,6 @@ function QuizMarks() {
     } catch (err) {
       console.error("Error fetching modules for course:", err);
 
-      // Fallback: filter from all modules
       const fallbackModules = allModules.filter((m) => {
         if (m.courseId !== null && m.courseId !== undefined) {
           return String(m.courseId) === String(courseId);
@@ -214,7 +211,6 @@ function QuizMarks() {
         return;
       }
 
-      // Fetch every quiz's marks in parallel
       const results = await Promise.all(
         quizzes.map(async (quiz) => {
           try {
@@ -299,17 +295,39 @@ function QuizMarks() {
   ========================================================= */
 
   const handleRefresh = async () => {
-    setError("");
+    if (refreshing) return;
 
-    await fetchCourses();
-    await fetchAllModules();
+    try {
+      setRefreshing(true);
+      setError("");
 
-    if (selectedCourse) {
-      await fetchModulesForCourse(selectedCourse);
+      /*
+       * Remember current selections before refreshing.
+       * This prevents the refresh from losing the
+       * currently selected course/module.
+       */
+      const currentCourse = selectedCourse;
+      const currentModule = selectedModule;
 
-      if (selectedModule) {
-        await loadModuleData(selectedModule);
+      await fetchCourses();
+      await fetchAllModules();
+
+      if (currentCourse) {
+        await fetchModulesForCourse(currentCourse);
+
+        if (currentModule) {
+          await loadModuleData(currentModule);
+        }
       }
+    } catch (err) {
+      console.error("Refresh failed:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "Failed to refresh quiz marks."
+      );
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -488,6 +506,25 @@ function QuizMarks() {
 
         </div>
 
+        {/* HEADER REFRESH BUTTON */}
+        <button
+          type="button"
+          className="quiz-header-refresh-btn"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Refresh quiz marks"
+          aria-label="Refresh quiz marks"
+        >
+          <RefreshCw
+            size={20}
+            className={
+              refreshing
+                ? "quiz-refresh-spin"
+                : ""
+            }
+          />
+        </button>
+
       </div>
 
       {/* =====================================================
@@ -599,38 +636,45 @@ function QuizMarks() {
       {!loadingCourses &&
         courses.length === 0 && (
 
-          <div className="quiz-marks-empty">
+        <div className="quiz-marks-empty">
 
-            <Layers size={46} />
+          <Layers size={46} />
 
-            <h2>
-              No Courses Found
-            </h2>
+          <h2>
+            No Courses Found
+          </h2>
 
-            <p>
-              Create a course first,
-              then add modules and
-              quizzes to it.
-            </p>
+          <p>
+            Create a course first,
+            then add modules and
+            quizzes to it.
+          </p>
 
-            <button
-              className="refresh-button"
-              onClick={
-                handleRefresh
+          <button
+            type="button"
+            className="refresh-button"
+            onClick={
+              handleRefresh
+            }
+            disabled={refreshing}
+          >
+
+            <RefreshCw
+              size={16}
+              className={
+                refreshing
+                  ? "spin"
+                  : ""
               }
-            >
+            />
 
-              <RefreshCw
-                size={16}
-              />
+            Refresh Courses
 
-              Refresh Courses
+          </button>
 
-            </button>
+        </div>
 
-          </div>
-
-        )}
+      )}
 
       {/* =====================================================
           NO MODULES
@@ -643,26 +687,26 @@ function QuizMarks() {
           0 &&
         !error && (
 
-          <div className="quiz-marks-empty">
+        <div className="quiz-marks-empty">
 
-            <BookOpen size={44} />
+          <BookOpen size={44} />
 
-            <h2>
-              No Modules Found
-            </h2>
+          <h2>
+            No Modules Found
+          </h2>
 
-            <p>
-              No modules have been
-              added to{" "}
-              <strong>
-                {selectedCourseData?.title}
-              </strong>{" "}
-              yet.
-            </p>
+          <p>
+            No modules have been
+            added to{" "}
+            <strong>
+              {selectedCourseData?.title}
+            </strong>{" "}
+            yet.
+          </p>
 
-          </div>
+        </div>
 
-        )}
+      )}
 
       {/* =====================================================
           MODULE NOT SELECTED
@@ -675,24 +719,24 @@ function QuizMarks() {
         filteredModules.length >
           0 && (
 
-          <div className="quiz-marks-empty">
+        <div className="quiz-marks-empty">
 
-            <Trophy size={44} />
+          <Trophy size={44} />
 
-            <h2>
-              Select a Module
-            </h2>
+          <h2>
+            Select a Module
+          </h2>
 
-            <p>
-              Choose a module above
-              to see how students
-              performed on its
-              quizzes.
-            </p>
+          <p>
+            Choose a module above
+            to see how students
+            performed on its
+            quizzes.
+          </p>
 
-          </div>
+        </div>
 
-        )}
+      )}
 
       {/* =====================================================
           COURSE NOT SELECTED
@@ -702,23 +746,23 @@ function QuizMarks() {
         courses.length > 0 &&
         !loadingCourses && (
 
-          <div className="quiz-marks-empty">
+        <div className="quiz-marks-empty">
 
-            <Trophy size={44} />
+          <Trophy size={44} />
 
-            <h2>
-              Select a Course
-            </h2>
+          <h2>
+            Select a Course
+          </h2>
 
-            <p>
-              Choose a course above
-              to see its modules and
-              quiz performance.
-            </p>
+          <p>
+            Choose a course above
+            to see its modules and
+            quiz performance.
+          </p>
 
-          </div>
+        </div>
 
-        )}
+      )}
 
       {/* =====================================================
           SELECTED MODULE
@@ -833,30 +877,6 @@ function QuizMarks() {
 
             )}
 
-            <button
-              className="refresh-button"
-              onClick={
-                handleRefresh
-              }
-              disabled={
-                loadingMarks ||
-                loadingModules
-              }
-            >
-
-              <RefreshCw
-                size={17}
-                className={
-                  loadingMarks
-                    ? "spin"
-                    : ""
-                }
-              />
-
-              Refresh
-
-            </button>
-
           </div>
 
           {/* =================================================
@@ -955,23 +975,23 @@ function QuizMarks() {
             moduleQuizzes.length ===
               0 && (
 
-              <div className="quiz-marks-empty">
+            <div className="quiz-marks-empty">
 
-                <BookOpen size={45} />
+              <BookOpen size={45} />
 
-                <h2>
-                  No Quizzes Found
-                </h2>
+              <h2>
+                No Quizzes Found
+              </h2>
 
-                <p>
-                  No quizzes have been
-                  added to this module
-                  yet.
-                </p>
+              <p>
+                No quizzes have been
+                added to this module
+                yet.
+              </p>
 
-              </div>
+            </div>
 
-            )}
+          )}
 
           {/* =================================================
               MARKS TABLE
