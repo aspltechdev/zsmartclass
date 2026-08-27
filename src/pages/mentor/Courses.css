@@ -885,3 +885,77 @@
   }
 
 }
+
+/* =========================================================
+   MENTOR — COMMON PAGE ALIGNMENT
+   Same page padding + heading/icon position as Certificates.
+   ONLY alignment is controlled here.
+   ========================================================= */
+
+.mentor-assignments,
+.mentor-assignment-submissions,
+.mentor-courses,
+.cert-page {
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* Standard page heading */
+.assignment-header h1,
+.assignment-submission-title h1,
+.course-title,
+.cert-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+/* Standard page heading icon */
+.assignment-header h1 svg,
+.assignment-submission-title svg,
+.course-title svg,
+.cert-header h1 svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: #0f172a;
+  stroke: #0f172a;
+  stroke-width: 2;
+}
+
+/* Keep the description directly below the heading */
+.assignment-header p,
+.assignment-submission-header p {
+  margin: 6px 0 0;
+}
+
+/* Submission title wrapper should not add extra spacing */
+.assignment-submission-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+}
+
+@media (max-width: 768px) {
+  .assignment-header h1,
+  .assignment-submission-title h1,
+  .course-title,
+  .cert-header h1 {
+    font-size: 21px;
+    gap: 8px;
+  }
+
+  .assignment-header h1 svg,
+  .assignment-submission-title svg,
+  .course-title svg,
+  .cert-header h1 svg {
+    width: 21px;
+    height: 21px;
+  }
+}
