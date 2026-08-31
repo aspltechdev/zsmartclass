@@ -78,7 +78,24 @@ function AdminReports() {
       setRevenue(unwrap(rev) || { labels: [], data: [], total: 0, growth: 0 });
       setEnroll(unwrap(en) || { labels: [], data: [], total: 0, growth: 0 });
       setCourses(unwrap(co) || []);
-      setUsers(unwrap(us) || []);
+      /*
+       * /reports/users nests the counts under `stats`:
+       *   { id, name, email, role, createdAt, stats: { enrollments, certificates, ... } }
+       * The UI reads them at the top level, so flatten here — otherwise the
+       * leaderboard sorts on undefined and the directory renders blanks.
+       */
+      const rawUsers = unwrap(us) || [];
+      setUsers(
+        (Array.isArray(rawUsers) ? rawUsers : []).map((u) => ({
+          ...u,
+          enrollments: Number(u?.stats?.enrollments ?? u?.enrollments ?? 0),
+          completedCourses: Number(
+            u?.stats?.completedCourses ?? u?.completedCourses ?? 0
+          ),
+          certificates: Number(u?.stats?.certificates ?? u?.certificates ?? 0),
+          reviews: Number(u?.stats?.reviews ?? u?.reviews ?? 0),
+        }))
+      );
       setPayments(unwrap(pa) || { labels: [], data: [], totals: {} });
       setRevByCourse(unwrap(rbc) || []);
 
@@ -193,7 +210,7 @@ function AdminReports() {
 
   // Reports focus on learners, so mentors/admins are excluded everywhere.
   const students = useMemo(
-    () => users.filter((u) => (u.role || "").toUpperCase() === "STUDENT"),
+    () => users.filter((u) => String(u?.role || "").toUpperCase() === "STUDENT"),
     [users]
   );
 
@@ -317,6 +334,7 @@ function AdminReports() {
       {/* ---------- Header ---------- */}
       <div className="rp-header">
         <div className="rp-header-text">
+          <span className="rp-eyebrow">Analytics</span>
           <h1><BarChart3 size={24} /> Reports</h1>
           <p>Track revenue, course performance and learner progress.</p>
         </div>
