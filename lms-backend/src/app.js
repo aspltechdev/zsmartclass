@@ -5,7 +5,15 @@ const path = require("path");
 const app = express();
 
 // ✅ CRITICAL FIX: Add this middleware to handle form-data (including profile images)
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://charming-halva-46d1f8.netlify.app",
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 
