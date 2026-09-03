@@ -1250,17 +1250,17 @@ function AdminCertificates() {
                             width: "5.94cqw",
                             height: "5.94cqw",
                             borderRadius: "1.3cqw",
-                            background: "linear-gradient(135deg,#7A8BF5,#7048C6)",
-                            color: "#fff",
+                            background: "linear-gradient( #ffbd28, #ffbd28)",
+                            color: "#1b1616",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             fontFamily: "Georgia, 'Times New Roman', serif",
                             fontSize: "3.4cqw",
-                            fontWeight: 700,
+                            fontWeight: 500,
                           }}
                         >
-                          Z
+                          ZC
                         </div>
                         <span style={{ fontSize: "1.7cqw", fontWeight: 700, color: templateForm.textColor || "#1a1a2e" }}>
                           ZSmartClass
