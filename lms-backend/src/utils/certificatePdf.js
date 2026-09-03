@@ -53,7 +53,7 @@ class CertificatePdfGenerator {
   }
 
   /**
-   * Draw the brand logo (gradient rounded square + "Z") with the wordmark.
+   * Draw the brand logo (gradient rounded square + "ZC") with the wordmark.
    */
   drawLogoWithText(doc, x, y, size = 50) {
     const radius = size * 0.22;
@@ -68,21 +68,21 @@ class CertificatePdfGenerator {
              A ${radius} ${radius} 0 0 1 ${x} ${y + size - radius} 
              L ${x} ${y + radius} 
              A ${radius} ${radius} 0 0 1 ${x + radius} ${y} 
-             Z`);
+             ZC`);
 
     const gradient = doc.linearGradient(x, y, x + size, y + size);
-    gradient.stop(0, '#7A8BF5');
-    gradient.stop(1, '#7048C6');
+    gradient.stop(0, '#ffbd28');
+    gradient.stop(1, '#ffbd28');
     doc.fill(gradient);
 
     const cx = x + (size / 2);
     const cy = y + (size / 2);
     const charSize = size * 0.55;
 
-    doc.fillColor('#ffffff')
+    doc.fillColor('#070707')
        .font('Times-Roman')
        .fontSize(charSize)
-       .text('Z', cx - (charSize / 3), cy - (charSize / 2.2), {
+       .text('ZC', cx - (charSize / 1.8), cy - (charSize / 3), {
          width: size,
          align: 'left'
        });
