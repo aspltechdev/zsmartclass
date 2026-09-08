@@ -1,6 +1,11 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
+
+const UPLOAD_ROOT = process.env.VERCEL
+  ? path.join(os.tmpdir(), "uploads")
+  : path.join(process.cwd(), "uploads");
 
 // Ensure upload folders exist
 const createFolder = (folder) => {
@@ -9,36 +14,30 @@ const createFolder = (folder) => {
     }
 };
 
-createFolder("uploads/thumbnails");
-createFolder("uploads/resources");
-createFolder("uploads/documents");
-createFolder("uploads/profile-images");
-createFolder("uploads/videos");
-createFolder("uploads/submissions");
+createFolder(path.join(UPLOAD_ROOT, "thumbnails"));
+createFolder(path.join(UPLOAD_ROOT, "resources"));
+createFolder(path.join(UPLOAD_ROOT, "documents"));
+createFolder(path.join(UPLOAD_ROOT, "profile-images"));
+createFolder(path.join(UPLOAD_ROOT, "videos"));
+createFolder(path.join(UPLOAD_ROOT, "submissions"));
 
 const storage = multer.diskStorage({
 
     destination: (req, file, cb) => {
 
         if (file.fieldname === "thumbnail") {
-            cb(null, "uploads/thumbnails");
+            cb(null, path.join(UPLOAD_ROOT, "thumbnails"));
+        } else if (file.fieldname === "resource") {
+            cb(null, path.join(UPLOAD_ROOT, "resources"));
+        } else if (file.fieldname === "profileImage") {
+            cb(null, path.join(UPLOAD_ROOT, "profile-images"));
+        } else if (file.fieldname === "video") {
+            cb(null, path.join(UPLOAD_ROOT, "videos"));
+        } else if (file.fieldname === "submission") {
+            cb(null, path.join(UPLOAD_ROOT, "submissions"));
+        } else {
+            cb(null, path.join(UPLOAD_ROOT, "documents"));
         }
-        else if (file.fieldname === "resource") {
-            cb(null, "uploads/resources");
-        }
-        else if (file.fieldname === "profileImage") {
-            cb(null, "uploads/profile-images");
-        }
-        else if (file.fieldname === "video") {
-            cb(null, "uploads/videos");
-        }
-        else if (file.fieldname === "submission") {
-            cb(null, "uploads/submissions");
-        }
-        else {
-            cb(null, "uploads/documents");
-        }
-
     },
 
     filename: (req, file, cb) => {
