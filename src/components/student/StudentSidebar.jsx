@@ -134,7 +134,7 @@ const StudentSidebar = ({
             <div className="logo-text">
 
               <span className="logo-title">
-                ZSMARTCLASS
+                ZMARTCLASS
               </span>
 
               <span

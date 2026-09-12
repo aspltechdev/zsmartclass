@@ -132,7 +132,7 @@ function AdminSidebar({
         </div>
 
         <div className="logo-brand-text">
-          <h2>ZSMARTCLASS</h2>
+          <h2>ZMARTCLASS</h2>
           <p>ADMINISTRATOR</p>
         </div>
       </div>
