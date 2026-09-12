@@ -1,12 +1,6 @@
 /* =========================================================
    MENTOR — ASSIGNMENTS
    Page-specific styles only.
-   Shared buttons, cards, modals and common layout come
-   from MentorShared.css.
-   ========================================================= */
-
-/* =========================================================
-   MENTOR — ASSIGNMENTS
    ========================================================= */
 
 .mentor-assignments {
@@ -14,19 +8,19 @@
   min-height: 100%;
   box-sizing: border-box;
 
-  /* Closer to header + sidebar */
   padding: 0 4px 24px 4px;
 
   background: #f8fafc;
   color: #0f172a;
 
   font-family:
-    'Poppins',
+    "Poppins",
     system-ui,
-    'Segoe UI',
+    "Segoe UI",
     Roboto,
     sans-serif;
 }
+
 
 /* =========================================================
    PAGE HEADER
@@ -39,7 +33,6 @@
 
   gap: 20px;
 
-  /* Pull heading closer to the top */
   margin: 0 0 18px;
   padding: 0;
 }
@@ -79,6 +72,7 @@
   line-height: 1.5;
 }
 
+
 /* =========================================================
    ADD ASSIGNMENT BUTTON
    ========================================================= */
@@ -86,6 +80,7 @@
 .assignment-header .add-assignment-btn {
   flex-shrink: 0;
 }
+
 
 /* =========================================================
    ASSIGNMENT TABLE / LIST
@@ -113,10 +108,6 @@
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
-/* =========================================================
-   TABLE HEADER
-   ========================================================= */
-
 .assignment-table thead th {
   padding: 15px 20px;
 
@@ -136,10 +127,6 @@
 
   white-space: nowrap;
 }
-
-/* =========================================================
-   TABLE BODY
-   ========================================================= */
 
 .assignment-table tbody td {
   padding: 18px 20px;
@@ -168,6 +155,7 @@
   background: #fafbff;
 }
 
+
 /* =========================================================
    ASSIGNMENT TITLE
    ========================================================= */
@@ -180,6 +168,7 @@
 
   overflow-wrap: anywhere;
 }
+
 
 /* =========================================================
    COURSE NAME
@@ -194,6 +183,7 @@
   overflow-wrap: anywhere;
 }
 
+
 /* =========================================================
    DUE DATE
    ========================================================= */
@@ -206,6 +196,7 @@
 
   white-space: nowrap;
 }
+
 
 /* =========================================================
    TOTAL MARKS
@@ -220,6 +211,7 @@
   white-space: nowrap;
 }
 
+
 /* =========================================================
    ACTIONS
    ========================================================= */
@@ -232,8 +224,6 @@
 
   white-space: nowrap;
 }
-
-/* View button */
 
 .assignment-view-btn {
   width: 40px;
@@ -275,6 +265,7 @@
   width: 18px;
   height: 18px;
 }
+
 
 /* =========================================================
    EMPTY STATE
@@ -322,61 +313,145 @@
   font-size: 13px;
 }
 
+
 /* =========================================================
    ASSIGNMENT MODAL
    ========================================================= */
 
 .assignment-modal {
-  width: min(620px, 100%);
-}
+  width: min(620px, calc(100vw - 32px));
 
-.assignment-modal-large {
-  width: min(820px, 100%);
-}
+  max-height: calc(100vh - 40px);
 
-/* =========================================================
-   FORM
-   ========================================================= */
-
-.assignment-form {
-  display: flex;
-  flex-direction: column;
-
-  gap: 16px;
-}
-
-.assignment-form-group {
-  display: flex;
-  flex-direction: column;
-
-  gap: 6px;
-}
-
-.assignment-form-group label {
-  color: #374151;
-
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.assignment-form-group input,
-.assignment-form-group select,
-.assignment-form-group textarea {
-  width: 100%;
+  overflow-y: auto;
 
   box-sizing: border-box;
 
-  padding: 10px 12px;
+  background: #ffffff;
 
-  border: 1px solid #dbe1ea;
+  border-radius: 18px;
+}
+
+.assignment-modal-large {
+  width: min(820px, calc(100vw - 32px));
+}
+
+
+/* =========================================================
+   MODAL HEADER
+   ========================================================= */
+
+.assignment-modal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 20px 22px 16px;
+
+  border-bottom: 1px solid #eef0f4;
+}
+
+.assignment-modal .modal-header h2 {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.assignment-modal .close-btn {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid #dfe3ea;
   border-radius: 9px;
 
   background: #ffffff;
 
-  color: #0f172a;
+  color: #64748b;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.assignment-modal .close-btn:hover {
+  background: #f8fafc;
+
+  border-color: #cbd5e1;
+
+  color: #111827;
+}
+
+
+/* =========================================================
+   CREATE FORM
+   ========================================================= */
+
+.assignment-modal form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 0;
+
+  padding: 20px 22px 22px;
+}
+
+
+/* =========================================================
+   FORM LABELS
+   ========================================================= */
+
+.assignment-modal form > label {
+  display: block;
+
+  margin: 0 0 7px;
+
+  color: #374151;
+
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+
+/* =========================================================
+   FORM INPUTS
+   ========================================================= */
+
+.assignment-modal form > input,
+.assignment-modal form > select,
+.assignment-modal form > textarea {
+  width: 100%;
+
+  display: block;
+
+  box-sizing: border-box;
+
+  margin: 0 0 16px;
+
+  padding: 11px 13px;
+
+  border: 1px solid #d8dee8;
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #111827;
 
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 13px;
 
   outline: none;
 
@@ -385,45 +460,668 @@
     box-shadow 0.2s ease;
 }
 
-.assignment-form-group input:focus,
-.assignment-form-group select:focus,
-.assignment-form-group textarea:focus {
-  border-color: #818cf8;
-
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.assignment-form-group textarea {
-  min-height: 110px;
-
-  resize: vertical;
-}
 
 /* =========================================================
-   FORM ROW
+   SELECT
    ========================================================= */
 
-.assignment-form-row {
+.assignment-modal form > select {
+  height: 40px;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   TEXT INPUT
+   ========================================================= */
+
+.assignment-modal form > input {
+  height: 40px;
+}
+
+
+/* =========================================================
+   TEXTAREA
+   ========================================================= */
+
+.assignment-modal form > textarea {
+  min-height: 115px;
+
+  resize: vertical;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   INPUT FOCUS
+   ========================================================= */
+
+.assignment-modal form > input:focus,
+.assignment-modal form > select:focus,
+.assignment-modal form > textarea:focus {
+  border-color: #7c6cff;
+
+  box-shadow: 0 0 0 3px rgba(124, 108, 255, 0.1);
+}
+
+
+/* =========================================================
+   PLACEHOLDER
+   ========================================================= */
+
+.assignment-modal input::placeholder,
+.assignment-modal textarea::placeholder {
+  color: #9ca3af;
+}
+
+
+/* =========================================================
+   DATE + TOTAL MARKS ROW
+   ========================================================= */
+
+.assignment-modal form > .row {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+  gap: 16px;
+
+  margin: 0 0 18px;
+}
+
+.assignment-modal form > .row > div {
+  min-width: 0;
+}
+
+.assignment-modal form > .row label {
+  display: block;
+
+  margin: 0 0 7px;
+
+  color: #374151;
+
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+
+/* =========================================================
+   DATE INPUT
+   ========================================================= */
+
+.assignment-modal form > .row input[type="date"] {
+  width: 100%;
+  height: 40px;
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 9px 12px;
+
+  border: 1px solid #d8dee8;
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  font-family: inherit;
+  font-size: 13px;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.assignment-modal form > .row input[type="date"]:focus {
+  border-color: #7c6cff;
+
+  box-shadow: 0 0 0 3px rgba(124, 108, 255, 0.1);
+}
+
+
+/* =========================================================
+   TOTAL MARKS COUNTER
+   ========================================================= */
+
+.assignment-modal .marks-counter {
+  width: 100%;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+
+  box-sizing: border-box;
+
+  border: 1px solid #d8dee8;
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   PLUS / MINUS BUTTONS
+   ========================================================= */
+
+.assignment-modal .marks-btn {
+  width: 40px;
+  height: 40px;
+
+  flex: 0 0 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: none;
+
+  background: #ffffff;
+
+  color: #4b5563;
+
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.assignment-modal .marks-btn:hover {
+  background: #f3f4f6;
+
+  color: #4f46e5;
+}
+
+
+/* =========================================================
+   MARKS NUMBER INPUT
+   ========================================================= */
+
+.assignment-modal .marks-counter input[type="number"] {
+  width: 100%;
+  height: 40px;
+
+  flex: 1;
+
+  min-width: 0;
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0 8px;
+
+  border: none !important;
+
+  border-left: 1px solid #eef0f4 !important;
+  border-right: 1px solid #eef0f4 !important;
+
+  border-radius: 0 !important;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  text-align: center;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  outline: none;
+
+  box-shadow: none !important;
+}
+
+
+/* Remove Chrome number arrows */
+
+.assignment-modal
+  .marks-counter
+  input[type="number"]::-webkit-inner-spin-button,
+.assignment-modal
+  .marks-counter
+  input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+
+  margin: 0;
+}
+
+.assignment-modal
+  .marks-counter
+  input[type="number"] {
+  appearance: textfield;
+}
+
+
+/* =========================================================
+   CREATE ASSIGNMENT BUTTON
+   ========================================================= */
+
+.assignment-modal .submit-btn {
+  width: 100%;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-top: 2px;
+
+  padding: 0 18px;
+
+  border: none;
+  border-radius: 9px;
+
+  background: #6c5ce7;
+
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.assignment-modal .submit-btn:hover {
+  background: #5b4bd5;
+
+  transform: translateY(-1px);
+}
+
+.assignment-modal .submit-btn:active {
+  transform: translateY(0);
+}
+
+
+/* =========================================================
+   VIEW / EDIT ASSIGNMENT
+   ========================================================= */
+
+.assignment-view {
+  display: flex;
+  flex-direction: column;
+
+  padding: 20px 22px 22px;
+}
+
+.assignment-view > label {
+  display: block;
+
+  margin: 0 0 7px;
+
+  color: #374151;
+
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.assignment-view > input,
+.assignment-view > textarea {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  margin: 0 0 16px;
+
+  padding: 11px 13px;
+
+  border: 1px solid #d8dee8;
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  font-family: inherit;
+  font-size: 13px;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.assignment-view > input {
+  height: 40px;
+}
+
+.assignment-view > textarea {
+  min-height: 115px;
+
+  resize: vertical;
+
+  line-height: 1.5;
+}
+
+.assignment-view > input:focus,
+.assignment-view > textarea:focus {
+  border-color: #7c6cff;
+
+  box-shadow: 0 0 0 3px rgba(124, 108, 255, 0.1);
+}
+
+.assignment-view > input:disabled,
+.assignment-view > textarea:disabled {
+  background: #f8fafc;
+
+  color: #475569;
+
+  cursor: default;
+}
+
+
+/* =========================================================
+   VIEW / EDIT DATE + MARKS
+   ========================================================= */
+
+.assignment-view > .row {
+  width: 100%;
+
   display: grid;
 
   grid-template-columns: repeat(2, minmax(0, 1fr));
 
-  gap: 14px;
+  gap: 16px;
+
+  margin: 0 0 20px;
 }
 
+.assignment-view > .row > div {
+  min-width: 0;
+}
+
+.assignment-view > .row label {
+  display: block;
+
+  margin: 0 0 7px;
+
+  color: #374151;
+
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.assignment-view > .row input {
+  width: 100%;
+  height: 40px;
+
+  box-sizing: border-box;
+
+  padding: 9px 12px;
+
+  border: 1px solid #d8dee8;
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  font-family: inherit;
+  font-size: 13px;
+
+  outline: none;
+}
+
+.assignment-view > .row input:focus {
+  border-color: #7c6cff;
+
+  box-shadow: 0 0 0 3px rgba(124, 108, 255, 0.1);
+}
+
+.assignment-view > .row input:disabled {
+  background: #f8fafc;
+
+  color: #475569;
+}
+
+
 /* =========================================================
-   MODAL ACTIONS
+   POPUP BUTTONS
    ========================================================= */
 
-.assignment-modal-actions {
+.popup-buttons {
   display: flex;
   align-items: center;
   justify-content: flex-end;
 
-  gap: 8px;
+  gap: 10px;
 
-  padding-top: 4px;
+  padding-top: 2px;
 }
+
+.popup-buttons button {
+  min-height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 0 16px;
+
+  border-radius: 9px;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+/* Edit */
+
+.popup-buttons .edit-btn {
+  border: 1px solid #c7d2fe;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+}
+
+.popup-buttons .edit-btn:hover {
+  background: #e0e7ff;
+
+  transform: translateY(-1px);
+}
+
+
+/* Delete */
+
+.popup-buttons .delete-btn {
+  border: 1px solid #fecaca;
+
+  background: #fff1f2;
+
+  color: #dc2626;
+}
+
+.popup-buttons .delete-btn:hover {
+  background: #ffe4e6;
+
+  transform: translateY(-1px);
+}
+
+
+/* Cancel */
+
+.popup-buttons .btn-cancel,
+.delete-confirm-buttons .btn-cancel {
+  border: 1px solid #dbe1ea;
+
+  background: #ffffff;
+
+  color: #475569;
+}
+
+.popup-buttons .btn-cancel:hover,
+.delete-confirm-buttons .btn-cancel:hover {
+  background: #f8fafc;
+
+  border-color: #cbd5e1;
+}
+
+
+/* Save */
+
+.popup-buttons .save-btn {
+  border: 1px solid #6c5ce7;
+
+  background: #6c5ce7;
+
+  color: #ffffff;
+}
+
+.popup-buttons .save-btn:hover {
+  background: #5b4bd5;
+
+  border-color: #5b4bd5;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   DELETE CONFIRMATION
+   ========================================================= */
+
+.delete-confirm-modal {
+  width: min(420px, calc(100vw - 32px));
+
+  box-sizing: border-box;
+
+  padding: 28px;
+
+  border-radius: 18px;
+
+  background: #ffffff;
+
+  text-align: center;
+
+  box-shadow:
+    0 20px 50px rgba(15, 23, 42, 0.18);
+}
+
+.delete-confirm-icon {
+  width: 58px;
+  height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 16px;
+
+  border-radius: 50%;
+
+  background: #fff1f2;
+
+  color: #dc2626;
+}
+
+.delete-confirm-modal h3 {
+  margin: 0 0 8px;
+
+  color: #111827;
+
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.delete-confirm-modal p {
+  margin: 0 0 22px;
+
+  color: #64748b;
+
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.delete-confirm-modal strong {
+  color: #334155;
+}
+
+.delete-confirm-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+}
+
+.delete-confirm-buttons button {
+  min-height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 0 18px;
+
+  border-radius: 9px;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.delete-confirm-buttons .btn-danger {
+  border: 1px solid #dc2626;
+
+  background: #dc2626;
+
+  color: #ffffff;
+}
+
+.delete-confirm-buttons .btn-danger:hover {
+  background: #b91c1c;
+
+  border-color: #b91c1c;
+
+  transform: translateY(-1px);
+}
+
 
 /* =========================================================
    ERROR / ALERT
@@ -457,6 +1155,7 @@
   line-height: 1.5;
 }
 
+
 /* =========================================================
    LOADING
    ========================================================= */
@@ -473,8 +1172,9 @@
   font-size: 13.5px;
 }
 
+
 /* =========================================================
-   RESPONSIVE
+   RESPONSIVE — TABLET
    ========================================================= */
 
 @media (max-width: 900px) {
@@ -499,7 +1199,16 @@
   .assignment-table {
     min-width: 700px;
   }
+
+  .assignment-modal {
+    width: min(620px, calc(100vw - 28px));
+  }
 }
+
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+   ========================================================= */
 
 @media (max-width: 700px) {
 
@@ -534,7 +1243,58 @@
   .assignment-form-row {
     grid-template-columns: 1fr;
   }
+
+  .assignment-modal {
+    width: calc(100vw - 24px);
+
+    max-height: calc(100vh - 24px);
+
+    border-radius: 15px;
+  }
+
+  .assignment-modal .modal-header {
+    padding: 17px 17px 14px;
+  }
+
+  .assignment-modal .modal-header h2 {
+    font-size: 16px;
+  }
+
+  .assignment-modal form {
+    padding: 17px;
+  }
+
+  .assignment-modal form > .row {
+    grid-template-columns: 1fr;
+
+    gap: 0;
+
+    margin-bottom: 16px;
+  }
+
+  .assignment-view {
+    padding: 17px;
+  }
+
+  .assignment-view > .row {
+    grid-template-columns: 1fr;
+
+    gap: 0;
+  }
+
+  .popup-buttons {
+    flex-wrap: wrap;
+  }
+
+  .popup-buttons button {
+    flex: 1;
+  }
 }
+
+
+/* =========================================================
+   RESPONSIVE — SMALL MOBILE
+   ========================================================= */
 
 @media (max-width: 420px) {
 
@@ -556,7 +1316,41 @@
     padding-left: 14px;
     padding-right: 14px;
   }
+
+  .assignment-modal {
+    width: calc(100vw - 16px);
+
+    max-height: calc(100vh - 16px);
+  }
+
+  .assignment-modal .modal-header {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .assignment-modal form {
+    padding: 15px;
+  }
+
+  .assignment-view {
+    padding: 15px;
+  }
+
+  .delete-confirm-modal {
+    width: calc(100vw - 24px);
+
+    padding: 22px 18px;
+  }
+
+  .delete-confirm-buttons {
+    flex-direction: column;
+  }
+
+  .delete-confirm-buttons button {
+    width: 100%;
+  }
 }
+
 
 /* =========================================================
    REDUCED MOTION
@@ -568,7 +1362,11 @@
   .assignment-view-btn,
   .assignment-form-group input,
   .assignment-form-group select,
-  .assignment-form-group textarea {
+  .assignment-form-group textarea,
+  .assignment-modal .marks-btn,
+  .assignment-modal .submit-btn,
+  .popup-buttons button,
+  .delete-confirm-buttons button {
     transition: none;
   }
 }
