@@ -1370,3 +1370,100 @@
     transition: none;
   }
 }
+
+/* 1. Edit button: enough space for the icon and text */
+.mentor-assignments .assignment-modal .popup-buttons .edit-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+
+  width: auto !important;
+  min-width: 100px !important;
+  max-width: none !important;
+  height: 40px !important;
+  padding: 0 18px !important;
+  flex: 0 0 auto !important;
+
+  border: 1px solid #c7d2fe !important;
+  border-radius: 9px !important;
+  background: #eef2ff !important;
+  color: #4338ca !important;
+
+  font-family: inherit;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.mentor-assignments .assignment-modal .popup-buttons .edit-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.mentor-assignments .assignment-modal .popup-buttons .edit-btn:hover {
+  background: #e0e7ff !important;
+}
+
+
+/* 2. Center only the delete confirmation */
+.mentor-assignments .modal-overlay:has(> .delete-confirm-modal) {
+  position: fixed !important;
+  inset: 0 !important;
+
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow-y: auto !important;
+  z-index: 9999 !important;
+}
+
+.mentor-assignments .modal-overlay > .delete-confirm-modal {
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+
+  width: 420px !important;
+  max-width: 100% !important;
+  max-height: calc(100dvh - 40px) !important;
+  margin: auto !important;
+  flex: 0 1 420px !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+}
+
+
+/* 3. View action: same cyan colors as the admin View button */
+.mentor-assignments .assignment-table .actions .view-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  padding: 0 !important;
+
+  background: #ecfeff !important;
+  color: #0e7490 !important;
+  border: 1px solid #a5f3fc !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.mentor-assignments .assignment-table .actions .view-btn:hover {
+  background: #cffafe !important;
+}
+
+.mentor-assignments .assignment-table .actions .view-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor !important;
+}

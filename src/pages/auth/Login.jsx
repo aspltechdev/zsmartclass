@@ -135,7 +135,7 @@ function Login() {
 
                 <div className="login-logo-label">
                   <span className="login-logo-title">
-                    ZsmartClass
+                    ZmartClass
                   </span>
 
                   <span className="login-logo-subtitle">

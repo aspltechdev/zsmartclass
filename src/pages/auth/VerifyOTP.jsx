@@ -310,7 +310,7 @@ function VerifyOTP() {
             <div className="verify-corner-br" />
 
             <div className="verify-branding-content">
-              {/* Logo Badge - ZsmartClass */}
+              {/* Logo Badge - ZmartClass */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -321,7 +321,7 @@ function VerifyOTP() {
                   <span className="verify-logo-text">ZC</span>
                 </div>
                 <div className="verify-logo-label">
-                  <span className="verify-logo-title">ZsmartClass</span>
+                  <span className="verify-logo-title">ZmartClass</span>
                   <span className="verify-logo-subtitle">Learning Management System</span>
                 </div>
               </motion.div>

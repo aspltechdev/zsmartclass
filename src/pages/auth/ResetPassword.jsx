@@ -124,7 +124,7 @@ function ResetPassword() {
             <div className="reset-corner-br" />
 
             <div className="reset-branding-content">
-              {/* Logo Badge - ZsmartClass */}
+              {/* Logo Badge - ZmartClass */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -135,7 +135,7 @@ function ResetPassword() {
                   <span className="reset-logo-text">ZC</span>
                 </div>
                 <div className="reset-logo-label">
-                  <span className="reset-logo-title">ZsmartClass</span>
+                  <span className="reset-logo-title">ZmartClass</span>
                   <span className="reset-logo-subtitle">Learning Management System</span>
                 </div>
               </motion.div>

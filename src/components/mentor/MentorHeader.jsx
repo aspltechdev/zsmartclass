@@ -131,7 +131,7 @@ function MentorHeader({ collapsed = false, onToggleCollapse, onToggleMobile }) {
                   </div>
                   <div>
                     <h4>{user?.name || "Mentor"}</h4>
-                    <span>{user?.email || "mentor@zsmartclass.com"}</span>
+                    <span>{user?.email || "mentor@smartclass.com"}</span>
                   </div>
                 </div>
                 <div className="mh-dropdown-divider"></div>

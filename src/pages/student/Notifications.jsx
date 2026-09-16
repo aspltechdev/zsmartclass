@@ -1,703 +1,342 @@
-﻿import React, { useState, useEffect } from "react";
-
+﻿import { useEffect, useRef, useState } from "react";
 import {
   Bell,
   CheckCircle,
   AlertCircle,
   MessageCircle,
   Award,
-  Clock,
   BookOpen,
   ChevronDown,
   ChevronUp,
   Trash2,
   CheckCheck,
-  FileText,
-  Info
+  RefreshCw
 } from "lucide-react";
-
 import api from "../../services/api";
-
 import "./Notifications.css";
 
-const Notifications = () => {
+function typeLabel(value) {
+  return String(value || "GENERAL")
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function dateText(value) {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return "—";
+
+  return date.toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
+
+function getMeta(type) {
+  if (type === "CERTIFICATE") return { Icon: Award, color: "#059669" };
+  if (type === "ANNOUNCEMENT") return { Icon: MessageCircle, color: "#7c3aed" };
+  if (type === "PAYMENT") return { Icon: CheckCircle, color: "#059669" };
+  if (type === "ERROR" || type === "WARNING") {
+    return { Icon: AlertCircle, color: "#dc2626" };
+  }
+  if (type === "ENROLLMENT" || type === "NEW_ARRIVAL") {
+    return { Icon: BookOpen, color: "#2563eb" };
+  }
+  return { Icon: Bell, color: "#6366f1" };
+}
+
+export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
-  // ==========================================
-  // FETCH NOTIFICATIONS
-  // ==========================================
+  const operationLock = useRef(false);
+  const loadSequence = useRef(0);
 
   useEffect(() => {
     fetchNotifications();
+    return () => {
+      loadSequence.current += 1;
+    };
   }, []);
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  async function fetchNotifications() {
+    const sequence = ++loadSequence.current;
+    setLoading(true);
+    setLoadError("");
 
+    try {
       const response = await api.get("/notifications");
+      const data = response.data?.data ?? response.data;
 
-      if (response.data?.success) {
-        setNotifications(response.data.data || []);
-      } else {
-        setError(
-          response.data?.message ||
-            "Failed to load notifications"
+      if (!Array.isArray(data)) throw new Error("Invalid response.");
+      if (sequence === loadSequence.current) setNotifications(data);
+    } catch (error) {
+      if (sequence === loadSequence.current) {
+        setLoadError(
+          error.response?.data?.message || "Unable to load notifications."
         );
       }
-    } catch (err) {
-      console.error(
-        "Notification fetch error:",
-        err
-      );
-
-      setError(
-        err.response?.data?.message ||
-          "Unable to load notifications"
-      );
     } finally {
-      setLoading(false);
+      if (sequence === loadSequence.current) setLoading(false);
     }
-  };
+  }
 
-  // ==========================================
-  // MARK ONE AS READ
-  // ==========================================
+  async function performAction(id, kind) {
+    if (operationLock.current) return;
 
-  const handleMarkAsRead = async (id) => {
-    try {
-      const response = await api.put(
-        `/notifications/${id}/read`
-      );
-
-      if (response.data?.success) {
-        setNotifications((previous) =>
-          previous.map((notification) =>
-            notification.id === id
-              ? {
-                  ...notification,
-                  isRead: true
-                }
-              : notification
-          )
-        );
-      }
-    } catch (err) {
-      console.error(
-        "Failed to mark as read:",
-        err
-      );
-    }
-  };
-
-  // ==========================================
-  // MARK ALL AS READ
-  // ==========================================
-
-  const handleMarkAllAsRead = async () => {
-    try {
-      const response = await api.put(
-        "/notifications/read-all"
-      );
-
-      if (response.data?.success) {
-        setNotifications((previous) =>
-          previous.map((notification) => ({
-            ...notification,
-            isRead: true
-          }))
-        );
-      }
-    } catch (err) {
-      console.error(
-        "Failed to mark all as read:",
-        err
-      );
-    }
-  };
-
-  // ==========================================
-  // DELETE NOTIFICATION
-  // ==========================================
-
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm(
-      "Delete this notification?"
-    );
-
-    if (!confirmed) {
+    if (kind === "delete" &&
+        !window.confirm("Remove this notification from your inbox?")) {
       return;
     }
 
+    operationLock.current = true;
+    setBusy(id);
+    setActionError("");
+
     try {
-      const response = await api.delete(
-        `/notifications/${id}`
-      );
-
-      if (response.data?.success) {
-        setNotifications((previous) =>
-          previous.filter(
-            (notification) =>
-              notification.id !== id
-          )
+      if (kind === "delete") {
+        await api.delete(`/notifications/${id}`);
+        setNotifications((items) => items.filter((item) => item.id !== id));
+        if (expandedId === id) setExpandedId(null);
+      } else if (kind === "all") {
+        await api.put("/notifications/read-all");
+        setNotifications((items) =>
+          items.map((item) => ({ ...item, isRead: true }))
         );
-
-        if (expandedId === id) {
-          setExpandedId(null);
-        }
+      } else {
+        await api.put(`/notifications/${id}/read`);
+        setNotifications((items) => items.map((item) =>
+          item.id === id ? { ...item, isRead: true } : item
+        ));
       }
-    } catch (err) {
-      console.error(
-        "Failed to delete notification:",
-        err
+    } catch (error) {
+      setActionError(
+        error.response?.data?.message || "Action failed. Please try again."
       );
+    } finally {
+      operationLock.current = false;
+      setBusy(null);
     }
-  };
-
-  // ==========================================
-  // EXPAND / COLLAPSE
-  // ==========================================
-
-  const toggleExpand = (id) => {
-    setExpandedId((previous) =>
-      previous === id ? null : id
-    );
-  };
-
-  // ==========================================
-  // TYPE ICON
-  // ==========================================
-
-  const getTypeIcon = (type) => {
-    const notificationType =
-      String(type || "").toUpperCase();
-
-    if (
-      notificationType.includes("COURSE") ||
-      notificationType.includes("LESSON")
-    ) {
-      return <BookOpen size={18} />;
-    }
-
-    if (
-      notificationType.includes("ASSIGNMENT")
-    ) {
-      return <FileText size={18} />;
-    }
-
-    if (
-      notificationType.includes("CERTIFICATE")
-    ) {
-      return <Award size={18} />;
-    }
-
-    if (
-      notificationType.includes("REMINDER")
-    ) {
-      return <Clock size={18} />;
-    }
-
-    if (
-      notificationType.includes("ANNOUNCEMENT")
-    ) {
-      return <MessageCircle size={18} />;
-    }
-
-    if (
-      notificationType.includes("ALERT")
-    ) {
-      return <AlertCircle size={18} />;
-    }
-
-    if (
-      notificationType.includes("INFO")
-    ) {
-      return <Info size={18} />;
-    }
-
-    return <Bell size={18} />;
-  };
-
-  // ==========================================
-  // TYPE COLOR
-  // ==========================================
-
-  const getTypeColor = (type) => {
-    const notificationType =
-      String(type || "").toUpperCase();
-
-    if (
-      notificationType.includes("COURSE") ||
-      notificationType.includes("LESSON")
-    ) {
-      return "#1976d2";
-    }
-
-    if (
-      notificationType.includes("CERTIFICATE")
-    ) {
-      return "#0a9d5a";
-    }
-
-    if (
-      notificationType.includes("ASSIGNMENT")
-    ) {
-      return "#e37400";
-    }
-
-    if (
-      notificationType.includes("REMINDER")
-    ) {
-      return "#e37400";
-    }
-
-    if (
-      notificationType.includes("ANNOUNCEMENT")
-    ) {
-      return "#7c3aed";
-    }
-
-    if (
-      notificationType.includes("ALERT")
-    ) {
-      return "#dc3545";
-    }
-
-    if (
-      notificationType.includes("PAYMENT")
-    ) {
-      return "#7c3aed";
-    }
-
-    return "#6b6b8a";
-  };
-
-  // ==========================================
-  // TYPE LABEL
-  // ==========================================
-
-  const getTypeLabel = (type) => {
-    if (!type) {
-      return "Notification";
-    }
-
-    const notificationType =
-      String(type).toUpperCase();
-
-    if (
-      notificationType.includes("COURSE")
-    ) {
-      return "Course Update";
-    }
-
-    if (
-      notificationType.includes("LESSON")
-    ) {
-      return "Lesson Update";
-    }
-
-    if (
-      notificationType.includes("ASSIGNMENT")
-    ) {
-      return "Assignment";
-    }
-
-    if (
-      notificationType.includes("CERTIFICATE")
-    ) {
-      return "Certificate";
-    }
-
-    if (
-      notificationType.includes("REMINDER")
-    ) {
-      return "Reminder";
-    }
-
-    if (
-      notificationType.includes("ANNOUNCEMENT")
-    ) {
-      return "Announcement";
-    }
-
-    if (
-      notificationType.includes("ALERT")
-    ) {
-      return "Alert";
-    }
-
-    if (
-      notificationType.includes("PAYMENT")
-    ) {
-      return "Payment";
-    }
-
-    if (
-      notificationType.includes("INFO")
-    ) {
-      return "Information";
-    }
-
-    return String(type)
-      .toLowerCase()
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (letter) =>
-        letter.toUpperCase()
-      );
-  };
-
-  // ==========================================
-  // FORMAT DATE
-  // ==========================================
-
-  const formatDate = (dateString) => {
-    if (!dateString) {
-      return "";
-    }
-
-    const date = new Date(dateString);
-
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
-
-    const now = new Date();
-
-    const diff = now - date;
-
-    if (diff < 60000) {
-      return "Just now";
-    }
-
-    if (diff < 3600000) {
-      return `${Math.floor(
-        diff / 60000
-      )}m ago`;
-    }
-
-    if (diff < 86400000) {
-      return `${Math.floor(
-        diff / 3600000
-      )}h ago`;
-    }
-
-    if (diff < 604800000) {
-      return `${Math.floor(
-        diff / 86400000
-      )}d ago`;
-    }
-
-    return date.toLocaleDateString(
-      "en-US",
-      {
-        year: "numeric",
-        month: "short",
-        day: "numeric"
-      }
-    );
-  };
-
-  // ==========================================
-  // UNREAD COUNT
-  // ==========================================
-
-  const unreadCount =
-    notifications.filter(
-      (notification) =>
-        !notification.isRead
-    ).length;
-
-  // ==========================================
-  // LOADING
-  // ==========================================
-
-  if (loading) {
-    return (
-      <div className="notifications-loading">
-        <div className="loading-spinner"></div>
-
-        <p>
-          Loading notifications...
-        </p>
-      </div>
-    );
   }
 
-  // ==========================================
-  // ERROR
-  // ==========================================
+  const unread = notifications.filter((item) => !item.isRead).length;
+  const query = search.trim().toLowerCase();
 
-  if (error) {
+  const visible = notifications.filter((item) => {
+    const text = [
+      item.title,
+      item.message,
+      item.sender?.name,
+      item.sender?.role,
+      item.receiver?.name
+    ].filter(Boolean).join(" ").toLowerCase();
+
     return (
-      <div className="notifications-error">
-        <AlertCircle
-          size={48}
-          className="error-icon"
-        />
-
-        <h3>
-          Unable to load notifications
-        </h3>
-
-        <p>
-          {error}
-        </p>
-
-        <button
-          onClick={fetchNotifications}
-          className="retry-btn"
-        >
-          Try Again
-        </button>
-      </div>
+      (filter === "all" || !item.isRead) &&
+      (!query || text.includes(query))
     );
-  }
-
-  // ==========================================
-  // PAGE
-  // ==========================================
+  });
 
   return (
     <div className="notifications-container">
-
-      {/* ======================================
-          HEADER
-      ====================================== */}
-
       <div className="notifications-header">
-
         <div className="notifications-heading">
-          <div className="notifications-heading-icon">
-            <Bell size={26} />
-          </div>
-
+          <div className="notifications-heading-icon"><Bell size={26} /></div>
           <div>
-            <h1 className="notifications-title">
-              Notifications
-            </h1>
-
+            <h1 className="notifications-title">Notifications</h1>
             <p className="notifications-subtitle">
-              Stay updated with your learning progress
+              Messages and updates sent to you.
             </p>
           </div>
         </div>
 
         <div className="notifications-actions">
+          <button
+            className="mark-all-btn"
+            onClick={fetchNotifications}
+            disabled={loading || busy !== null}
+            title="Refresh"
+          >
+            <RefreshCw size={17} />
+          </button>
 
-          {unreadCount > 0 && (
-            <span className="unread-badge">
-              {unreadCount} unread
-            </span>
+          {unread > 0 && (
+            <button
+              className="mark-all-btn"
+              onClick={() => performAction("all", "all")}
+              disabled={loading || busy !== null}
+            >
+              <CheckCheck size={18} /> Mark all read ({unread})
+            </button>
           )}
-
-          {notifications.length > 0 &&
-            unreadCount > 0 && (
-              <button
-                className="mark-all-btn"
-                onClick={handleMarkAllAsRead}
-              >
-                <CheckCheck size={18} />
-
-                Mark All Read
-              </button>
-            )}
-
         </div>
-
       </div>
 
-      {/* ======================================
-          EMPTY
-      ====================================== */}
+      <div style={{
+        display: "flex",
+        gap: 12,
+        flexWrap: "wrap",
+        marginBottom: 20
+      }}>
+        <input
+          aria-label="Search notifications"
+          placeholder="Search messages or sender..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          style={{
+            flex: "1 1 220px",
+            padding: 12,
+            border: "1px solid #e2e8f0",
+            borderRadius: 8
+          }}
+        />
+        <select
+          aria-label="Filter notifications"
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+          style={{
+            padding: 12,
+            border: "1px solid #e2e8f0",
+            borderRadius: 8
+          }}
+        >
+          <option value="all">All notifications</option>
+          <option value="unread">Unread only</option>
+        </select>
+      </div>
 
-      {notifications.length === 0 ? (
-
-        <div className="notifications-empty">
-
-          <div className="empty-icon">
-            <Bell size={30} />
-          </div>
-
-          <h2>
-            No Notifications
-          </h2>
-
-          <p>
-            You're all caught up!
-            Check back later for updates.
-          </p>
-
-        </div>
-
-      ) : (
-
-        /* ====================================
-           LIST
-        ==================================== */
-
-        <div className="notifications-list">
-
-          {notifications.map(
-            (notification) => {
-
-              const typeColor =
-                getTypeColor(
-                  notification.type
-                );
-
-              const isExpanded =
-                expandedId ===
-                notification.id;
-
-              return (
-                <div
-                  key={notification.id}
-                  className={`notification-item ${
-                    !notification.isRead
-                      ? "unread"
-                      : ""
-                  }`}
-                >
-
-                  {/* ICON */}
-
-                  <div
-                    className="notification-icon"
-                    style={{
-                      backgroundColor:
-                        `${typeColor}20`,
-                      color: typeColor
-                    }}
-                  >
-                    {getTypeIcon(
-                      notification.type
-                    )}
-                  </div>
-
-                  {/* CONTENT */}
-
-                  <div
-                    className="notification-content"
-                    onClick={() =>
-                      toggleExpand(
-                        notification.id
-                      )
-                    }
-                  >
-
-                    <div className="notification-header">
-
-                      <div className="notification-top">
-
-                        <span className="notification-type">
-                          {getTypeLabel(
-                            notification.type
-                          )}
-                        </span>
-
-                        {!notification.isRead && (
-                          <span className="unread-dot"></span>
-                        )}
-
-                      </div>
-
-                      <span className="notification-time">
-                        {formatDate(
-                          notification.createdAt
-                        )}
-                      </span>
-
-                    </div>
-
-                    <h4 className="notification-title">
-                      {notification.title}
-                    </h4>
-
-                    <p
-                      className={`notification-message ${
-                        isExpanded
-                          ? "expanded"
-                          : "collapsed"
-                      }`}
-                    >
-                      {notification.message}
-                    </p>
-
-                    {/* SHOW MORE */}
-
-                    <button
-                      className="expand-btn"
-                      onClick={(event) => {
-                        event.stopPropagation();
-
-                        toggleExpand(
-                          notification.id
-                        );
-                      }}
-                    >
-
-                      {isExpanded ? (
-                        <ChevronUp size={16} />
-                      ) : (
-                        <ChevronDown size={16} />
-                      )}
-
-                      {isExpanded
-                        ? "Show Less"
-                        : "Show More"}
-
-                    </button>
-
-                  </div>
-
-                  {/* ACTIONS */}
-
-                  <div className="notification-actions">
-
-                    {!notification.isRead && (
-                      <button
-                        className="action-btn read-btn"
-                        onClick={() =>
-                          handleMarkAsRead(
-                            notification.id
-                          )
-                        }
-                        aria-label="Mark as read"
-                        data-tip="Mark as read"
-                      >
-                        <CheckCircle size={18} />
-                      </button>
-                    )}
-
-                    <button
-                      className="action-btn delete-btn"
-                      onClick={() =>
-                        handleDelete(
-                          notification.id
-                        )
-                      }
-                      aria-label="Delete"
-                      data-tip="Delete"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-
-                  </div>
-
-                </div>
-              );
-            }
-          )}
-
-        </div>
+      {actionError && (
+        <p role="alert" style={{ color: "#b91c1c" }}>{actionError}</p>
       )}
 
+      {loading ? (
+        <div className="notifications-loading">
+          <div className="loading-spinner" />
+          <p>Loading notifications...</p>
+        </div>
+      ) : loadError ? (
+        <div className="notifications-error" role="alert">
+          <AlertCircle size={36} />
+          <p>{loadError}</p>
+          <button className="retry-btn" onClick={fetchNotifications}>Try again</button>
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="notifications-empty">
+          <Bell size={30} />
+          <h2>No notifications to show</h2>
+          <p>{query ? "Try another search." : "New messages will appear here."}</p>
+        </div>
+      ) : (
+        <div className="notifications-list">
+          {visible.map((notification) => {
+            const { Icon, color } = getMeta(notification.type);
+            const expanded = expandedId === notification.id;
+            const sender = notification.sender;
+            const receiver = notification.receiver;
+
+            return (
+              <div
+                key={notification.id}
+                className={`notification-item ${notification.isRead ? "" : "unread"}`}
+              >
+                <div
+                  className="notification-icon"
+                  style={{ backgroundColor: `${color}20`, color }}
+                >
+                  <Icon size={18} />
+                </div>
+
+                <div className="notification-content" style={{ minWidth: 0 }}>
+                  <div className="notification-header">
+                    <div className="notification-top">
+                      <span className="notification-type">
+                        {typeLabel(notification.type)}
+                      </span>
+                      {!notification.isRead && (
+                        <span className="unread-dot" title="Unread" />
+                      )}
+                    </div>
+                    <span className="notification-time">
+                      {dateText(notification.createdAt)}
+                    </span>
+                  </div>
+
+                  <h4 className="notification-title">{notification.title}</h4>
+
+                  <p
+                    className={`notification-message ${expanded ? "expanded" : "collapsed"}`}
+                    style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+                  >
+                    {notification.message}
+                  </p>
+
+                  <button
+                    className="expand-btn"
+                    onClick={() => setExpandedId(expanded ? null : notification.id)}
+                  >
+                    {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    {expanded ? "Show less" : "Show more"}
+                  </button>
+
+                  <div style={{
+                    marginTop: 10,
+                    padding: 12,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    lineHeight: 1.8,
+                    color: "#334155",
+                    overflowWrap: "anywhere"
+                  }}>
+                    <div>
+                      From: <strong>{sender?.name || "Sender not recorded"}</strong>
+                      {sender?.role && <> · {typeLabel(sender.role)}</>}
+                    </div>
+                    <div>
+                      To: <strong>{receiver?.name || "You"}</strong>
+                      {receiver?.role && <> · {typeLabel(receiver.role)}</>}
+                      {receiver?.email && <div>{receiver.email}</div>}
+                    </div>
+                    <div>
+                      In-app notification · {notification.isRead ? "Read" : "Unread"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="notification-actions">
+                  {!notification.isRead && (
+                    <button
+                      className="action-btn read-btn"
+                      onClick={() => performAction(notification.id, "read")}
+                      disabled={busy !== null}
+                      aria-label="Mark as read"
+                      title="Mark as read"
+                    >
+                      <CheckCircle size={18} />
+                    </button>
+                  )}
+                  <button
+                    className="action-btn delete-btn"
+                    onClick={() => performAction(notification.id, "delete")}
+                    disabled={busy !== null}
+                    aria-label="Remove from inbox"
+                    title="Remove from inbox"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
-};
-
-export default Notifications;
+}

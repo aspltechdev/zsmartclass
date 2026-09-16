@@ -166,7 +166,7 @@ function ForgotPassword() {
             <div className="forgot-corner-br" />
 
             <div className="forgot-branding-content">
-              {/* Logo Badge - ZsmartClass */}
+              {/* Logo Badge - ZmartClass */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -177,7 +177,7 @@ function ForgotPassword() {
                   <span className="forgot-logo-text">ZC</span>
                 </div>
                 <div className="forgot-logo-label">
-                  <span className="forgot-logo-title">ZsmartClass</span>
+                  <span className="forgot-logo-title">ZmartClass</span>
                   <span className="forgot-logo-subtitle">Learning Management System</span>
                 </div>
               </motion.div>

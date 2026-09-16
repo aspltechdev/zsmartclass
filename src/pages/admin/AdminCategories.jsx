@@ -1,5 +1,3 @@
-// src/pages/admin/AdminCategories.jsx
-
 import { useEffect, useState, useRef } from "react";
 import {
   Layers,
@@ -16,13 +14,11 @@ import {
   Upload,
   FolderTree,
 } from "lucide-react";
-import api from "../../services/api";
 import { createPortal } from "react-dom";
+import api from "../../services/api";
 import "./AdminCategories.css";
 import "./AdminShared.css";
 
-// Render overlays into <body> so `position: fixed` escapes any transformed/
-// filtered ancestor in AdminLayout (which otherwise mis-centers & clips them).
 function Portal({ children }) {
   return createPortal(children, document.body);
 }
@@ -42,11 +38,11 @@ function AdminCategories() {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   const [imagePreview, setImagePreview] = useState(null);
-  const [imageBase64, setImageBase64] = useState(null);
-
   const fileInputRef = useRef(null);
+  const imageRequestRef = useRef(0);
 
   const [form, setForm] = useState({
     name: "",
@@ -55,75 +51,43 @@ function AdminCategories() {
     image: "",
   });
 
-  const [stats, setStats] = useState({
-    total: 0,
-  });
-
-  // =========================================================
-  // FETCH CATEGORIES
-  // =========================================================
-
   useEffect(() => {
     fetchCategories();
-  }, []);
 
-  // =========================================================
-  // LOCK BODY SCROLL WHEN OVERLAY IS OPEN
-  // =========================================================
+    return () => {
+      imageRequestRef.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     const overlayOpen =
       showModal || showViewModal || showDeleteConfirm !== null;
 
-    if (overlayOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (!overlayOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
     };
   }, [showModal, showViewModal, showDeleteConfirm]);
-
-  // =========================================================
-  // FETCH
-  // =========================================================
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
 
       const res = await api.get("/categories");
-
       const data = res.data.data || res.data;
 
       setCategories(Array.isArray(data) ? data : []);
-
-      calculateStats(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching categories:", err);
-
       setCategories([]);
-      calculateStats([]);
     } finally {
       setLoading(false);
     }
   };
-
-  // =========================================================
-  // STATS
-  // =========================================================
-
-  const calculateStats = (data) => {
-    setStats({
-      total: data.length,
-    });
-  };
-
-  // =========================================================
-  // SLUG
-  // =========================================================
 
   const generateSlug = (name) => {
     return name
@@ -132,54 +96,121 @@ function AdminCategories() {
       .replace(/^-+|-+$/g, "");
   };
 
-  // =========================================================
-  // IMAGE UPLOAD
-  // =========================================================
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
+  // Accept larger source images and resize them before saving.
+  const handleImageUpload = async (e) => {
+    const input = e.target;
+    const file = input.files?.[0];
 
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
       alert("Please upload a valid image file.");
+      input.value = "";
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image size should be less than 5MB.");
-      return;
-    }
+    const requestId = ++imageRequestRef.current;
+    const imageUrl = URL.createObjectURL(file);
 
-    const reader = new FileReader();
+    setIsProcessingImage(true);
 
-    reader.onloadend = () => {
-      const base64String = reader.result;
+    try {
+      const img = new Image();
 
-      setImagePreview(base64String);
-      setImageBase64(base64String);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => {
+          reject(
+            new Error(
+              "Cannot open this image. Try a JPEG, PNG or WebP image."
+            )
+          );
+        };
+        img.src = imageUrl;
+      });
+
+      if (requestId !== imageRequestRef.current) return;
+
+      if (!img.naturalWidth || !img.naturalHeight) {
+        throw new Error("This image has invalid dimensions.");
+      }
+
+      const canvas = document.createElement("canvas");
+      const scale = Math.min(
+        1,
+        1600 / Math.max(img.naturalWidth, img.naturalHeight)
+      );
+
+      let width = Math.max(1, Math.round(img.naturalWidth * scale));
+      let height = Math.max(1, Math.round(img.naturalHeight * scale));
+      let imageData = "";
+
+      // Target at most 2 MiB of encoded image text.
+      // The backend accepts a JSON request up to 4 MiB.
+      while (true) {
+        canvas.width = width;
+        canvas.height = height;
+
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          throw new Error("Image processing is unavailable.");
+        }
+
+        context.drawImage(img, 0, 0, width, height);
+        imageData = canvas.toDataURL("image/webp", 0.85);
+
+        if (imageData === "data:,") {
+          throw new Error("Unable to process this image.");
+        }
+
+        if (imageData.length <= 2 * 1024 * 1024) {
+          break;
+        }
+
+        if (width === 1 && height === 1) {
+          throw new Error("Unable to compress this image.");
+        }
+
+        width = Math.max(1, Math.round(width * 0.75));
+        height = Math.max(1, Math.round(height * 0.75));
+      }
+
+      if (requestId !== imageRequestRef.current) return;
+
+      setImagePreview(imageData);
 
       setForm((prev) => ({
         ...prev,
-        image: base64String,
+        image: imageData,
       }));
 
       setFormErrors((prev) => ({
         ...prev,
         image: "",
       }));
-    };
+    } catch (error) {
+      if (requestId === imageRequestRef.current) {
+        alert(error.message || "Unable to process this image.");
+      }
+    } finally {
+      URL.revokeObjectURL(imageUrl);
 
-    reader.readAsDataURL(file);
+      if (requestId === imageRequestRef.current) {
+        setIsProcessingImage(false);
+        input.value = "";
+      }
+    }
   };
 
-  // =========================================================
-  // REMOVE IMAGE
-  // =========================================================
+  const cancelImageProcessing = () => {
+    imageRequestRef.current += 1;
+    setIsProcessingImage(false);
+  };
 
   const handleRemoveImage = () => {
+    cancelImageProcessing();
     setImagePreview(null);
-    setImageBase64(null);
 
     setForm((prev) => ({
       ...prev,
@@ -191,27 +222,45 @@ function AdminCategories() {
     }
   };
 
-  // =========================================================
-  // SAVE CATEGORY
-  // =========================================================
+  const resetForm = () => {
+    cancelImageProcessing();
+
+    setForm({
+      name: "",
+      slug: "",
+      description: "",
+      image: "",
+    });
+
+    setImagePreview(null);
+    setFormErrors({});
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSaveCategory = async () => {
+    if (isSubmitting || isProcessingImage) return;
+
+    const errors = {};
+
+    if (!form.name.trim()) {
+      errors.name = "Category name is required";
+    }
+
+    if (!form.slug.trim()) {
+      errors.slug = "Slug is required";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    const wasEditing = Boolean(editing);
+
     try {
-      const errors = {};
-
-      if (!form.name || form.name.trim() === "") {
-        errors.name = "Category name is required";
-      }
-
-      if (!form.slug || form.slug.trim() === "") {
-        errors.slug = "Slug is required";
-      }
-
-      if (Object.keys(errors).length > 0) {
-        setFormErrors(errors);
-        return;
-      }
-
       setIsSubmitting(true);
 
       const data = {
@@ -221,62 +270,67 @@ function AdminCategories() {
         image: form.image || null,
       };
 
+      let response;
+
       if (editing) {
-        await api.put(`/categories/${editing.id}`, data);
+        response = await api.put(`/categories/${editing.id}`, data);
       } else {
-        await api.post("/categories", data);
+        response = await api.post("/categories", data);
       }
+
+      const savedCategory = response.data?.data;
+
+      if (editing) {
+        setViewingCategory({
+          ...editing,
+          ...data,
+          ...(savedCategory &&
+          typeof savedCategory === "object" &&
+          !Array.isArray(savedCategory)
+            ? savedCategory
+            : {}),
+        });
+      }
+
+      setShowModal(false);
+      setEditing(null);
+      setIsEditMode(false);
+      resetForm();
 
       await fetchCategories();
 
-      const updatedCategory = {
-        ...editing,
-        ...data,
-      };
-
-      setShowModal(false);
-
-      if (editing) {
-        setViewingCategory(updatedCategory);
-      }
-
-      setEditing(null);
-      setIsSubmitting(false);
-      setIsEditMode(false);
-
-      resetForm();
-
       alert(
-        editing
+        wasEditing
           ? "Category updated successfully!"
           : "Category created successfully!"
       );
     } catch (err) {
-      setIsSubmitting(false);
-
       const message =
         err.response?.data?.message || "Failed to save category";
 
       alert("Error: " + message);
-
       console.error("Save error:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // =========================================================
-  // DELETE
-  // =========================================================
-
   const handleDeleteCategory = async (id) => {
-    try {
-      await api.delete(`/categories/${id}`);
+    if (isSubmitting) return;
 
-      await fetchCategories();
+    try {
+      setIsSubmitting(true);
+
+      await api.delete(`/categories/${id}`);
 
       setShowDeleteConfirm(null);
       setShowViewModal(false);
       setViewingCategory(null);
       setIsEditMode(false);
+      setEditing(null);
+      resetForm();
+
+      await fetchCategories();
 
       alert("Category deleted successfully!");
     } catch (err) {
@@ -293,33 +347,10 @@ function AdminCategories() {
       } else {
         alert(message);
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  // =========================================================
-  // RESET FORM
-  // =========================================================
-
-  const resetForm = () => {
-    setForm({
-      name: "",
-      slug: "",
-      description: "",
-      image: "",
-    });
-
-    setImagePreview(null);
-    setImageBase64(null);
-    setFormErrors({});
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  // =========================================================
-  // CREATE
-  // =========================================================
 
   const openCreateModal = () => {
     setEditing(null);
@@ -327,23 +358,34 @@ function AdminCategories() {
     setShowModal(true);
   };
 
-  // =========================================================
-  // VIEW
-  // =========================================================
+  const closeCreateModal = () => {
+    if (isSubmitting) return;
+
+    setShowModal(false);
+    resetForm();
+  };
 
   const openViewModal = (category) => {
     setViewingCategory(category);
+    setEditing(null);
     setIsEditMode(false);
     setShowViewModal(true);
   };
 
-  // =========================================================
-  // EDIT FROM VIEW
-  // =========================================================
+  const closeViewModal = () => {
+    if (isSubmitting) return;
+
+    cancelImageProcessing();
+    setShowViewModal(false);
+    setViewingCategory(null);
+    setEditing(null);
+    setIsEditMode(false);
+  };
 
   const openEditFromView = () => {
     if (!viewingCategory) return;
 
+    cancelImageProcessing();
     setEditing(viewingCategory);
 
     setForm({
@@ -354,18 +396,16 @@ function AdminCategories() {
     });
 
     setImagePreview(viewingCategory.image || null);
-    setImageBase64(viewingCategory.image || null);
-
     setIsEditMode(true);
     setFormErrors({});
   };
 
-  // =========================================================
-  // CANCEL EDIT
-  // =========================================================
-
   const handleCancelEdit = () => {
+    if (isSubmitting) return;
+
+    cancelImageProcessing();
     setIsEditMode(false);
+    setEditing(null);
 
     if (viewingCategory) {
       setForm({
@@ -376,15 +416,10 @@ function AdminCategories() {
       });
 
       setImagePreview(viewingCategory.image || null);
-      setImageBase64(viewingCategory.image || null);
     }
 
     setFormErrors({});
   };
-
-  // =========================================================
-  // DELETE FROM VIEW
-  // =========================================================
 
   const handleDeleteFromView = () => {
     if (!viewingCategory) return;
@@ -392,10 +427,6 @@ function AdminCategories() {
     setShowViewModal(false);
     setShowDeleteConfirm(viewingCategory.id);
   };
-
-  // =========================================================
-  // FORMAT DATE
-  // =========================================================
 
   const formatDate = (date) => {
     if (!date) return "—";
@@ -409,10 +440,6 @@ function AdminCategories() {
     });
   };
 
-  // =========================================================
-  // FILTER
-  // =========================================================
-
   const filteredCategories = categories.filter((category) => {
     const searchText = search.toLowerCase();
 
@@ -423,9 +450,63 @@ function AdminCategories() {
     );
   });
 
-  // =========================================================
-  // LOADING
-  // =========================================================
+  const detailImage = isEditMode
+    ? imagePreview
+    : viewingCategory?.image;
+
+  const renderImageUpload = (inputId) => (
+    <div className="file-upload-wrapper">
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        onChange={handleImageUpload}
+        id={inputId}
+        disabled={isSubmitting || isProcessingImage}
+        style={{ display: "none" }}
+      />
+
+      <label
+        htmlFor={inputId}
+        className="file-upload-label"
+      >
+        <Upload size={18} />
+        {isProcessingImage
+          ? "Processing image..."
+          : imagePreview
+            ? "Change Image"
+            : "Upload Image"}
+      </label>
+
+      {imagePreview && (
+        <div className="image-preview-container">
+          <img
+            src={imagePreview}
+            alt="Category preview"
+            className="image-preview"
+          />
+
+          <button
+            type="button"
+            className="remove-image-btn"
+            onClick={handleRemoveImage}
+            disabled={isSubmitting}
+            title="Remove image"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      <p className="field-hint">
+        Images are automatically resized for upload.
+      </p>
+
+      {formErrors.image && (
+        <span className="error-text">{formErrors.image}</span>
+      )}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -438,53 +519,34 @@ function AdminCategories() {
     );
   }
 
-  // =========================================================
-  // JSX
-  // =========================================================
-
   return (
     <div className="categories-page">
-
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
-
       <div className="page-header">
         <div>
           <h1>
-          <FolderTree size={25}/>  Category Management</h1>
+            <FolderTree size={25} /> Category Management
+          </h1>
           <p className="subtitle">
             Organize your courses into categories
           </p>
         </div>
 
-        <button
-          className="add-btn"
-          onClick={openCreateModal}
-        >
+        <button className="add-btn" onClick={openCreateModal}>
           <Plus size={18} />
           New Category
         </button>
       </div>
-
-      {/* =====================================================
-          STATS
-      ====================================================== */}
 
       <div className="category-stats">
         <div className="stat-card sc-purple">
           <Layers size={24} />
 
           <div>
-            <h3>{stats.total}</h3>
+            <h3>{categories.length}</h3>
             <p>Total Categories</p>
           </div>
         </div>
       </div>
-
-      {/* =====================================================
-          TOOLBAR
-      ====================================================== */}
 
       <div className="toolbar">
         <div className="search-box">
@@ -506,47 +568,22 @@ function AdminCategories() {
         </button>
       </div>
 
-      {/* =====================================================
-          CATEGORY TABLE
-      ====================================================== */}
-
       <div className="table-wrapper">
         <table className="category-table">
-
           <thead>
             <tr>
               <th style={{ width: "60px" }}>#</th>
-
-              <th style={{ width: "100px" }}>
-                Image
-              </th>
-
-              <th>
-                Name
-              </th>
-
-              <th>
-                Slug
-              </th>
-
-              <th>
-                Description
-              </th>
-
-              <th>
-                Created
-              </th>
-
-              <th style={{ width: "100px" }}>
-                Action
-              </th>
+              <th style={{ width: "100px" }}>Image</th>
+              <th>Name</th>
+              <th>Slug</th>
+              <th>Description</th>
+              <th>Created</th>
+              <th style={{ width: "100px" }}>Action</th>
             </tr>
           </thead>
 
           <tbody>
-
             {filteredCategories.length === 0 ? (
-
               <tr>
                 <td
                   colSpan="7"
@@ -557,14 +594,8 @@ function AdminCategories() {
                 >
                   <div className="empty-state">
                     <Layers size={48} />
-
-                    <h3>
-                      No categories found
-                    </h3>
-
-                    <p>
-                      Create your first category to get started
-                    </p>
+                    <h3>No categories found</h3>
+                    <p>Create your first category to get started</p>
 
                     <button
                       className="add-btn"
@@ -576,934 +607,528 @@ function AdminCategories() {
                   </div>
                 </td>
               </tr>
-
             ) : (
+              filteredCategories.map((category, index) => (
+                <tr key={category.id}>
+                  <td>{index + 1}</td>
 
-              filteredCategories.map(
-                (category, index) => (
+                  <td>
+                    <div className="table-category-image">
+                      {category.image ? (
+                        <img
+                          src={category.image}
+                          alt={category.name}
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="table-no-image">
+                          <Layers size={22} />
+                        </div>
+                      )}
+                    </div>
+                  </td>
 
-                  <tr key={category.id}>
+                  <td>
+                    <div className="category-name">
+                      <span className="name">{category.name}</span>
+                    </div>
+                  </td>
 
-                    {/* NUMBER */}
+                  <td>
+                    <span className="category-slug">
+                      {category.slug || "—"}
+                    </span>
+                  </td>
 
-                    <td>
-                      {index + 1}
-                    </td>
+                  <td>
+                    <span className="category-description">
+                      {category.description || "—"}
+                    </span>
+                  </td>
 
-                    {/* IMAGE */}
+                  <td>
+                    <span className="created-date">
+                      <Calendar size={14} />
+                      {formatDate(category.createdAt)}
+                    </span>
+                  </td>
 
-                    <td>
-                      <div className="table-category-image">
-
-                        {category.image ? (
-
-                          <img
-                            src={category.image}
-                            alt={category.name}
-                            onError={(e) => {
-                              e.currentTarget.style.display =
-                                "none";
-                            }}
-                          />
-
-                        ) : (
-
-                          <div className="table-no-image">
-                            <Layers size={22} />
-                          </div>
-
-                        )}
-
-                      </div>
-                    </td>
-
-                    {/* NAME */}
-
-                    <td>
-                      <div className="category-name">
-                        <span className="name">
-                          {category.name}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* SLUG */}
-
-                    <td>
-                      <span className="category-slug">
-                        {category.slug || "—"}
-                      </span>
-                    </td>
-
-                    {/* DESCRIPTION */}
-
-                    <td>
-                      <span className="category-description">
-                        {category.description || "—"}
-                      </span>
-                    </td>
-
-                    {/* CREATED */}
-
-                    <td>
-                      <span className="created-date">
-                        <Calendar size={14} />
-
-                        {formatDate(
-                          category.createdAt
-                        )}
-                      </span>
-                    </td>
-
-                    {/* ACTION */}
-
-                    <td>
-
-                      <div className="action-buttons">
-
-                        <button
-                          title="View Category"
-                          className="view-btn"
-                          onClick={() =>
-                            openViewModal(category)
-                          }
-                        >
-                          <Eye size={18} />
-                        </button>
-
-                      </div>
-
-                    </td>
-
-                  </tr>
-
-                )
-              )
-
+                  <td>
+                    <div className="action-buttons">
+                      <button
+                        title="View Category"
+                        onClick={() => openViewModal(category)}
+                        className="view-btn"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
-
           </tbody>
-
         </table>
       </div>
 
-      {/* =====================================================
-          DELETE CONFIRMATION OVERLAY
-      ====================================================== */}
-
       {showDeleteConfirm !== null && (
-
         <Portal>
-        <div
-          className="modal confirm-modal"
-          onClick={() =>
-            setShowDeleteConfirm(null)
-          }
-        >
-
           <div
-            className="modal-content confirm-content"
-            onClick={(e) =>
-              e.stopPropagation()
-            }
+            className="modal category-delete-overlay"
+            onClick={() => {
+              if (!isSubmitting) setShowDeleteConfirm(null);
+            }}
           >
+            <div
+              className="modal-content confirm-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <h2>Confirm Delete</h2>
 
-            <div className="modal-header">
+                <button
+                  className="modal-close"
+                  disabled={isSubmitting}
+                  onClick={() => setShowDeleteConfirm(null)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-              <h2>
-                Confirm Delete
-              </h2>
+              <div className="confirm-body">
+                <AlertCircle size={48} className="confirm-icon" />
 
-              <button
-                className="modal-close"
-                onClick={() =>
-                  setShowDeleteConfirm(null)
-                }
-              >
-                <X size={20} />
-              </button>
+                <p>Are you sure you want to delete this category?</p>
+                <p className="confirm-sub">
+                  This action cannot be undone.
+                </p>
+              </div>
 
+              <div className="modal-footer">
+                <button
+                  className="btn-cancel"
+                  disabled={isSubmitting}
+                  onClick={() => setShowDeleteConfirm(null)}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="btn-danger"
+                  disabled={isSubmitting}
+                  onClick={() =>
+                    handleDeleteCategory(showDeleteConfirm)
+                  }
+                >
+                  <Trash2 size={18} />
+                  {isSubmitting ? "Deleting..." : "Delete Category"}
+                </button>
+              </div>
             </div>
-
-            <div className="confirm-body">
-
-              <AlertCircle
-                size={48}
-                className="confirm-icon"
-              />
-
-              <p>
-                Are you sure you want to
-                delete this category?
-              </p>
-
-              <p className="confirm-sub">
-                This action cannot be undone.
-              </p>
-
-            </div>
-
-            <div className="modal-footer">
-
-              <button
-                className="btn-cancel"
-                onClick={() =>
-                  setShowDeleteConfirm(null)
-                }
-              >
-                Cancel
-              </button>
-
-              <button
-                className="btn-danger"
-                onClick={() =>
-                  handleDeleteCategory(
-                    showDeleteConfirm
-                  )
-                }
-              >
-                <Trash2 size={18} />
-                Delete Category
-              </button>
-
-            </div>
-
           </div>
-
-        </div>
         </Portal>
-
       )}
-
-      {/* =====================================================
-          CREATE CATEGORY OVERLAY
-      ====================================================== */}
 
       {showModal && !editing && (
-
         <Portal>
-        <div
-          className="modal category-overlay"
-          onClick={() => setShowModal(false)}
-        >
-
           <div
-            className="modal-content"
-            onClick={(e) =>
-              e.stopPropagation()
-            }
+            className="modal category-overlay"
+            onClick={closeCreateModal}
           >
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <h2>Create New Category</h2>
 
-            <div className="modal-header">
-
-              <h2>
-                Create New Category
-              </h2>
-
-              <button
-                className="modal-close"
-                onClick={() =>
-                  setShowModal(false)
-                }
-              >
-                <X size={20} />
-              </button>
-
-            </div>
-
-            <div className="modal-body">
-
-              {/* NAME */}
-
-              <div className="form-group">
-
-                <label>
-                  Category Name *
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="Enter category name"
-                  value={form.name}
-                  onChange={(e) => {
-
-                    const name =
-                      e.target.value;
-
-                    setForm({
-                      ...form,
-                      name,
-                      slug:
-                        generateSlug(name),
-                    });
-
-                    setFormErrors({
-                      ...formErrors,
-                      name: "",
-                    });
-
-                  }}
-                  className={
-                    formErrors.name
-                      ? "error"
-                      : ""
-                  }
-                />
-
-                {formErrors.name && (
-                  <span className="error-text">
-                    {formErrors.name}
-                  </span>
-                )}
-
+                <button
+                  className="modal-close"
+                  onClick={closeCreateModal}
+                  disabled={isSubmitting}
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              {/* SLUG */}
-
-              <div className="form-group">
-
-                <label>
-                  Slug *
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="category-url-slug"
-                  value={form.slug}
-                  onChange={(e) => {
-
-                    setForm({
-                      ...form,
-                      slug: e.target.value
-                        .toLowerCase()
-                        .replace(/ /g, "-"),
-                    });
-
-                    setFormErrors({
-                      ...formErrors,
-                      slug: "",
-                    });
-
-                  }}
-                  className={
-                    formErrors.slug
-                      ? "error"
-                      : ""
-                  }
-                />
-
-                {formErrors.slug && (
-                  <span className="error-text">
-                    {formErrors.slug}
-                  </span>
-                )}
-
-              </div>
-
-              {/* DESCRIPTION */}
-
-              <div className="form-group">
-
-                <label>
-                  Description
-                </label>
-
-                <textarea
-                  placeholder="Describe this category..."
-                  rows={4}
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      description:
-                        e.target.value,
-                    })
-                  }
-                />
-
-              </div>
-
-              {/* IMAGE */}
-
-              <div className="form-group">
-
-                <label>
-                  Category Image
-                </label>
-
-                <div className="file-upload-wrapper">
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Category Name *</label>
 
                   <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={
-                      handleImageUpload
-                    }
-                    id="category-image-upload"
-                    style={{
-                      display: "none",
+                    type="text"
+                    placeholder="Enter category name"
+                    value={form.name}
+                    onChange={(e) => {
+                      const name = e.target.value;
+
+                      setForm((prev) => ({
+                        ...prev,
+                        name,
+                        slug: generateSlug(name),
+                      }));
+
+                      setFormErrors((prev) => ({
+                        ...prev,
+                        name: "",
+                      }));
                     }}
+                    className={formErrors.name ? "error" : ""}
                   />
 
-                  <label
-                    htmlFor="category-image-upload"
-                    className="file-upload-label"
-                  >
-                    <Upload size={18} />
-
-                    {imagePreview
-                      ? "Change Image"
-                      : "Upload Image"}
-                  </label>
-
-                  {imagePreview && (
-
-                    <div className="image-preview-container">
-
-                      <img
-                        src={imagePreview}
-                        alt="Category preview"
-                        className="image-preview"
-                      />
-
-                      <button
-                        type="button"
-                        className="remove-image-btn"
-                        onClick={
-                          handleRemoveImage
-                        }
-                      >
-                        <X size={16} />
-                      </button>
-
-                    </div>
-
+                  {formErrors.name && (
+                    <span className="error-text">
+                      {formErrors.name}
+                    </span>
                   )}
-
-                  <p className="field-hint">
-                    Supported formats:
-                    JPEG, PNG, GIF, WebP
-                    (Max 5MB)
-                  </p>
-
                 </div>
 
+                <div className="form-group">
+                  <label>Slug *</label>
+
+                  <input
+                    type="text"
+                    placeholder="category-url-slug"
+                    value={form.slug}
+                    onChange={(e) => {
+                      const slug = e.target.value
+                        .toLowerCase()
+                        .replace(/ /g, "-");
+
+                      setForm((prev) => ({
+                        ...prev,
+                        slug,
+                      }));
+
+                      setFormErrors((prev) => ({
+                        ...prev,
+                        slug: "",
+                      }));
+                    }}
+                    className={formErrors.slug ? "error" : ""}
+                  />
+
+                  {formErrors.slug && (
+                    <span className="error-text">
+                      {formErrors.slug}
+                    </span>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Description</label>
+
+                  <textarea
+                    rows={4}
+                    placeholder="Enter category description"
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Category Image</label>
+                  {renderImageUpload("category-image-upload")}
+                </div>
               </div>
 
+              <div className="modal-footer">
+                <button
+                  className="btn-cancel"
+                  onClick={closeCreateModal}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="btn-save"
+                  onClick={handleSaveCategory}
+                  disabled={isSubmitting || isProcessingImage}
+                >
+                  {isProcessingImage ? (
+                    <>Processing image...</>
+                  ) : isSubmitting ? (
+                    <>
+                      <div className="spinner-small"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={18} />
+                      Create Category
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-
-            <div className="modal-footer">
-
-              <button
-                className="btn-cancel"
-                onClick={() =>
-                  setShowModal(false)
-                }
-              >
-                Cancel
-              </button>
-
-              <button
-                className="btn-save"
-                onClick={
-                  handleSaveCategory
-                }
-                disabled={isSubmitting}
-              >
-
-                {isSubmitting ? (
-                  <>
-                    <div className="spinner-small"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save size={18} />
-                    Create Category
-                  </>
-                )}
-
-              </button>
-
-            </div>
-
           </div>
-
-        </div>
         </Portal>
-
       )}
 
-      {/* =====================================================
-          EXPANDED CATEGORY VIEW OVERLAY
-      ====================================================== */}
-
       {showViewModal && viewingCategory && (
-
         <Portal>
-        <div
-          className="modal view-modal"
-          onClick={() => {
-
-            if (!isEditMode) {
-              setShowViewModal(false);
-              setViewingCategory(null);
-            }
-
-          }}
-        >
-
           <div
-            className="modal-content view-content"
-            onClick={(e) =>
-              e.stopPropagation()
-            }
+            className="modal view-modal"
+            onClick={() => {
+              if (!isEditMode) closeViewModal();
+            }}
           >
+            <div
+              className="modal-content view-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <div>
+                  <h2>
+                    {isEditMode ? "Edit Category" : "Category Details"}
+                  </h2>
 
-            {/* HEADER */}
-
-            <div className="modal-header">
-
-              <div>
-
-                <h2>
-                  {isEditMode
-                    ? "Edit Category"
-                    : "Category Details"}
-                </h2>
-
-                {!isEditMode && (
-                  <p className="modal-subtitle">
-                    Complete category information
-                  </p>
-                )}
-
-              </div>
-
-              <button
-                className="modal-close"
-                onClick={() => {
-
-                  if (isEditMode) {
-                    handleCancelEdit();
-                  } else {
-                    setShowViewModal(false);
-                    setViewingCategory(null);
-                  }
-
-                }}
-              >
-                <X size={20} />
-              </button>
-
-            </div>
-
-            {/* VIEW BODY */}
-
-            <div className="view-body">
-
-              {/* LARGE IMAGE */}
-
-              <div className="category-detail-hero">
-
-                <div className="category-detail-image">
-
-                  {viewingCategory.image ? (
-
-                    <img
-                      src={
-                        isEditMode
-                          ? imagePreview ||
-                            viewingCategory.image
-                          : viewingCategory.image
-                      }
-                      alt={
-                        viewingCategory.name
-                      }
-                      onError={(e) => {
-                        e.currentTarget.style.display =
-                          "none";
-                      }}
-                    />
-
-                  ) : (
-
-                    <div className="category-detail-no-image">
-                      <Layers size={50} />
-                      <span>
-                        No Image
-                      </span>
-                    </div>
-
+                  {!isEditMode && (
+                    <p className="modal-subtitle">
+                      Complete category information
+                    </p>
                   )}
-
                 </div>
 
-                <div className="category-detail-title">
-
-                  <span className="detail-label">
-                    CATEGORY
-                  </span>
-
-                  <h3>
-                    {isEditMode
-                      ? form.name ||
-                        viewingCategory.name
-                      : viewingCategory.name}
-                  </h3>
-
-                  <span className="category-slug">
-                    {isEditMode
-                      ? form.slug
-                      : viewingCategory.slug}
-                  </span>
-
-                </div>
-
+                <button
+                  className="modal-close"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    if (isEditMode) {
+                      handleCancelEdit();
+                    } else {
+                      closeViewModal();
+                    }
+                  }}
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              {/* DETAILS */}
+              <div className="view-body">
+                <div className="category-detail-hero">
+                  <div className="category-detail-image">
+                    {detailImage ? (
+                      <img
+                        key={detailImage}
+                        src={detailImage}
+                        alt={viewingCategory.name}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="category-detail-no-image">
+                        <Layers size={50} />
+                        <span>No Image</span>
+                      </div>
+                    )}
+                  </div>
 
-              <div className="view-details-grid">
+                  <div className="category-detail-title">
+                    <span className="detail-label">CATEGORY</span>
 
-                {/* NAME */}
+                    <h3>
+                      {isEditMode
+                        ? form.name || viewingCategory.name
+                        : viewingCategory.name}
+                    </h3>
 
-                <div className="view-detail-item">
-
-                  <label>
-                    Category Name
-                  </label>
-
-                  {isEditMode ? (
-
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={(e) => {
-
-                        const name =
-                          e.target.value;
-
-                        setForm({
-                          ...form,
-                          name,
-                          slug:
-                            generateSlug(name),
-                        });
-
-                        setFormErrors({
-                          ...formErrors,
-                          name: "",
-                        });
-
-                      }}
-                      className={
-                        formErrors.name
-                          ? "error"
-                          : ""
-                      }
-                    />
-
-                  ) : (
-
-                    <span>
-                      {viewingCategory.name}
+                    <span className="category-slug">
+                      {isEditMode ? form.slug : viewingCategory.slug}
                     </span>
+                  </div>
+                </div>
 
-                  )}
+                <div className="view-details-grid">
+                  <div className="view-detail-item">
+                    <label>Category Name</label>
 
-                  {isEditMode &&
-                    formErrors.name && (
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        value={form.name}
+                        onChange={(e) => {
+                          const name = e.target.value;
+
+                          setForm((prev) => ({
+                            ...prev,
+                            name,
+                            slug: generateSlug(name),
+                          }));
+
+                          setFormErrors((prev) => ({
+                            ...prev,
+                            name: "",
+                          }));
+                        }}
+                        className={formErrors.name ? "error" : ""}
+                      />
+                    ) : (
+                      <span>{viewingCategory.name}</span>
+                    )}
+
+                    {isEditMode && formErrors.name && (
                       <span className="error-text">
                         {formErrors.name}
                       </span>
                     )}
-
-                </div>
-
-                {/* SLUG */}
-
-                <div className="view-detail-item">
-
-                  <label>
-                    Slug
-                  </label>
-
-                  {isEditMode ? (
-
-                    <input
-                      type="text"
-                      value={form.slug}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          slug: e.target.value
-                            .toLowerCase()
-                            .replace(
-                              / /g,
-                              "-"
-                            ),
-                        })
-                      }
-                      className={
-                        formErrors.slug
-                          ? "error"
-                          : ""
-                      }
-                    />
-
-                  ) : (
-
-                    <span className="category-slug">
-                      {viewingCategory.slug ||
-                        "—"}
-                    </span>
-
-                  )}
-
-                </div>
-
-                {/* DESCRIPTION */}
-
-                <div className="view-detail-item full-width">
-
-                  <label>
-                    Description
-                  </label>
-
-                  {isEditMode ? (
-
-                    <textarea
-                      rows={4}
-                      value={form.description}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          description:
-                            e.target.value,
-                        })
-                      }
-                    />
-
-                  ) : (
-
-                    <span className="description-full">
-                      {viewingCategory.description ||
-                        "No description available"}
-                    </span>
-
-                  )}
-
-                </div>
-
-                {/* IMAGE EDIT */}
-
-                {isEditMode && (
-
-                  <div className="view-detail-item full-width">
-
-                    <label>
-                      Category Image
-                    </label>
-
-                    <div className="file-upload-wrapper">
-
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/*"
-                        onChange={
-                          handleImageUpload
-                        }
-                        id="edit-category-image-upload"
-                        style={{
-                          display: "none",
-                        }}
-                      />
-
-                      <label
-                        htmlFor="edit-category-image-upload"
-                        className="file-upload-label"
-                      >
-                        <Upload size={18} />
-
-                        {imagePreview
-                          ? "Change Image"
-                          : "Upload Image"}
-                      </label>
-
-                      {imagePreview && (
-
-                        <div className="image-preview-container">
-
-                          <img
-                            src={
-                              imagePreview
-                            }
-                            alt="Preview"
-                            className="image-preview"
-                          />
-
-                          <button
-                            type="button"
-                            className="remove-image-btn"
-                            onClick={
-                              handleRemoveImage
-                            }
-                          >
-                            <X size={16} />
-                          </button>
-
-                        </div>
-
-                      )}
-
-                    </div>
-
                   </div>
 
-                )}
+                  <div className="view-detail-item">
+                    <label>Slug</label>
 
-                {/* CREATED */}
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        value={form.slug}
+                        onChange={(e) => {
+                          const slug = e.target.value
+                            .toLowerCase()
+                            .replace(/ /g, "-");
 
-                <div className="view-detail-item">
+                          setForm((prev) => ({
+                            ...prev,
+                            slug,
+                          }));
 
-                  <label>
-                    Created At
-                  </label>
-
-                  <span>
-                    <Calendar
-                      size={15}
-                    />
-
-                    {formatDate(
-                      viewingCategory.createdAt
+                          setFormErrors((prev) => ({
+                            ...prev,
+                            slug: "",
+                          }));
+                        }}
+                        className={formErrors.slug ? "error" : ""}
+                      />
+                    ) : (
+                      <span className="category-slug">
+                        {viewingCategory.slug || "—"}
+                      </span>
                     )}
-                  </span>
 
-                </div>
-
-                {/* UPDATED */}
-
-                <div className="view-detail-item">
-
-                  <label>
-                    Last Updated
-                  </label>
-
-                  <span>
-                    <Calendar
-                      size={15}
-                    />
-
-                    {formatDate(
-                      viewingCategory.updatedAt
+                    {isEditMode && formErrors.slug && (
+                      <span className="error-text">
+                        {formErrors.slug}
+                      </span>
                     )}
-                  </span>
+                  </div>
 
+                  <div className="view-detail-item full-width">
+                    <label>Description</label>
+
+                    {isEditMode ? (
+                      <textarea
+                        rows={4}
+                        value={form.description}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                      />
+                    ) : (
+                      <span className="description-full">
+                        {viewingCategory.description ||
+                          "No description available"}
+                      </span>
+                    )}
+                  </div>
+
+                  {isEditMode && (
+                    <div className="view-detail-item full-width">
+                      <label>Category Image</label>
+                      {renderImageUpload("edit-category-image-upload")}
+                    </div>
+                  )}
+
+                  <div className="view-detail-item">
+                    <label>Created At</label>
+
+                    <span>
+                      <Calendar size={15} />
+                      {formatDate(viewingCategory.createdAt)}
+                    </span>
+                  </div>
+
+                  <div className="view-detail-item">
+                    <label>Last Updated</label>
+
+                    <span>
+                      <Calendar size={15} />
+                      {formatDate(viewingCategory.updatedAt)}
+                    </span>
+                  </div>
+
+                  <div className="view-detail-item">
+                    <label>Category ID</label>
+                    <span>{viewingCategory.id || "—"}</span>
+                  </div>
                 </div>
-
-                {/* ID */}
-
-                <div className="view-detail-item">
-
-                  <label>
-                    Category ID
-                  </label>
-
-                  <span>
-                    {viewingCategory.id ||
-                      "—"}
-                  </span>
-
-                </div>
-
               </div>
 
+              <div className="modal-footer">
+                {isEditMode ? (
+                  <>
+                    <button
+                      className="btn-cancel"
+                      onClick={handleCancelEdit}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      className="btn-save"
+                      onClick={handleSaveCategory}
+                      disabled={isSubmitting || isProcessingImage}
+                    >
+                      {isProcessingImage ? (
+                        <>Processing image...</>
+                      ) : isSubmitting ? (
+                        <>
+                          <div className="spinner-small"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={18} />
+                          Update Category
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="btn-edit"
+                      onClick={openEditFromView}
+                    >
+                      <Edit size={18} />
+                      Edit
+                    </button>
+
+                    <button
+                      className="btn-danger"
+                      onClick={handleDeleteFromView}
+                    >
+                      <Trash2 size={18} />
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-
-            {/* FOOTER */}
-
-            <div className="modal-footer">
-
-              {isEditMode ? (
-
-                <>
-
-                  <button
-                    className="btn-cancel"
-                    onClick={
-                      handleCancelEdit
-                    }
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    className="btn-save"
-                    onClick={
-                      handleSaveCategory
-                    }
-                    disabled={
-                      isSubmitting
-                    }
-                  >
-
-                    {isSubmitting ? (
-                      <>
-                        <div className="spinner-small"></div>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save size={18} />
-                        Update Category
-                      </>
-                    )}
-
-                  </button>
-
-                </>
-
-              ) : (
-
-                <>
-
-                  <button
-                    className="btn-edit"
-                    onClick={
-                      openEditFromView
-                    }
-                  >
-                    <Edit size={18} />
-                    Edit
-                  </button>
-
-                  <button
-                    className="btn-danger"
-                    onClick={
-                      handleDeleteFromView
-                    }
-                  >
-                    <Trash2 size={18} />
-                    Delete
-                  </button>
-
-                </>
-
-              )}
-
-            </div>
-
           </div>
-
-        </div>
         </Portal>
-
       )}
-
     </div>
   );
 }

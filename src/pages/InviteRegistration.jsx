@@ -121,7 +121,7 @@ function InviteRegistration() {
       <div className="invite-container">
         <div className="invite-card">
           <div className="invite-header">
-            <h1>🎓 ZsmartClass</h1>
+            <h1>🎓 ZmartClass</h1>
             <p>Complete your registration</p>
           </div>
 
@@ -138,7 +138,7 @@ function InviteRegistration() {
               <div className="invite-user-info">
                 <h2>Welcome, {userData?.name}! 👋</h2>
                 <p>
-                  You've been invited to join ZsmartClass as a{" "}
+                  You've been invited to join ZmartClass as a{" "}
                   <strong>{userData?.role?.toLowerCase()}</strong>.
                 </p>
                 <p className="invite-email">

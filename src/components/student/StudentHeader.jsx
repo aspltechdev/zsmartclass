@@ -138,7 +138,7 @@ function StudentHeader({ collapsed = false, onToggleCollapse, onToggleMobile }) 
                   </div>
                   <div>
                     <h4>{user?.name || "Student"}</h4>
-                    <span>{user?.email || "student@zsmartclass.com"}</span>
+                    <span>{user?.email || "student@zmartclass.com"}</span>
                   </div>
                 </div>
                 <div className="sh-dropdown-divider"></div>

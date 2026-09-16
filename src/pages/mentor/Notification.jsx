@@ -1,660 +1,327 @@
-// src/pages/mentor/Notification.jsx
-
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bell,
   CheckCircle,
   AlertTriangle,
-  Info,
-  XCircle,
+  Award,
   CheckCheck,
   Trash2,
   RefreshCw,
   Megaphone,
-  Sparkles,
-  TrendingUp,
-  CalendarDays,
+  CalendarDays
 } from "lucide-react";
-
 import api from "../../services/api";
-
 import "./Notification.css";
 import "./MentorShared.css";
 
-/* =========================================================
-   NOTIFICATION TYPE → ICON + COLOR
-   Same notification types used by Admin
-   ========================================================= */
+function label(value) {
+  return String(value || "GENERAL")
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
-const TYPE_META = {
-  SUCCESS: {
-    icon: CheckCircle,
-    color: "#10b981",
-    tone: "success",
-  },
+function dateText(value) {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return "—";
 
-  WARNING: {
-    icon: AlertTriangle,
-    color: "#f59e0b",
-    tone: "warning",
-  },
+  return date.toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
 
-  ERROR: {
-    icon: XCircle,
-    color: "#ef4444",
-    tone: "error",
-  },
+function metaFor(type) {
+  if (type === "CERTIFICATE") {
+    return { Icon: Award, color: "#059669" };
+  }
+  if (type === "ANNOUNCEMENT") {
+    return { Icon: Megaphone, color: "#6366f1" };
+  }
+  if (type === "PAYMENT" || type === "SUCCESS") {
+    return { Icon: CheckCircle, color: "#059669" };
+  }
+  if (type === "ERROR" || type === "WARNING") {
+    return { Icon: AlertTriangle, color: "#dc2626" };
+  }
+  return { Icon: Bell, color: "#6366f1" };
+}
 
-  ANNOUNCEMENT: {
-    icon: Megaphone,
-    color: "#6366f1",
-    tone: "announcement",
-  },
-
-  NEW_ARRIVAL: {
-    icon: Sparkles,
-    color: "#10b981",
-    tone: "new-arrival",
-  },
-
-  PROGRESS: {
-    icon: TrendingUp,
-    color: "#f59e0b",
-    tone: "progress",
-  },
-
-  EVENT: {
-    icon: CalendarDays,
-    color: "#ec4899",
-    tone: "event",
-  },
-
-  PAYMENT: {
-    icon: CheckCircle,
-    color: "#10b981",
-    tone: "payment",
-  },
-
-  GENERAL: {
-    icon: Bell,
-    color: "#64748b",
-    tone: "general",
-  },
-};
-
-
-/* =========================================================
-   FALLBACK
-   ========================================================= */
-
-const metaFor = (type) => {
-  const normalizedType = (type || "").toUpperCase();
-
-  return TYPE_META[normalizedType] || TYPE_META.GENERAL;
-};
-
-
-/* =========================================================
-   COMPONENT
-   ========================================================= */
-
-function MentorNotifications() {
+export default function MentorNotifications() {
   const [notifications, setNotifications] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
-  const [error, setError] = useState("");
-
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [busy, setBusy] = useState(null);
 
-  const [busyId, setBusyId] = useState(null);
-
-
-  /* =======================================================
-     FETCH NOTIFICATIONS
-     ======================================================= */
+  const operationLock = useRef(false);
+  const loadSequence = useRef(0);
 
   useEffect(() => {
     fetchNotifications();
+
+    return () => {
+      loadSequence.current += 1;
+    };
   }, []);
 
+  async function fetchNotifications() {
+    const sequence = ++loadSequence.current;
+    setLoading(true);
+    setLoadError("");
 
-  const fetchNotifications = async () => {
     try {
-      setLoading(true);
-      setError("");
+      const response = await api.get("/notifications");
+      const data = response.data?.data ?? response.data;
 
-      const res = await api.get("/notifications");
-
-      const data =
-        res.data?.data ??
-        res.data ??
-        [];
-
-      setNotifications(
-        Array.isArray(data)
-          ? data
-          : []
-      );
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Couldn't load notifications. Please refresh or check the server."
-      );
-
-      setNotifications([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  /* =======================================================
-     MARK ONE AS READ
-     ======================================================= */
-
-  const markAsRead = async (id) => {
-    try {
-      setBusyId(id);
-
-      await api.put(
-        `/notifications/${id}/read`
-      );
-
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === id
-            ? {
-                ...n,
-                isRead: true,
-              }
-            : n
-        )
-      );
-    } catch (err) {
-      alert(
-        err.response?.data?.message ||
-          "Couldn't mark this as read."
-      );
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-
-  /* =======================================================
-     MARK ALL AS READ
-     ======================================================= */
-
-  const markAllRead = async () => {
-    try {
-      setBusyId("all");
-
-      await api.put(
-        "/notifications/read-all"
-      );
-
-      setNotifications((prev) =>
-        prev.map((n) => ({
-          ...n,
-          isRead: true,
-        }))
-      );
-    } catch (err) {
-      alert(
-        err.response?.data?.message ||
-          "Couldn't mark all as read."
-      );
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-
-  /* =======================================================
-     DELETE NOTIFICATION
-     ======================================================= */
-
-  const removeNotification = async (id) => {
-    try {
-      setBusyId(id);
-
-      await api.delete(
-        `/notifications/${id}`
-      );
-
-      setNotifications((prev) =>
-        prev.filter(
-          (n) => n.id !== id
-        )
-      );
-    } catch (err) {
-      alert(
-        err.response?.data?.message ||
-          "Couldn't delete this notification."
-      );
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-
-  /* =======================================================
-     UNREAD COUNT
-     ======================================================= */
-
-  const unreadCount = useMemo(
-    () =>
-      notifications.filter(
-        (n) => !n.isRead
-      ).length,
-    [notifications]
-  );
-
-
-  /* =======================================================
-     FILTERED NOTIFICATIONS
-     ======================================================= */
-
-  const visible = useMemo(
-    () => {
-      if (filter === "unread") {
-        return notifications.filter(
-          (n) => !n.isRead
+      if (!Array.isArray(data)) throw new Error("Invalid response.");
+      if (sequence === loadSequence.current) setNotifications(data);
+    } catch (error) {
+      if (sequence === loadSequence.current) {
+        setLoadError(
+          error.response?.data?.message || "Unable to load notifications."
         );
       }
-
-      return notifications;
-    },
-    [notifications, filter]
-  );
-
-
-  /* =======================================================
-     DATE FORMAT
-     ======================================================= */
-
-  const fmt = (date) => {
-    if (!date) {
-      return "";
+    } finally {
+      if (sequence === loadSequence.current) setLoading(false);
     }
-
-    return new Date(date).toLocaleString(
-      "en-IN",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    );
-  };
-
-
-  /* =======================================================
-     LOADING
-     ======================================================= */
-
-  if (loading) {
-    return (
-      <div className="mentor-notifications">
-
-        <div className="loading-state">
-
-          <div className="spinner" />
-
-          <p>
-            Loading notifications…
-          </p>
-
-        </div>
-
-      </div>
-    );
   }
 
+  async function performAction(id, kind) {
+    if (operationLock.current) return;
 
-  /* =======================================================
-     PAGE
-     ======================================================= */
+    if (kind === "delete" &&
+        !window.confirm("Remove this notification from your inbox?")) {
+      return;
+    }
+
+    operationLock.current = true;
+    setBusy(id);
+    setActionError("");
+
+    try {
+      if (kind === "delete") {
+        await api.delete(`/notifications/${id}`);
+        setNotifications((items) => items.filter((item) => item.id !== id));
+      } else if (kind === "all") {
+        await api.put("/notifications/read-all");
+        setNotifications((items) =>
+          items.map((item) => ({ ...item, isRead: true }))
+        );
+      } else {
+        await api.put(`/notifications/${id}/read`);
+        setNotifications((items) => items.map((item) =>
+          item.id === id ? { ...item, isRead: true } : item
+        ));
+      }
+    } catch (error) {
+      setActionError(
+        error.response?.data?.message || "Action failed. Please try again."
+      );
+    } finally {
+      operationLock.current = false;
+      setBusy(null);
+    }
+  }
+
+  const unread = notifications.filter((item) => !item.isRead).length;
+  const query = search.trim().toLowerCase();
+
+  const visible = notifications.filter((item) => {
+    const text = [
+      item.title,
+      item.message,
+      item.sender?.name,
+      item.sender?.role,
+      item.receiver?.name
+    ].filter(Boolean).join(" ").toLowerCase();
+
+    return (
+      (filter === "all" || !item.isRead) &&
+      (!query || text.includes(query))
+    );
+  });
 
   return (
     <div className="mentor-notifications">
-
-      {/* =================================================
-          HEADER
-          ================================================= */}
-
       <div className="page-header">
-
         <div>
-
-          <h1>
-            <Bell size={24} />
-            Notifications
-          </h1>
-
+          <h1><Bell size={24} /> Notifications</h1>
           <p className="subtitle">
-
-            {unreadCount > 0
-              ? `${unreadCount} unread notification${
-                  unreadCount === 1
-                    ? ""
-                    : "s"
-                }`
-              : "You're all caught up."}
-
+            {unread ? `${unread} unread notifications` : "Your notification inbox"}
           </p>
-
         </div>
 
-
         <div className="header-buttons">
-
-          {/* Refresh */}
-
           <button
             className="refresh-btn"
             onClick={fetchNotifications}
+            disabled={loading || busy !== null}
             title="Refresh"
-            type="button"
           >
             <RefreshCw size={16} />
           </button>
 
-
-          {/* Mark all read */}
-
-          {unreadCount > 0 && (
-
+          {unread > 0 && (
             <button
               className="btn-secondary"
-              onClick={markAllRead}
-              disabled={busyId === "all"}
-              type="button"
+              onClick={() => performAction("all", "all")}
+              disabled={loading || busy !== null}
             >
-
-              <CheckCheck size={16} />
-
-              {busyId === "all"
-                ? "Marking…"
-                : "Mark all read"}
-
+              <CheckCheck size={16} /> Mark all read
             </button>
-
           )}
-
         </div>
-
       </div>
 
+      <div style={{ marginBottom: 16 }}>
+        <input
+          aria-label="Search notifications"
+          placeholder="Search messages or sender..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            padding: 12,
+            border: "1px solid #e2e8f0",
+            borderRadius: 8
+          }}
+        />
+      </div>
 
-      {/* =================================================
-          ERROR
-          ================================================= */}
-
-      {error && (
-        <div className="error-text">
-          {error}
-        </div>
-      )}
-
-
-      {/* =================================================
-          FILTER TABS
-          ================================================= */}
-
-      <div
-        className="ntf-filter"
-        role="tablist"
-      >
-
+      <div className="ntf-filter" role="tablist">
         <button
-          type="button"
           role="tab"
-          aria-selected={
-            filter === "all"
-          }
-          className={
-            filter === "all"
-              ? "active"
-              : ""
-          }
-          onClick={() =>
-            setFilter("all")
-          }
+          aria-selected={filter === "all"}
+          className={filter === "all" ? "active" : ""}
+          onClick={() => setFilter("all")}
         >
           All ({notifications.length})
         </button>
-
-
         <button
-          type="button"
           role="tab"
-          aria-selected={
-            filter === "unread"
-          }
-          className={
-            filter === "unread"
-              ? "active"
-              : ""
-          }
-          onClick={() =>
-            setFilter("unread")
-          }
+          aria-selected={filter === "unread"}
+          className={filter === "unread" ? "active" : ""}
+          onClick={() => setFilter("unread")}
         >
-          Unread ({unreadCount})
+          Unread ({unread})
         </button>
-
       </div>
 
+      {actionError && (
+        <p className="error-text" role="alert">{actionError}</p>
+      )}
 
-      {/* =================================================
-          EMPTY STATE
-          ================================================= */}
-
-      {visible.length === 0 ? (
-
-        <div className="empty-state">
-
-          <div className="empty-icon">
-            <Bell size={38} />
-          </div>
-
-          <h3>
-            {filter === "unread"
-              ? "No unread notifications"
-              : "No notifications"}
-          </h3>
-
-          <p>
-            {filter === "unread"
-              ? "Everything here has been read."
-              : "Updates about your courses and students will appear here."}
-          </p>
-
+      {loading ? (
+        <div className="loading-state">
+          <div className="spinner" />
+          <p>Loading notifications...</p>
         </div>
-
+      ) : loadError ? (
+        <div className="error-text" role="alert">
+          <p>{loadError}</p>
+          <button className="btn-secondary" onClick={fetchNotifications}>
+            Try again
+          </button>
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="empty-state">
+          <Bell size={38} />
+          <h3>No notifications to show</h3>
+          <p>{query ? "Try another search." : "New messages will appear here."}</p>
+        </div>
       ) : (
-
-        /* =================================================
-           NOTIFICATION LIST
-           ================================================= */
-
         <div className="ntf-list">
-
           {visible.map((notification) => {
-
-            /*
-             * IMPORTANT:
-             * Admin uses notification.type.
-             * We do the same here.
-             */
-
-            const meta = metaFor(
-              notification.type
-            );
-
-            const Icon = meta.icon;
-
+            const { Icon, color } = metaFor(notification.type);
+            const sender = notification.sender;
+            const receiver = notification.receiver;
 
             return (
-
               <div
                 key={notification.id}
-                className={`notification-card ${
-                  notification.isRead
-                    ? "read"
-                    : "unread"
-                }`}
+                className={`notification-card ${notification.isRead ? "read" : "unread"}`}
               >
-
-                {/* ======================================
-                    COLORED NOTIFICATION ICON
-                    ====================================== */}
-
                 <div
-                  className={`notification-icon ${meta.tone}`}
-                  style={{
-                    backgroundColor:
-                      meta.color,
-                  }}
-                  title={
-                    notification.type ||
-                    "GENERAL"
-                  }
+                  className="notification-icon"
+                  style={{ backgroundColor: color }}
                 >
-
-                  <Icon
-                    size={19}
-                    color="#ffffff"
-                    strokeWidth={2}
-                  />
-
+                  <Icon size={19} color="#fff" />
                 </div>
 
-
-                {/* ======================================
-                    NOTIFICATION CONTENT
-                    ====================================== */}
-
-                <div className="notification-content">
-
+                <div className="notification-content" style={{ minWidth: 0 }}>
                   <div className="ntf-card-top">
-
-                    <h3>
-                      {notification.title}
-                    </h3>
-
-
-                    {!notification.isRead && (
-                      <span
-                        className="unread-dot"
-                        title="Unread"
-                      />
-                    )}
-
+                    <h3>{notification.title}</h3>
+                    {!notification.isRead && <span className="unread-dot" title="Unread" />}
                   </div>
 
-
-                  <p>
+                  <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
                     {notification.message}
                   </p>
 
+                  <div style={{
+                    margin: "12px 0",
+                    padding: 12,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    lineHeight: 1.8,
+                    color: "#334155",
+                    overflowWrap: "anywhere"
+                  }}>
+                    <div>
+                      From: <strong>{sender?.name || "Sender not recorded"}</strong>
+                      {sender?.role && <> · {label(sender.role)}</>}
+                    </div>
 
-                  <div className="notification-meta">
+                    <div>
+                      To: <strong>{receiver?.name || "You"}</strong>
+                      {receiver?.role && <> · {label(receiver.role)}</>}
+                      {receiver?.email && <div>{receiver.email}</div>}
+                    </div>
 
-                    <CalendarDays
-                      size={13}
-                    />
-
-                    <small>
-                      {fmt(
-                        notification.createdAt
-                      )}
-                    </small>
-
+                    <div>
+                      {label(notification.type)} · In-app notification
+                    </div>
+                    <div>{notification.isRead ? "Read" : "Unread"}</div>
                   </div>
 
+                  <div className="notification-meta">
+                    <CalendarDays size={13} />
+                    <small>{dateText(notification.createdAt)}</small>
+                  </div>
                 </div>
-
-
-                {/* ======================================
-                    ACTIONS
-                    ====================================== */}
 
                 <div className="ntf-card-actions">
-
-                  {/* Mark as read */}
-
                   {!notification.isRead && (
-
                     <button
-                      type="button"
                       className="read-btn"
-                      onClick={() =>
-                        markAsRead(
-                          notification.id
-                        )
-                      }
-                      disabled={
-                        busyId ===
-                        notification.id
-                      }
+                      onClick={() => performAction(notification.id, "read")}
+                      disabled={busy !== null}
                       title="Mark as read"
                     >
-
-                      <CheckCheck
-                        size={15}
-                      />
-
-                      {busyId ===
-                      notification.id
-                        ? "..."
-                        : "Read"}
-
+                      <CheckCheck size={15} /> Read
                     </button>
-
                   )}
-
-
-                  {/* Delete */}
-
                   <button
-                    type="button"
                     className="delete-lesson-btn"
-                    onClick={() =>
-                      removeNotification(
-                        notification.id
-                      )
-                    }
-                    disabled={
-                      busyId ===
-                      notification.id
-                    }
-                    title="Delete notification"
+                    onClick={() => performAction(notification.id, "delete")}
+                    disabled={busy !== null}
+                    title="Remove from inbox"
+                    aria-label="Remove from inbox"
                   >
-
-                    <Trash2
-                      size={15}
-                    />
-
+                    <Trash2 size={15} />
                   </button>
-
                 </div>
-
               </div>
-
             );
           })}
-
         </div>
-
       )}
-
     </div>
   );
 }
-
-export default MentorNotifications;

@@ -117,7 +117,7 @@ function AdminReports() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `zsmartclass-${exportType}-report.${format}`;
+      a.download = `zmartclass-${exportType}-report.${format}`;
       document.body.appendChild(a);
       a.click();
       a.remove();

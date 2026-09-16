@@ -126,7 +126,7 @@ const MentorSidebar = ({
    *
    * Sidebar displays:
    *
-   * ZSMARTCLASS
+   * ZMARTCLASS
    * RENUKA R
    */
   const mentorName = user?.name || "MENTOR";

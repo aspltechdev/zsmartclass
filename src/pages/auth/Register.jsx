@@ -411,7 +411,7 @@
 //             <div className="register-corner-br" />
 
 //             <div className="register-branding-content">
-//               {/* Logo Badge - ZsmartClass */}
+//               {/* Logo Badge - ZmartClass */}
 //               <motion.div
 //                 initial={{ opacity: 0, y: 10 }}
 //                 animate={{ opacity: 1, y: 0 }}
@@ -422,7 +422,7 @@
 //                   <span className="register-logo-text">ZC</span>
 //                 </div>
 //                 <div className="register-logo-label">
-//                   <span className="register-logo-title">ZsmartClass</span>
+//                   <span className="register-logo-title">ZmartClass</span>
 //                   <span className="register-logo-subtitle">Learning Management System</span>
 //                 </div>
 //               </motion.div>
@@ -507,7 +507,7 @@
 //               <div className="register-welcome">
 //                 <h2 className="register-welcome-title">Create Account</h2>
 //                 <p className="register-welcome-subtitle">
-//                   Join ZsmartClass and start learning today
+//                   Join ZmartClass and start learning today
 //                 </p>
 //                 <div className="register-welcome-line" />
 //               </div>
@@ -772,7 +772,7 @@ function Register() {
             <div className="register-corner-br" />
 
             <div className="register-branding-content">
-              {/* Logo Badge - ZsmartClass */}
+              {/* Logo Badge - ZmartClass */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -783,7 +783,7 @@ function Register() {
                   <span className="register-logo-text">ZC</span>
                 </div>
                 <div className="register-logo-label">
-                  <span className="register-logo-title">ZsmartClass</span>
+                  <span className="register-logo-title">ZmartClass</span>
                   <span className="register-logo-subtitle">Learning Management System</span>
                 </div>
               </motion.div>
@@ -868,7 +868,7 @@ function Register() {
               <div className="register-welcome">
                 <h2 className="register-welcome-title">Create Account</h2>
                 <p className="register-welcome-subtitle">
-                  Join ZsmartClass and start learning today
+                  Join ZmartClass and start learning today
                 </p>
                 <div className="register-welcome-line" />
               </div>

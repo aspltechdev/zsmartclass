@@ -17,7 +17,7 @@ import api from "../../services/api";
 import "./AdminPayments.css";
 import "./AdminShared.css";
 
-const BRAND = "ZsmartClass";
+const BRAND = "ZmartClass";
 
 const emptyForm = {
   studentId: "",

@@ -123,7 +123,7 @@ function AdminSidebar({
         .join(" ")}
     >
       {/* =================================================
-          ZSMARTCLASS LOGO
+          ZMARTCLASS LOGO
       ================================================= */}
 
       <div className="sidebar-logo">

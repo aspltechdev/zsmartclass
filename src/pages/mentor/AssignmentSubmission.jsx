@@ -1,383 +1,415 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FileText,
   Download,
   CheckCircle,
+  XCircle,
   Clock,
   Award,
   Search,
   RefreshCw,
+  Loader2,
   X,
 } from "lucide-react";
-import api from "../../services/api";
-import "./AssignmentSubmission.css";
-import "./MentorShared.css";
 
-/* =========================================================
-   FILE URL
-========================================================= */
+import api from "../../services/api";
+import "./MentorShared.css";
+import "./AssignmentSubmission.css";
+
+const getList = (response) => {
+  const data = response?.data?.data;
+  return Array.isArray(data) ? data : [];
+};
 
 const fileUrl = (path) => {
   if (!path) return "";
 
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
+  if (/^https?:\/\//i.test(path)) return path;
 
-  const base = (api.defaults?.baseURL || "http://localhost:5000/api")
+  const base = (
+    api.defaults?.baseURL || "http://localhost:5000/api"
+  )
     .replace(/\/$/, "")
     .replace(/\/api$/, "");
 
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 };
 
-/* =========================================================
-   COMPONENT
-========================================================= */
+const formatDateTime = (value) => {
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (!Number.isFinite(date.getTime())) return "—";
+
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const getStatus = (submission) => {
+  const status = String(
+    submission?.status || ""
+  ).toUpperCase();
+
+  if (status === "GRADED") {
+    return {
+      label: "Accepted",
+      className: "graded",
+      Icon: CheckCircle,
+    };
+  }
+
+  if (status === "REJECTED") {
+    return {
+      label: "Rejected",
+      className: "rejected",
+      Icon: XCircle,
+    };
+  }
+
+  return {
+    label: "Awaiting Review",
+    className: "submitted",
+    Icon: Clock,
+  };
+};
 
 function AssignmentSubmission() {
   const [assignments, setAssignments] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [selectedAssignment, setSelectedAssignment] =
+    useState(null);
+  const [selectedSubmission, setSelectedSubmission] =
+    useState(null);
 
-  const [selectedAssignment, setSelectedAssignment] = useState(null);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
-
-  const [loadingAssignments, setLoadingAssignments] = useState(true);
-  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [loadingAssignments, setLoadingAssignments] =
+    useState(true);
+  const [loadingSubmissions, setLoadingSubmissions] =
+    useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
-
-  const [gradeDraft, setGradeDraft] = useState({
+  const [draft, setDraft] = useState({
     marks: "",
     feedback: "",
   });
 
-  const [grading, setGrading] = useState(false);
+  const [savingDecision, setSavingDecision] = useState("");
   const [message, setMessage] = useState(null);
+  const [modalMessage, setModalMessage] = useState(null);
 
-  /* =========================================================
-     FETCH ASSIGNMENTS
-  ========================================================= */
+  const requestId = useRef(0);
+  const savingRef = useRef(false);
+  const closeButtonRef = useRef(null);
+  const openerRef = useRef(null);
+
+  const saving = Boolean(savingDecision);
 
   useEffect(() => {
-    fetchAssignments();
+    let active = true;
+
+    const load = async () => {
+      try {
+        const response = await api.get("/assignments");
+
+        if (active) {
+          setAssignments(getList(response));
+        }
+      } catch (error) {
+        if (active) {
+          setMessage({
+            type: "error",
+            text:
+              error.response?.data?.message ||
+              "Unable to load assignments.",
+          });
+        }
+      } finally {
+        if (active) setLoadingAssignments(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      active = false;
+      requestId.current += 1;
+    };
   }, []);
 
-  const fetchAssignments = async () => {
+  const modalOpen = Boolean(selectedSubmission);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    closeButtonRef.current?.focus();
+
+    return () => {
+      openerRef.current?.focus();
+    };
+  }, [modalOpen]);
+
+  const selectAssignment = async (assignment) => {
+    const currentRequest = ++requestId.current;
+
+    setSelectedAssignment(assignment);
+    setSelectedSubmission(null);
+    setSubmissions([]);
+    setMessage(null);
+    setLoadingSubmissions(true);
+
     try {
-      setLoadingAssignments(true);
-
-      const res = await api.get("/assignments");
-
-      setAssignments(res.data?.data || []);
-    } catch (err) {
-      console.error("Error fetching assignments:", err);
-      setAssignments([]);
-    } finally {
-      setLoadingAssignments(false);
-    }
-  };
-
-  /* =========================================================
-     FETCH SUBMISSIONS FOR ASSIGNMENT
-  ========================================================= */
-
-  const fetchSubmissions = async (assignment) => {
-    try {
-      setSelectedAssignment(assignment);
-      setSelectedSubmission(null);
-      setMessage(null);
-      setLoadingSubmissions(true);
-
-      const res = await api.get(
+      const response = await api.get(
         `/assignments/${assignment.id}/submissions`
       );
 
-      setSubmissions(res.data?.data || []);
-    } catch (err) {
-      console.error("Error fetching submissions:", err);
-
-      setSubmissions([]);
-
-      setMessage({
-        type: "error",
-        text:
-          err.response?.data?.message ||
-          "Unable to load assignment submissions.",
-      });
+      if (currentRequest === requestId.current) {
+        setSubmissions(getList(response));
+      }
+    } catch (error) {
+      if (currentRequest === requestId.current) {
+        setMessage({
+          type: "error",
+          text:
+            error.response?.data?.message ||
+            "Unable to load submissions.",
+        });
+      }
     } finally {
-      setLoadingSubmissions(false);
+      if (currentRequest === requestId.current) {
+        setLoadingSubmissions(false);
+      }
     }
   };
 
-  /* =========================================================
-     REFRESH ASSIGNMENTS + SUBMISSIONS
-  ========================================================= */
+  const refresh = async () => {
+    if (refreshing || savingRef.current) return;
 
-  const handleRefresh = async () => {
+    const currentRequest = ++requestId.current;
+    const assignmentId = selectedAssignment?.id;
+
+    setRefreshing(true);
+    setMessage(null);
+
+    if (assignmentId) setLoadingSubmissions(true);
+
     try {
-      setRefreshing(true);
-      setMessage(null);
+      const [assignmentResponse, submissionResponse] =
+        await Promise.all([
+          api.get("/assignments", {
+            params: { _refresh: Date.now() },
+          }),
+          assignmentId
+            ? api.get(
+                `/assignments/${assignmentId}/submissions`,
+                { params: { _refresh: Date.now() } }
+              )
+            : Promise.resolve(null),
+        ]);
 
-      // Add a timestamp so the browser/proxy cannot reuse a cached GET.
-      const assignmentsRes = await api.get("/assignments", {
-        params: { _refresh: Date.now() },
-      });
+      if (currentRequest !== requestId.current) return;
 
-      const updatedAssignments = assignmentsRes.data?.data || [];
-      setAssignments(updatedAssignments);
+      const freshAssignments = getList(assignmentResponse);
+      setAssignments(freshAssignments);
 
-      // Refresh submissions for the assignment currently selected.
-      if (selectedAssignment?.id) {
-        setLoadingSubmissions(true);
-
-        const submissionsRes = await api.get(
-          `/assignments/${selectedAssignment.id}/submissions`,
-          { params: { _refresh: Date.now() } }
+      if (assignmentId) {
+        const freshAssignment = freshAssignments.find(
+          (item) => Number(item.id) === Number(assignmentId)
         );
 
-        const updatedSubmissions = submissionsRes.data?.data || [];
-        setSubmissions(updatedSubmissions);
-
-        // Replace the selected assignment with the fresh assignment object.
-        const freshAssignment = updatedAssignments.find(
-          (assignment) =>
-            Number(assignment.id) === Number(selectedAssignment.id)
+        setSelectedAssignment(freshAssignment || null);
+        setSubmissions(
+          freshAssignment ? getList(submissionResponse) : []
         );
-
-        if (freshAssignment) {
-          setSelectedAssignment(freshAssignment);
-        }
-
-        // Keep the opened submission in sync if it still exists.
-        if (selectedSubmission?.id) {
-          const freshSubmission = updatedSubmissions.find(
-            (submission) =>
-              Number(submission.id) === Number(selectedSubmission.id)
-          );
-
-          if (freshSubmission) {
-            setSelectedSubmission(freshSubmission);
-            setGradeDraft({
-              marks:
-                freshSubmission.marks !== null &&
-                freshSubmission.marks !== undefined
-                  ? freshSubmission.marks
-                  : "",
-              feedback: freshSubmission.feedback || "",
-            });
-          }
-        }
       }
-    } catch (err) {
-      console.error("Error refreshing assignment submissions:", err);
-
-      setMessage({
-        type: "error",
-        text:
-          err.response?.data?.message ||
-          "Unable to refresh assignment submissions.",
-      });
+    } catch (error) {
+      if (currentRequest === requestId.current) {
+        setMessage({
+          type: "error",
+          text:
+            error.response?.data?.message ||
+            "Unable to refresh submissions.",
+        });
+      }
     } finally {
-      setLoadingSubmissions(false);
+      if (currentRequest === requestId.current) {
+        setLoadingSubmissions(false);
+      }
+
       setRefreshing(false);
     }
   };
 
-  /* =========================================================
-     OPEN STUDENT SUBMISSION
-  ========================================================= */
-
-  const openSubmission = (submission) => {
+  const openReview = (submission, event) => {
+    openerRef.current = event.currentTarget;
     setSelectedSubmission(submission);
-
-    setGradeDraft({
-      marks:
-        submission.marks !== null && submission.marks !== undefined
-          ? submission.marks
-          : "",
+    setDraft({
+      marks: submission.marks ?? "",
       feedback: submission.feedback || "",
     });
-
-    setMessage(null);
+    setModalMessage(null);
   };
 
-  /* =========================================================
-     CLOSE SUBMISSION
-  ========================================================= */
+  const closeReview = () => {
+    if (savingRef.current) return;
 
-  const closeSubmission = () => {
     setSelectedSubmission(null);
-
-    setGradeDraft({
-      marks: "",
-      feedback: "",
-    });
-
-    setMessage(null);
+    setModalMessage(null);
+    setDraft({ marks: "", feedback: "" });
   };
 
-  /* =========================================================
-     GRADE SUBMISSION
-  ========================================================= */
-
-  const saveGrade = async () => {
-    if (!selectedSubmission || !selectedAssignment) {
-      return;
+  const handleModalKeyDown = (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeReview();
     }
 
-    if (
-      gradeDraft.marks === "" ||
-      gradeDraft.marks === null ||
-      gradeDraft.marks === undefined
+    if (event.key !== "Tab") return;
+
+    const items = Array.from(
+      event.currentTarget.querySelectorAll(
+        'button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled)'
+      )
+    );
+
+    if (!items.length) return;
+
+    const first = items[0];
+    const last = items[items.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (
+      !event.shiftKey &&
+      document.activeElement === last
     ) {
-      setMessage({
-        type: "error",
-        text: "Please enter marks before saving.",
-      });
-
-      return;
+      event.preventDefault();
+      first.focus();
     }
+  };
 
-    const marks = Number(gradeDraft.marks);
-
-    if (Number.isNaN(marks) || marks < 0) {
-      setMessage({
-        type: "error",
-        text: "Marks must be zero or greater.",
-      });
-
-      return;
-    }
-
+  const reviewSubmission = async (decision) => {
     if (
-      selectedAssignment.totalMarks &&
-      marks > Number(selectedAssignment.totalMarks)
+      savingRef.current ||
+      !selectedAssignment ||
+      !selectedSubmission
     ) {
-      setMessage({
-        type: "error",
-        text: `Marks cannot exceed ${selectedAssignment.totalMarks}.`,
-      });
-
       return;
     }
+
+    const feedback = draft.feedback.trim();
+    const marks = Number(draft.marks);
+
+    if (decision === "ACCEPT") {
+      if (
+        String(draft.marks).trim() === "" ||
+        !Number.isFinite(marks) ||
+        marks < 0 ||
+        marks > Number(selectedAssignment.totalMarks)
+      ) {
+        setModalMessage({
+          type: "error",
+          text:
+            `Enter marks between 0 and ` +
+            `${selectedAssignment.totalMarks} before accepting.`,
+        });
+        return;
+      }
+    }
+
+    if (decision === "REJECT" && !feedback) {
+      setModalMessage({
+        type: "error",
+        text: "Enter feedback explaining what the student should correct.",
+      });
+      return;
+    }
+
+    savingRef.current = true;
+    setSavingDecision(decision);
+    setModalMessage(null);
 
     try {
-      setGrading(true);
-      setMessage(null);
-
-      await api.put(
+      const response = await api.put(
         `/assignments/submissions/${selectedSubmission.id}/grade`,
         {
-          marks,
-          feedback: gradeDraft.feedback || "",
+          decision,
+          marks: decision === "ACCEPT" ? marks : null,
+          feedback,
+          submittedAt: selectedSubmission.submittedAt,
+          previousStatus: selectedSubmission.status,
         }
       );
 
-      setMessage({
-        type: "success",
-        text: "Submission graded successfully.",
+      if (!response.data?.success || !response.data?.data) {
+        throw new Error(
+          response.data?.message || "Unable to save the review."
+        );
+      }
+
+      const updated = response.data.data;
+
+      setSubmissions((current) =>
+        current.map((item) =>
+          Number(item.id) === Number(updated.id)
+            ? updated
+            : item
+        )
+      );
+
+      setSelectedSubmission(updated);
+      setDraft({
+        marks: updated.marks ?? "",
+        feedback: updated.feedback || "",
       });
 
-      /*
-       * Refresh submissions so the new marks/status appear immediately.
-       */
-      const res = await api.get(
-        `/assignments/${selectedAssignment.id}/submissions`
-      );
+      const successMessage = {
+        type: "success",
+        text: response.data.message,
+      };
 
-      const updatedSubmissions = res.data?.data || [];
-
-      setSubmissions(updatedSubmissions);
-
-      const updatedSubmission = updatedSubmissions.find(
-        (item) => item.id === selectedSubmission.id
-      );
-
-      if (updatedSubmission) {
-        setSelectedSubmission(updatedSubmission);
-
-        setGradeDraft({
-          marks: updatedSubmission.marks ?? "",
-          feedback: updatedSubmission.feedback || "",
-        });
-      }
-    } catch (err) {
-      console.error("Error grading submission:", err);
-
-      setMessage({
+      setModalMessage(successMessage);
+      setMessage(successMessage);
+    } catch (error) {
+      setModalMessage({
         type: "error",
         text:
-          err.response?.data?.message ||
-          "Unable to save the grade.",
+          error.response?.data?.message ||
+          error.message ||
+          "Unable to save the review.",
       });
     } finally {
-      setGrading(false);
+      savingRef.current = false;
+      setSavingDecision("");
     }
   };
 
-  /* =========================================================
-     FORMAT DATE
-  ========================================================= */
-
-  const formatDate = (date) => {
-    if (!date) return "—";
-
-    const d = new Date(date);
-
-    return d.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const formatDateTime = (date) => {
-    if (!date) return "—";
-
-    const d = new Date(date);
-
-    return d.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  /* =========================================================
-     FILTER ASSIGNMENTS
-  ========================================================= */
-
-  const filteredAssignments = assignments.filter((assignment) => {
-    const search = searchTerm.toLowerCase();
+  const filteredAssignments = assignments.filter((item) => {
+    const search = searchTerm.trim().toLowerCase();
 
     return (
-      assignment.title?.toLowerCase().includes(search) ||
-      assignment.course?.title?.toLowerCase().includes(search)
+      String(item.title || "").toLowerCase().includes(search) ||
+      String(item.course?.title || "")
+        .toLowerCase()
+        .includes(search)
     );
   });
 
-  /* =========================================================
-     RENDER
-  ========================================================= */
-
   return (
     <div className="mentor-assignment-submissions">
-
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
       <div className="assignment-submission-header">
         <div className="assignment-submission-title">
           <CheckCircle />
           <div>
             <h1>Assignment Submission</h1>
             <p>
-              Review student submissions, download assignments,
+              Review student work, accept or reject submissions,
               and provide marks and feedback.
             </p>
           </div>
@@ -386,10 +418,10 @@ function AssignmentSubmission() {
         <button
           type="button"
           className="assignment-refresh-btn"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          title="Refresh assignments and submissions"
+          onClick={refresh}
+          disabled={refreshing || loadingAssignments}
           aria-label="Refresh assignments and submissions"
+          title="Refresh"
         >
           <RefreshCw
             size={17}
@@ -400,41 +432,36 @@ function AssignmentSubmission() {
         </button>
       </div>
 
-      {/* =====================================================
-          SEARCH
-      ===================================================== */}
-
       <div className="submission-search">
         <Search size={18} />
-
         <input
-          type="text"
+          type="search"
+          aria-label="Search assignments or courses"
           placeholder="Search assignments or courses..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(event) =>
+            setSearchTerm(event.target.value)
+          }
         />
       </div>
 
-      {/* =====================================================
-          MAIN CONTENT
-      ===================================================== */}
+      {message?.text && (
+        <div
+          className={`submission-message ${message.type}`}
+          role={message.type === "error" ? "alert" : "status"}
+        >
+          {message.text}
+        </div>
+      )}
 
       <div className="assignment-submission-layout">
-
-        {/* ===================================================
-            ASSIGNMENT LIST
-        =================================================== */}
-
         <div className="assignment-list-panel">
-
           <div className="panel-title">
-            <div>
-              <h2>Assignments</h2>
-              <span>
-                {filteredAssignments.length} assignment
-                {filteredAssignments.length !== 1 ? "s" : ""}
-              </span>
-            </div>
+            <h2>Assignments</h2>
+            <span>
+              {filteredAssignments.length} assignment
+              {filteredAssignments.length === 1 ? "" : "s"}
+            </span>
           </div>
 
           {loadingAssignments ? (
@@ -444,13 +471,8 @@ function AssignmentSubmission() {
           ) : filteredAssignments.length === 0 ? (
             <div className="submission-empty">
               <FileText size={35} />
-
               <h3>No assignments found</h3>
-
-              <p>
-                Create an assignment first to receive student
-                submissions.
-              </p>
+              <p>Create an assignment or change your search.</p>
             </div>
           ) : (
             <div className="assignment-selection-list">
@@ -458,12 +480,16 @@ function AssignmentSubmission() {
                 <button
                   key={assignment.id}
                   type="button"
+                  disabled={refreshing}
+                  aria-pressed={
+                    selectedAssignment?.id === assignment.id
+                  }
                   className={`assignment-selection-card ${
                     selectedAssignment?.id === assignment.id
                       ? "selected"
                       : ""
                   }`}
-                  onClick={() => fetchSubmissions(assignment)}
+                  onClick={() => selectAssignment(assignment)}
                 >
                   <div className="assignment-card-icon">
                     <FileText size={20} />
@@ -471,24 +497,17 @@ function AssignmentSubmission() {
 
                   <div className="assignment-card-content">
                     <h3>{assignment.title}</h3>
-
-                    <p>
-                      {assignment.course?.title || "Course"}
-                    </p>
-
+                    <p>{assignment.course?.title || "Course"}</p>
                     <div className="assignment-card-meta">
-                      <span>
-                        Due: {formatDate(assignment.dueDate)}
-                      </span>
-
-                      <span>
-                        {assignment.totalMarks} marks
-                      </span>
+                      <span>{assignment.totalMarks} marks</span>
                     </div>
                   </div>
 
                   <div className="assignment-submission-count">
-                    {assignment.submissions?.length || 0}
+                    {selectedAssignment?.id === assignment.id &&
+                    !loadingSubmissions
+                      ? submissions.length
+                      : assignment.submissions?.length || 0}
                   </div>
                 </button>
               ))}
@@ -496,34 +515,25 @@ function AssignmentSubmission() {
           )}
         </div>
 
-        {/* ===================================================
-            SUBMISSION LIST
-        =================================================== */}
-
         <div className="student-submissions-panel">
-
           {!selectedAssignment ? (
             <div className="select-assignment-placeholder">
               <FileText size={48} />
-
               <h2>Select an Assignment</h2>
-
               <p>
-                Select an assignment from the left to view the
-                students who submitted their work.
+                Select an assignment from the left to review
+                student submissions.
               </p>
             </div>
           ) : (
             <>
               <div className="submissions-panel-header">
-
                 <div>
                   <h2>{selectedAssignment.title}</h2>
-
                   <p>
-                    {selectedAssignment.course?.title ||
-                      "Course"}{" "}
-                    • {selectedAssignment.totalMarks} marks
+                    {selectedAssignment.course?.title || "Course"}
+                    {" • "}
+                    {selectedAssignment.totalMarks} marks
                   </p>
                 </div>
 
@@ -532,16 +542,7 @@ function AssignmentSubmission() {
                     ? "..."
                     : `${submissions.length} submitted`}
                 </div>
-
               </div>
-
-              {message?.text && (
-                <div
-                  className={`submission-message ${message.type}`}
-                >
-                  {message.text}
-                </div>
-              )}
 
               {loadingSubmissions ? (
                 <div className="submission-loading">
@@ -549,142 +550,83 @@ function AssignmentSubmission() {
                 </div>
               ) : submissions.length === 0 ? (
                 <div className="submission-empty">
-
                   <Clock size={40} />
-
                   <h3>No submissions yet</h3>
-
-                  <p>
-                    No students have submitted this assignment
-                    yet.
-                  </p>
-
+                  <p>Student submissions will appear here.</p>
                 </div>
               ) : (
                 <div className="student-submission-list">
-
                   {submissions.map((submission) => {
-
-                    const isGraded =
-                      String(submission.status || "")
-                        .toUpperCase() === "GRADED";
+                    const status = getStatus(submission);
+                    const StatusIcon = status.Icon;
+                    const student = submission.student;
 
                     return (
                       <div
                         key={submission.id}
                         className="student-submission-card"
                       >
-
-                        {/* STUDENT INFORMATION */}
-
                         <div className="student-submission-top">
-
                           <div className="student-information">
-
                             <div className="student-avatar">
-                              {(
-                                submission.student?.name ||
-                                "S"
-                              )
+                              {(student?.name || "S")
                                 .charAt(0)
                                 .toUpperCase()}
                             </div>
-
                             <div>
-                              <h3>
-                                {submission.student?.name ||
-                                  "Student"}
-                              </h3>
-
-                              <p>
-                                {submission.student?.email ||
-                                  "No email available"}
-                              </p>
+                              <h3>{student?.name || "Student"}</h3>
+                              <p>{student?.email || "—"}</p>
                             </div>
-
                           </div>
 
                           <div
-                            className={`submission-status ${
-                              isGraded
-                                ? "graded"
-                                : "submitted"
-                            }`}
+                            className={`submission-status ${status.className}`}
                           >
-                            {isGraded ? (
-                              <>
-                                <CheckCircle size={15} />
-                                Graded
-                              </>
-                            ) : (
-                              <>
-                                <Clock size={15} />
-                                Awaiting Review
-                              </>
-                            )}
+                            <StatusIcon size={15} />
+                            {status.label}
                           </div>
-
                         </div>
-
-                        {/* SUBMISSION DETAILS */}
 
                         <div className="submission-information">
-
                           <div className="submission-info-item">
                             <span>Submitted</span>
-
                             <strong>
-                              {formatDateTime(
-                                submission.submittedAt
-                              )}
+                              {formatDateTime(submission.submittedAt)}
                             </strong>
                           </div>
-
                           <div className="submission-info-item">
                             <span>Marks</span>
-
                             <strong>
-                              {isGraded
-                                ? `${submission.marks ?? 0} / ${
-                                    selectedAssignment.totalMarks
-                                  }`
-                                : "Not graded"}
+                              {submission.marks !== null &&
+                              submission.marks !== undefined
+                              ? `${submission.marks} / ${selectedAssignment.totalMarks}`
+                              : "Not graded"}
                             </strong>
                           </div>
-
                           <div className="submission-info-item">
                             <span>Status</span>
-
-                            <strong>
-                              {submission.status || "SUBMITTED"}
-                            </strong>
+                            <strong>{status.label}</strong>
                           </div>
-
                         </div>
-
-                        {/* NOTE */}
 
                         {submission.submissionText && (
                           <div className="submission-note">
-
                             <span>Student Note</span>
-
-                            <p>
-                              {submission.submissionText}
-                            </p>
-
+                            <p>{submission.submissionText}</p>
                           </div>
                         )}
 
-                        {/* ACTIONS */}
+                        {submission.feedback && (
+                          <div className="submission-note">
+                            <span>Mentor Feedback</span>
+                            <p>{submission.feedback}</p>
+                          </div>
+                        )}
 
                         <div className="submission-actions">
-
                           {submission.attachment ? (
                             <a
-                              href={fileUrl(
-                                submission.attachment
-                              )}
+                              href={fileUrl(submission.attachment)}
                               target="_blank"
                               rel="noreferrer"
                               className="download-submission-btn"
@@ -701,245 +643,219 @@ function AssignmentSubmission() {
                           <button
                             type="button"
                             className="review-submission-btn"
-                            onClick={() =>
-                              openSubmission(submission)
+                            onClick={(event) =>
+                              openReview(submission, event)
                             }
                           >
                             <Award size={16} />
-
-                            {isGraded
-                              ? "Review Grade"
-                              : "Review Submission"}
+                            Review Submission
                           </button>
-
                         </div>
-
                       </div>
                     );
                   })}
-
                 </div>
               )}
             </>
           )}
-
         </div>
-
       </div>
-
-      {/* =====================================================
-          REVIEW / GRADE MODAL
-      ===================================================== */}
 
       {selectedSubmission && selectedAssignment && (
         <div
           className="submission-modal-overlay"
-          onClick={closeSubmission}
+          onClick={closeReview}
         >
           <div
             className="submission-review-modal"
-            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="submission-review-title"
+            aria-busy={saving}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={handleModalKeyDown}
           >
-
             <div className="submission-modal-header">
-
               <div>
-                <h2>Review Submission</h2>
-
-                <p>
-                  {selectedAssignment.title}
-                </p>
+                <h2 id="submission-review-title">
+                  Review Submission
+                </h2>
+                <p>{selectedAssignment.title}</p>
               </div>
 
               <button
+                ref={closeButtonRef}
                 type="button"
                 className="submission-modal-close"
-                onClick={closeSubmission}
+                onClick={closeReview}
+                disabled={saving}
+                aria-label="Close review"
               >
                 <X size={20} />
               </button>
-
             </div>
 
-            {/* STUDENT */}
-
             <div className="review-student">
-
               <div className="review-student-avatar">
-                {(
-                  selectedSubmission.student?.name ||
-                  "S"
-                )
+                {(selectedSubmission.student?.name || "S")
                   .charAt(0)
                   .toUpperCase()}
               </div>
-
               <div>
                 <h3>
-                  {selectedSubmission.student?.name ||
-                    "Student"}
+                  {selectedSubmission.student?.name || "Student"}
                 </h3>
-
-                <p>
-                  {selectedSubmission.student?.email || ""}
-                </p>
+                <p>{selectedSubmission.student?.email || ""}</p>
               </div>
-
             </div>
-
-            {/* SUBMISSION */}
 
             <div className="review-section">
-
               <h3>Submission</h3>
-
               <div className="review-file">
-
-                {selectedSubmission.attachment ? (
-                  <>
-                    <FileText size={25} />
-
-                    <div>
-                      <strong>
-                        Student Assignment
-                      </strong>
-
-                      <p>
-                        Submitted on{" "}
-                        {formatDateTime(
-                          selectedSubmission.submittedAt
-                        )}
-                      </p>
-                    </div>
-
-                    <a
-                      href={fileUrl(
-                        selectedSubmission.attachment
-                      )}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <Download size={16} />
-                      Download
-                    </a>
-                  </>
-                ) : (
-                  <p>No file was attached.</p>
+                <FileText size={25} />
+                <div>
+                  <strong>Student Assignment</strong>
+                  <p>
+                    Submitted on{" "}
+                    {formatDateTime(selectedSubmission.submittedAt)}
+                  </p>
+                </div>
+                {selectedSubmission.attachment && (
+                  <a
+                    href={fileUrl(selectedSubmission.attachment)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Download size={16} />
+                    Download
+                  </a>
                 )}
-
               </div>
-
             </div>
-
-            {/* STUDENT NOTE */}
 
             {selectedSubmission.submissionText && (
               <div className="review-section">
-
                 <h3>Student Note</h3>
-
                 <div className="student-note-box">
                   {selectedSubmission.submissionText}
                 </div>
-
               </div>
             )}
 
-            {/* GRADING */}
-
             <div className="review-section">
-
-              <h3>Grade Submission</h3>
+              <h3>
+                Review — {getStatus(selectedSubmission).label}
+              </h3>
 
               <div className="grade-form">
-
-                <div className="marks-field">
-
-                  <label>
-                    Marks
+                <div>
+                  <label htmlFor="submission-marks">
+                    Marks — required to accept
                   </label>
-
                   <div className="marks-input-wrapper">
-
                     <input
+                      id="submission-marks"
                       type="number"
                       min="0"
                       max={selectedAssignment.totalMarks}
-                      value={gradeDraft.marks}
-                      onChange={(e) =>
-                        setGradeDraft({
-                          ...gradeDraft,
-                          marks: e.target.value,
-                        })
-                      }
+                      step="any"
+                      value={draft.marks}
+                      disabled={saving}
                       placeholder="Enter marks"
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          marks: event.target.value,
+                        }))
+                      }
                     />
-
-                    <span>
-                      / {selectedAssignment.totalMarks}
-                    </span>
-
+                    <span>/ {selectedAssignment.totalMarks}</span>
                   </div>
-
                 </div>
 
                 <div className="feedback-field">
-
-                  <label>
-                    Feedback
+                  <label htmlFor="submission-feedback">
+                    Feedback — required to reject
                   </label>
-
                   <textarea
-                    rows="4"
-                    placeholder="Write feedback for the student..."
-                    value={gradeDraft.feedback}
-                    onChange={(e) =>
-                      setGradeDraft({
-                        ...gradeDraft,
-                        feedback: e.target.value,
-                      })
+                    id="submission-feedback"
+                    rows={4}
+                    value={draft.feedback}
+                    disabled={saving}
+                    placeholder="Explain what was done well or what needs correction..."
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        feedback: event.target.value,
+                      }))
                     }
                   />
-
                 </div>
-
               </div>
-
             </div>
 
-            {/* MODAL ACTIONS */}
+            {modalMessage?.text && (
+              <div
+                className={`submission-message ${modalMessage.type}`}
+                role={
+                  modalMessage.type === "error" ? "alert" : "status"
+                }
+              >
+                {modalMessage.text}
+              </div>
+            )}
 
             <div className="review-modal-actions">
-
               <button
                 type="button"
                 className="cancel-review-btn"
-                onClick={closeSubmission}
+                onClick={closeReview}
+                disabled={saving}
               >
-                Cancel
+                Close
               </button>
 
               <button
                 type="button"
-                className="save-grade-btn"
-                onClick={saveGrade}
-                disabled={grading}
+                className="reject-submission-btn"
+                disabled={saving}
+                onClick={() => reviewSubmission("REJECT")}
               >
-                {grading
-                  ? "Saving..."
-                  : String(
-                      selectedSubmission.status || ""
-                    ).toUpperCase() === "GRADED"
-                  ? "Update Grade"
-                  : "Save Grade"}
+                {savingDecision === "REJECT" ? (
+                  <Loader2
+                    size={16}
+                    className="assignment-refresh-spinning"
+                  />
+                ) : (
+                  <XCircle size={16} />
+                )}
+                {savingDecision === "REJECT"
+                  ? "Rejecting..."
+                  : "Reject"}
               </button>
 
+              <button
+                type="button"
+                className="accept-submission-btn"
+                disabled={saving}
+                onClick={() => reviewSubmission("ACCEPT")}
+              >
+                {savingDecision === "ACCEPT" ? (
+                  <Loader2
+                    size={16}
+                    className="assignment-refresh-spinning"
+                  />
+                ) : (
+                  <CheckCircle size={16} />
+                )}
+                {savingDecision === "ACCEPT"
+                  ? "Accepting..."
+                  : "Accept"}
+              </button>
             </div>
-
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -53,7 +53,7 @@ function AdminCertificates() {
   const [selectedCourseTitle, setSelectedCourseTitle] = useState("");
   const [templateForm, setTemplateForm] = useState({
     header: "Certificate of Completion",
-    footer: "Issued by ZSmartClass",
+    footer: "Issued by ZmartClass",
     textColor: "#1a1a2e",
     backgroundColor: "#ffffff",
     borderColor: "#667eea",
@@ -182,7 +182,7 @@ function AdminCertificates() {
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
         setTemplateForm({
           header: data.header || "Certificate of Completion",
-          footer: data.footer || "Issued by ZSmartClass",
+          footer: data.footer || "Issued by ZmartClass",
           textColor: data.textColor || "#1a1a2e",
           backgroundColor: data.backgroundColor || "#ffffff",
           borderColor: data.borderColor || "#667eea",
@@ -192,7 +192,7 @@ function AdminCertificates() {
       } else {
         setTemplateForm({
           header: "Certificate of Completion",
-          footer: "Issued by ZSmartClass",
+          footer: "Issued by ZmartClass",
           textColor: "#1a1a2e",
           backgroundColor: "#ffffff",
           borderColor: "#667eea",
@@ -204,7 +204,7 @@ function AdminCertificates() {
       console.error("Error fetching template:", err);
       setTemplateForm({
         header: "Certificate of Completion",
-        footer: "Issued by ZSmartClass",
+        footer: "Issued by ZmartClass",
         textColor: "#1a1a2e",
         backgroundColor: "#ffffff",
         borderColor: "#667eea",
@@ -237,7 +237,7 @@ function AdminCertificates() {
       
       const payload = {
         header: templateForm.header || "Certificate of Completion",
-        footer: templateForm.footer || "Issued by ZSmartClass",
+        footer: templateForm.footer || "Issued by ZmartClass",
         textColor: templateForm.textColor || "#1a1a2e",
         backgroundColor: templateForm.backgroundColor || "#ffffff",
         borderColor: templateForm.borderColor || "#667eea",
@@ -1077,7 +1077,7 @@ function AdminCertificates() {
                     <label>Footer Text</label>
                     <input
                       type="text"
-                      placeholder="Issued by ZSmartClass"
+                      placeholder="Issued by ZmartClass"
                       value={templateForm.footer}
                       onChange={(e) =>
                         setTemplateForm({ ...templateForm, footer: e.target.value })
@@ -1263,7 +1263,7 @@ function AdminCertificates() {
                           ZC
                         </div>
                         <span style={{ fontSize: "1.7cqw", fontWeight: 700, color: templateForm.textColor || "#1a1a2e" }}>
-                          ZSmartClass
+                          ZmartClass
                         </span>
                       </div>
 
@@ -1331,7 +1331,7 @@ function AdminCertificates() {
                       {/* Seal (PDF circle at 550,450 r40) */}
                       <div style={{ position: "absolute", left: "60.6%", top: "68.9%", width: "9.5cqw", height: "9.5cqw", borderRadius: "50%", border: `0.24cqw solid ${templateForm.borderColor || "#667eea"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                         <div style={{ position: "absolute", inset: "0.6cqw", borderRadius: "50%", border: `0.12cqw solid ${templateForm.borderColor || "#667eea"}` }} />
-                        <span style={{ fontSize: "0.85cqw", fontWeight: 700, color: templateForm.textColor || "#1a1a2e", letterSpacing: "0.1cqw" }}>ZSMARTCLASS</span>
+                        <span style={{ fontSize: "0.85cqw", fontWeight: 700, color: templateForm.textColor || "#1a1a2e", letterSpacing: "0.1cqw" }}>ZMARTCLASS</span>
                         <span style={{ fontSize: "0.72cqw", fontWeight: 700, color: "#020202", marginTop: "0.3cqw" }}>COMPLETED</span>
                       </div>
 
@@ -1341,7 +1341,7 @@ function AdminCertificates() {
 
                       {/* Footer */}
                       <div style={{ position: "absolute", left: 0, right: 0, top: "90.8%", textAlign: "center", color: "#94a3b8", fontSize: "1.07cqw" }}>
-                        {templateForm.footer || "Issued by ZSmartClass"}
+                        {templateForm.footer || "Issued by ZmartClass"}
                       </div>
                       <div style={{ position: "absolute", left: 0, right: 0, top: "93.8%", textAlign: "center", color: "#cbd5e1", fontSize: "0.83cqw" }}>
                         Verify at: your-site.com/verify-certificate/[Certificate ID]

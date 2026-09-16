@@ -457,3 +457,13 @@
   .quiz-modal .modal-footer { flex-direction: column-reverse; }
   .quiz-modal .modal-footer > button { width: 100%; min-height: 44px; }
 }
+
+/* Remove the black border around quiz option text */
+.quiz-option-row input.quiz-option-text,
+.quiz-option-row input.quiz-option-text:focus,
+.quiz-option-row input.quiz-option-text:focus-visible,
+.quiz-option-row input.quiz-option-text:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}

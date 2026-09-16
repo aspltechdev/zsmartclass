@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FileText,
-  Calendar,
   Award,
   BookOpen,
   AlertCircle,
@@ -12,6 +11,7 @@ import {
   Clock,
   Lock,
   CheckCircle2,
+  XCircle,
   MessageSquare,
 } from "lucide-react";
 
@@ -19,171 +19,352 @@ import api from "../../services/api";
 import "./Assignments.css";
 import "./StudentShared.css";
 
-/* Uploaded files are served from the server root (…/uploads/…), but the API
-   base URL ends with /api. Strip it so the link resolves. */
-const fileUrl = (p) => {
-  if (!p) return "";
-  if (p.startsWith("http://") || p.startsWith("https://")) return p;
-  const base = (api.defaults?.baseURL || "http://localhost:5000/api")
+const ACCEPT =
+  ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.txt,.png,.jpg,.jpeg";
+
+const fileUrl = (path) => {
+  if (!path) return "";
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  const base = (
+    api.defaults?.baseURL || "http://localhost:5000/api"
+  )
     .replace(/\/$/, "")
     .replace(/\/api$/, "");
-  return `${base}${p.startsWith("/") ? p : `/${p}`}`;
+
+  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 };
 
-const ACCEPT = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.txt,.png,.jpg,.jpeg";
+const formatDate = (value) => {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (!Number.isFinite(date.getTime())) return "";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+};
 
 const Assignments = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  // Per-assignment submit state
-  const [drafts, setDrafts] = useState({}); // { [id]: { file, note } }
-  const [busyId, setBusyId] = useState(null); // assignment currently uploading
-  const [msgs, setMsgs] = useState({}); // { [id]: { type, text } }
+  const [drafts, setDrafts] = useState({});
+  const [messages, setMessages] = useState({});
+  const [busyId, setBusyId] = useState(null);
+  const [fileVersions, setFileVersions] = useState({});
 
-  useEffect(() => {
-    fetchAssignments();
-  }, []);
+  const mountedRef = useRef(false);
+  const requestRef = useRef(0);
+  const busyRef = useRef(false);
 
   const fetchAssignments = async () => {
-    try {
-      setLoading(true);
+    const requestId = ++requestRef.current;
+
+    if (mountedRef.current) {
+      setRefreshing(true);
       setError("");
+    }
 
-      const response = await api.get("/assignments");
+    try {
+      const response = await api.get("/assignments", {
+        params: { _refresh: Date.now() },
+      });
 
-      if (response.data?.success) {
-        setAssignments(response.data.data || []);
-      } else {
-        setError(response.data?.message || "Unable to load assignments.");
+      if (
+        !response.data?.success ||
+        !Array.isArray(response.data?.data)
+      ) {
+        throw new Error(
+          response.data?.message || "Unable to load assignments."
+        );
+      }
+
+      if (
+        mountedRef.current &&
+        requestId === requestRef.current
+      ) {
+        setAssignments(response.data.data);
       }
     } catch (err) {
-      console.error("Failed to load assignments:", err);
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Unable to load assignments."
-      );
+      if (
+        mountedRef.current &&
+        requestId === requestRef.current
+      ) {
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            "Unable to load assignments."
+        );
+      }
     } finally {
-      setLoading(false);
+      if (
+        mountedRef.current &&
+        requestId === requestRef.current
+      ) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
-  const setDraft = (id, patch) =>
-    setDrafts((d) => ({ ...d, [id]: { ...(d[id] || {}), ...patch } }));
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchAssignments();
 
-  const setMsg = (id, type, text) =>
-    setMsgs((m) => ({ ...m, [id]: { type, text } }));
+    // Refresh when the student returns from another tab.
+    const handleFocus = () => {
+      if (!busyRef.current) {
+        fetchAssignments();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      mountedRef.current = false;
+      requestRef.current += 1;
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
+  const setDraft = (id, patch) => {
+    setDrafts((current) => ({
+      ...current,
+      [id]: {
+        ...(current[id] || {}),
+        ...patch,
+      },
+    }));
+  };
+
+  const setMessage = (id, type, text) => {
+    setMessages((current) => ({
+      ...current,
+      [id]: { type, text },
+    }));
+  };
 
   const submitWork = async (assignment) => {
-    const draft = drafts[assignment.id] || {};
+    if (busyRef.current || refreshing) return;
 
-    if (!draft.file) {
-      setMsg(assignment.id, "error", "Please choose a file to upload.");
+    const submission = assignment.mySubmission;
+
+    const status = String(
+      submission?.status || assignment.status || "PENDING"
+    ).toUpperCase();
+
+    if (status === "GRADED") {
+      setMessage(
+        assignment.id,
+        "error",
+        "This assignment has already been accepted."
+      );
       return;
     }
 
-    try {
-      setBusyId(assignment.id);
-      setMsg(assignment.id, "", "");
-
-      const fd = new FormData();
-      fd.append("submission", draft.file);
-      if (draft.note && draft.note.trim()) {
-        fd.append("submissionText", draft.note.trim());
-      }
-
-      await api.post(`/assignments/${assignment.id}/submit`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      setDraft(assignment.id, { file: null, note: "" });
-      setMsg(
-        assignment.id,
-        "success",
-        "Assignment submitted. Your mentor will review it."
-      );
-      await fetchAssignments();
-    } catch (err) {
-      setMsg(
+    if (assignment.locked) {
+      setMessage(
         assignment.id,
         "error",
-        err.response?.data?.message || "Submission failed. Please try again."
+        assignment.lockReason ||
+          "Complete all course lessons and quizzes first."
       );
+      return;
+    }
+
+    const draft = drafts[assignment.id] || {};
+
+    if (!draft.file) {
+      setMessage(
+        assignment.id,
+        "error",
+        "Please choose a file to upload."
+      );
+      return;
+    }
+
+    busyRef.current = true;
+    setBusyId(assignment.id);
+    setMessage(assignment.id, "", "");
+
+    try {
+      const formData = new FormData();
+
+      formData.append("submission", draft.file);
+
+      if (draft.note?.trim()) {
+        formData.append("submissionText", draft.note.trim());
+      }
+
+      const response = await api.post(
+        `/assignments/${assignment.id}/submit`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (!response.data?.success) {
+        throw new Error(
+          response.data?.message || "Unable to submit assignment."
+        );
+      }
+
+      if (!mountedRef.current) return;
+
+      const savedSubmission = response.data.data;
+
+      // Update the card immediately after a successful submission.
+      if (savedSubmission?.id) {
+        setAssignments((current) =>
+          current.map((item) =>
+            Number(item.id) === Number(assignment.id)
+              ? {
+                  ...item,
+                  mySubmission: savedSubmission,
+                  status: savedSubmission.status,
+                  marks: savedSubmission.marks ?? null,
+                  feedback: savedSubmission.feedback ?? null,
+                  submitted: true,
+                }
+              : item
+          )
+        );
+      }
+
+      setDraft(assignment.id, {
+        file: null,
+        note: "",
+      });
+
+      setFileVersions((current) => ({
+        ...current,
+        [assignment.id]: (current[assignment.id] || 0) + 1,
+      }));
+
+      setMessage(
+        assignment.id,
+        "success",
+        status === "REJECTED"
+          ? "Assignment resubmitted. Your mentor will review your updated work."
+          : "Assignment submitted. Your mentor will review it."
+      );
+
+      await fetchAssignments();
+    } catch (err) {
+      if (mountedRef.current) {
+        setMessage(
+          assignment.id,
+          "error",
+          err.response?.data?.message ||
+            err.message ||
+            "Submission failed. Please try again."
+        );
+      }
     } finally {
-      setBusyId(null);
+      busyRef.current = false;
+
+      if (mountedRef.current) {
+        setBusyId(null);
+      }
     }
   };
 
-  const formatDate = (date) => {
-    if (!date) return "No due date";
-    const parsed = new Date(date);
-    if (Number.isNaN(parsed.getTime())) return "No due date";
-    return parsed.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  const formatTime = (date) => {
-    if (!date) return "";
-    const parsed = new Date(date);
-    if (Number.isNaN(parsed.getTime())) return "";
-    return parsed.toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const isOverdue = (dueDate) => {
-    if (!dueDate) return false;
-    return new Date(dueDate).getTime() < Date.now();
-  };
-
-  /* ============================== LOADING ============================== */
   if (loading) {
     return (
       <div className="assignments-loading">
-        <div className="assignment-spinner"></div>
+        <div className="assignment-spinner" />
         <p>Loading assignments...</p>
       </div>
     );
   }
 
-  /* ============================== ERROR ============================== */
-  if (error) {
+  if (error && assignments.length === 0) {
     return (
       <div className="assignments-error">
         <AlertCircle size={48} />
         <h2>Unable to load assignments</h2>
         <p>{error}</p>
+
         <button
           type="button"
           className="assignment-retry-btn"
           onClick={fetchAssignments}
+          disabled={refreshing}
         >
           <RefreshCw size={17} />
-          Try Again
+          {refreshing ? "Loading..." : "Try Again"}
         </button>
       </div>
     );
   }
 
-  /* ============================== EMPTY ============================== */
-  if (assignments.length === 0) {
-    return (
-      <div className="assignments-container">
-        <div className="assignments-header">
-          <div>
-            <h1 className="assignments-title"><FileText size={25} />Assignments</h1>
-            <p className="assignments-subtitle">
-              Submit your work and track marks &amp; feedback
-            </p>
-          </div>
+  return (
+    <div className="assignments-container">
+      <div className="assignments-header">
+        <div>
+          <h1 className="assignments-title">
+            <FileText size={25} />
+            Assignments
+          </h1>
+
+          <p className="assignments-subtitle">
+            Submit your work and track marks &amp; feedback
+          </p>
         </div>
 
+        <div className="student-assignment-header-actions">
+          <button
+            type="button"
+            className="student-assignment-refresh-btn"
+            onClick={fetchAssignments}
+            disabled={refreshing || busyId !== null}
+            title="Refresh assignments"
+            aria-label="Refresh assignments"
+          >
+            <RefreshCw
+              size={17}
+              className={
+                refreshing ? "student-assignment-refreshing" : ""
+              }
+            />
+          </button>
+
+          <div className="assignments-count">
+            <FileText size={18} />
+            <span>
+              {assignments.length}{" "}
+              {assignments.length === 1
+                ? "Assignment"
+                : "Assignments"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div
+          className="submission-msg submission-msg-error"
+          role="alert"
+        >
+          {error} Your displayed information may be outdated.
+          Please refresh before submitting.
+        </div>
+      )}
+
+      {assignments.length === 0 ? (
         <div className="assignments-empty">
           <div className="assignments-empty-icon">
             <FileText size={42} />
@@ -191,263 +372,319 @@ const Assignments = () => {
           <h2>No Assignments Available</h2>
           <p>There are currently no assignments available.</p>
         </div>
-      </div>
-    );
-  }
+      ) : (
+        <div className="assignments-list">
+          {assignments.map((assignment) => {
+            const submission = assignment.mySubmission;
 
-  /* ============================== MAIN ============================== */
-  return (
-    <div className="assignments-container">
-      <div className="assignments-header">
-        <div>
-          <h1 className="assignments-title"><FileText size={25} />Assignments</h1>
-          <p className="assignments-subtitle">
-            Submit your work and track marks &amp; feedback
-          </p>
-        </div>
+            const status = String(
+              submission?.status ||
+                assignment.status ||
+                "PENDING"
+            ).toUpperCase();
 
-        <div className="assignments-count">
-          <FileText size={18} />
-          <span>
-            {assignments.length}{" "}
-            {assignments.length === 1 ? "Assignment" : "Assignments"}
-          </span>
-        </div>
-      </div>
+            const accepted = status === "GRADED";
+            const rejected = status === "REJECTED";
 
-      <div className="assignments-list">
-        {assignments.map((assignment) => {
-          const sub = assignment.mySubmission;
-          const status = (assignment.status || "PENDING").toUpperCase();
-          const graded = status === "GRADED";
-          const submitted = status === "SUBMITTED" || graded;
-          // Locked until the student finishes all lessons + quizzes (server-driven).
-          const locked = !!assignment.locked && !submitted;
-          const overdue =
-            isOverdue(assignment.dueDate) && !submitted && !locked;
-          const draft = drafts[assignment.id] || {};
-          const msg = msgs[assignment.id];
-          const busy = busyId === assignment.id;
+            const awaitingReview =
+              !accepted &&
+              !rejected &&
+              (status === "SUBMITTED" ||
+                (status === "PENDING" && Boolean(submission)));
 
-          return (
-            <div
-              key={assignment.id}
-              className={`assignment-card${
-                overdue ? " assignment-overdue" : ""
-              }`}
-            >
-              {/* ===== CARD HEADER ===== */}
-              <div className="assignment-header">
-                <div className="assignment-title-section">
-                  <div className="assignment-icon">
-                    <FileText size={24} />
-                  </div>
+            const courseLocked =
+              Boolean(assignment.locked) && !accepted;
 
-                  <div>
-                    <h2 className="assignment-title">
-                      {assignment.title || "Untitled Assignment"}
-                    </h2>
+            const feedback = String(
+              submission?.feedback ??
+                assignment.feedback ??
+                ""
+            ).trim();
 
-                    <div className="assignment-course">
-                      <BookOpen size={15} />
-                      <span>
-                        {assignment.course?.title ||
-                          assignment.Course?.title ||
-                          "Course"}
-                      </span>
+            const marks =
+              submission?.marks ?? assignment.marks;
+
+            const draft = drafts[assignment.id] || {};
+            const message = messages[assignment.id];
+            const busy = busyId === assignment.id;
+
+            const uploadDisabled =
+              busyId !== null || refreshing || Boolean(error);
+
+            const canUpload =
+              !accepted &&
+              !courseLocked &&
+              (
+                status === "PENDING" ||
+                status === "SUBMITTED" ||
+                status === "REJECTED"
+              );
+
+            let badgeLabel = "Not submitted";
+            let badgeClass = "pending";
+            let StatusIcon = FileText;
+
+            if (accepted) {
+              badgeLabel = "Accepted";
+              badgeClass = "graded";
+              StatusIcon = CheckCircle2;
+            } else if (rejected) {
+              badgeLabel = "Rejected";
+              badgeClass = "rejected";
+              StatusIcon = XCircle;
+            } else if (awaitingReview) {
+              badgeLabel = "Submitted";
+              badgeClass = "submitted";
+              StatusIcon = Clock;
+            } else if (courseLocked) {
+              badgeLabel = "Locked";
+              badgeClass = "locked";
+              StatusIcon = Lock;
+            }
+
+            return (
+              <div
+                key={assignment.id}
+                className="assignment-card"
+              >
+                <div className="assignment-header">
+                  <div className="assignment-title-section">
+                    <div className="assignment-icon">
+                      <FileText size={24} />
                     </div>
-                  </div>
-                </div>
 
-                {locked && (
-                  <span className="assignment-status-badge locked">
-                    <Lock size={13} /> Locked
-                  </span>
-                )}
-                {overdue && (
-                  <span className="assignment-overdue-badge">Overdue</span>
-                )}
-                {submitted && !graded && (
-                  <span className="assignment-status-badge submitted">
-                    <Clock size={13} /> Submitted
-                  </span>
-                )}
-                {graded && (
-                  <span className="assignment-status-badge graded">
-                    <CheckCircle2 size={13} /> Graded
-                  </span>
-                )}
-              </div>
-
-              {/* ===== BODY ===== */}
-              <div className="assignment-body">
-                <div className="assignment-description">
-                  <h3>Assignment Details</h3>
-                  <p>
-                    {assignment.description?.trim()
-                      ? assignment.description
-                      : "No description provided for this assignment."}
-                  </p>
-                </div>
-
-                <div className="assignment-meta-grid">
-                  <div className="meta-item">
-                    <div className="meta-icon">
-                      <Calendar size={19} />
-                    </div>
                     <div>
-                      <span className="meta-label">Due Date</span>
-                      <span className="meta-value">
-                        {formatDate(assignment.dueDate)}
-                      </span>
-                      {assignment.dueDate && (
-                        <span className="meta-subvalue">
-                          {formatTime(assignment.dueDate)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                      <h2 className="assignment-title">
+                        {assignment.title || "Untitled Assignment"}
+                      </h2>
 
-                  <div className="meta-item">
-                    <div className="meta-icon">
-                      <Award size={19} />
-                    </div>
-                    <div>
-                      <span className="meta-label">Total Marks</span>
-                      <span className="meta-value">
-                        {assignment.totalMarks ?? 0}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ===== SUBMISSION ===== */}
-                <div className="assignment-submission">
-                  {sub && (
-                    <div
-                      className={`submission-status submission-status-${status.toLowerCase()}`}
-                    >
-                      {graded ? (
-                        <CheckCircle2 size={17} />
-                      ) : (
-                        <Clock size={17} />
-                      )}
-                      <div className="submission-status-text">
-                        {graded ? (
-                          <strong>
-                            Graded — {sub.marks ?? 0} /{" "}
-                            {assignment.totalMarks ?? 0}
-                          </strong>
-                        ) : (
-                          <strong>Submitted — awaiting mentor review</strong>
-                        )}
-
-                        {graded && sub.feedback && (
-                          <span className="submission-feedback">
-                            <MessageSquare size={13} /> {sub.feedback}
-                          </span>
-                        )}
-
-                        <span className="submission-meta-row">
-                          {sub.attachment && (
-                            <a
-                              className="submission-file-link"
-                              href={fileUrl(sub.attachment)}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <Download size={13} /> View submitted file
-                            </a>
-                          )}
-                          {sub.submittedAt && (
-                            <span className="submission-date">
-                              Submitted {formatDate(sub.submittedAt)}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Locked until all lessons + quizzes are done */}
-                  {locked && (
-                    <div className="submission-locked">
-                      <Lock size={17} />
-                      <div className="submission-locked-text">
-                        <strong>Assignment locked</strong>
+                      <div className="assignment-course">
+                        <BookOpen size={15} />
                         <span>
-                          {assignment.lockReason ||
-                            "Finish all lessons and quizzes in this course to unlock this assignment."}
+                          {assignment.course?.title ||
+                            assignment.Course?.title ||
+                            "Course"}
                         </span>
                       </div>
                     </div>
-                  )}
+                  </div>
 
-                  {/* Upload form — hidden once graded (locked) or course-locked */}
-                  {!graded && !locked && (
-                    <div className="submission-upload">
-                      <label className="submission-upload-label">
-                        <Paperclip size={15} />
-                        {submitted ? "Replace your file" : "Upload your work"}
-                      </label>
+                  <span
+                    className={`assignment-status-badge ${badgeClass}`}
+                  >
+                    <StatusIcon size={13} />
+                    {badgeLabel}
+                  </span>
+                </div>
 
-                      <input
-                        key={sub?.submittedAt || "new"}
-                        type="file"
-                        accept={ACCEPT}
-                        className="submission-file-input"
-                        onChange={(e) =>
-                          setDraft(assignment.id, {
-                            file: e.target.files?.[0] || null,
-                          })
-                        }
-                      />
+                <div className="assignment-body">
+                  <div className="assignment-description">
+                    <h3>Assignment Details</h3>
+                    <p>
+                      {assignment.description?.trim()
+                        ? assignment.description
+                        : "No description provided for this assignment."}
+                    </p>
+                  </div>
 
-                      <textarea
-                        className="submission-note"
-                        rows={2}
-                        placeholder="Add a note for your mentor (optional)"
-                        value={draft.note || ""}
-                        onChange={(e) =>
-                          setDraft(assignment.id, { note: e.target.value })
-                        }
-                      />
+                  <div className="assignment-meta-grid">
+                    <div className="meta-item">
+                      <div className="meta-icon">
+                        <Award size={19} />
+                      </div>
+                      <div>
+                        <span className="meta-label">
+                          Total Marks
+                        </span>
+                        <span className="meta-value">
+                          {assignment.totalMarks ?? 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-                      <button
-                        type="button"
-                        className="submission-submit-btn"
-                        disabled={busy || !draft.file}
-                        onClick={() => submitWork(assignment)}
+                  <div className="assignment-submission">
+                    {(submission || rejected || accepted) && (
+                      <div
+                        className={`submission-status submission-status-${badgeClass}`}
                       >
-                        {busy ? (
-                          <span className="assignment-btn-spinner" />
-                        ) : (
-                          <Upload size={16} />
-                        )}
-                        {busy
-                          ? "Submitting…"
-                          : submitted
-                          ? "Resubmit"
-                          : "Submit Assignment"}
-                      </button>
+                        <StatusIcon size={17} />
 
-                      <p className="submission-hint">
-                        Accepted: PDF, Word, PowerPoint, Excel, ZIP, images.
-                      </p>
-                    </div>
-                  )}
+                        <div className="submission-status-text">
+                          {accepted ? (
+                            <strong>
+                              Accepted — {marks ?? "—"} /{" "}
+                              {assignment.totalMarks ?? 0}
+                            </strong>
+                          ) : rejected ? (
+                            <strong>
+                              Rejected — please correct and resubmit
+                            </strong>
+                          ) : awaitingReview ? (
+                            <strong>
+                              Submitted — awaiting mentor review
+                            </strong>
+                          ) : (
+                            <strong>
+                              Review status unavailable. Please refresh.
+                            </strong>
+                          )}
 
-                  {msg?.text && (
-                    <div className={`submission-msg submission-msg-${msg.type}`}>
-                      {msg.text}
-                    </div>
-                  )}
+                          {feedback && (
+                            <div className="student-assignment-feedback">
+                              <div className="student-assignment-feedback-label">
+                                <MessageSquare size={14} />
+                                {rejected
+                                  ? "Reason for rejection"
+                                  : "Mentor feedback"}
+                              </div>
+
+                              <p>{feedback}</p>
+                            </div>
+                          )}
+
+                          {rejected && !feedback && (
+                            <p className="student-assignment-status-note">
+                              No feedback was provided. Please contact
+                              your mentor for clarification.
+                            </p>
+                          )}
+
+                          {rejected && (
+                            <p className="student-assignment-status-note">
+                              Follow your mentor’s feedback and upload
+                              your corrected work. Your certificate
+                              stays locked until all assignments are
+                              accepted and the course is complete.
+                            </p>
+                          )}
+
+                          <div className="submission-meta-row">
+                            {submission?.attachment && (
+                              <a
+                                className="submission-file-link"
+                                href={fileUrl(submission.attachment)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Download size={13} />
+                                View submitted file
+                              </a>
+                            )}
+
+                            {submission?.submittedAt && (
+                              <span className="submission-date">
+                                Submitted{" "}
+                                {formatDate(submission.submittedAt)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {courseLocked && (
+                      <div className="submission-locked">
+                        <Lock size={17} />
+                        <div className="submission-locked-text">
+                          <strong>Assignment locked</strong>
+                          <span>
+                            {assignment.lockReason ||
+                              "Finish all lessons and quizzes in this course to unlock this assignment."}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {canUpload && (
+                      <div className="submission-upload">
+                        <label
+                          className="submission-upload-label"
+                          htmlFor={`assignment-file-${assignment.id}`}
+                        >
+                          <Paperclip size={15} />
+                          {rejected
+                            ? "Upload your corrected work"
+                            : submission
+                              ? "Replace your file"
+                              : "Upload your work"}
+                        </label>
+
+                        <input
+                          key={`${assignment.id}-${fileVersions[assignment.id] || 0}`}
+                          id={`assignment-file-${assignment.id}`}
+                          type="file"
+                          accept={ACCEPT}
+                          className="submission-file-input"
+                          disabled={uploadDisabled}
+                          onChange={(event) =>
+                            setDraft(assignment.id, {
+                              file: event.target.files?.[0] || null,
+                            })
+                          }
+                        />
+
+                        <textarea
+                          className="submission-note"
+                          rows={2}
+                          aria-label="Note for your mentor"
+                          placeholder={
+                            rejected
+                              ? "Explain the corrections you made (optional)"
+                              : "Add a note for your mentor (optional)"
+                          }
+                          value={draft.note || ""}
+                          disabled={uploadDisabled}
+                          onChange={(event) =>
+                            setDraft(assignment.id, {
+                              note: event.target.value,
+                            })
+                          }
+                        />
+
+                        <button
+                          type="button"
+                          className="submission-submit-btn"
+                          disabled={uploadDisabled || !draft.file}
+                          onClick={() => submitWork(assignment)}
+                        >
+                          {busy ? (
+                            <span className="assignment-btn-spinner" />
+                          ) : (
+                            <Upload size={16} />
+                          )}
+
+                          {busy
+                            ? "Submitting..."
+                            : rejected || submission
+                              ? "Resubmit Assignment"
+                              : "Submit Assignment"}
+                        </button>
+
+                        <p className="submission-hint">
+                          Accepted files: PDF, Word, PowerPoint,
+                          Excel, ZIP, RAR, text and images.
+                        </p>
+                      </div>
+                    )}
+
+                    {message?.text && (
+                      <div
+                        className={`submission-msg submission-msg-${message.type}`}
+                        role={
+                          message.type === "error" ? "alert" : "status"
+                        }
+                      >
+                        {message.text}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

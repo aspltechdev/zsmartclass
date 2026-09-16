@@ -1,5 +1,4 @@
-// src/pages/admin/AdminNotifications.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Bell,
@@ -22,25 +21,47 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
-  Info,
+  Info
 } from "lucide-react";
+
 import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import "./AdminNotifications.css";
 import "./AdminShared.css";
 
-// Channels (stored in the notification `type` field)
 const CHANNELS = [
-  { value: "ANNOUNCEMENT", label: "Announcement", icon: Megaphone, color: "#6366f1" },
-  { value: "NEW_ARRIVAL", label: "New Arrival", icon: Sparkles, color: "#10b981" },
-  { value: "PROGRESS", label: "Progress", icon: TrendingUp, color: "#f59e0b" },
-  { value: "EVENT", label: "Event", icon: CalendarDays, color: "#ec4899" },
-  { value: "GENERAL", label: "General", icon: Bell, color: "#64748b" },
+  {
+    value: "ANNOUNCEMENT",
+    label: "Announcement",
+    icon: Megaphone,
+    color: "#6366f1"
+  },
+  {
+    value: "NEW_ARRIVAL",
+    label: "New Arrival",
+    icon: Sparkles,
+    color: "#10b981"
+  },
+  {
+    value: "PROGRESS",
+    label: "Progress",
+    icon: TrendingUp,
+    color: "#f59e0b"
+  },
+  {
+    value: "EVENT",
+    label: "Event",
+    icon: CalendarDays,
+    color: "#ec4899"
+  },
+  {
+    value: "GENERAL",
+    label: "General",
+    icon: Bell,
+    color: "#64748b"
+  }
 ];
 
-const channelMeta = (value) =>
-  CHANNELS.find((c) => c.value === value) || CHANNELS[CHANNELS.length - 1];
-
-// Icon + accent for a received notification, keyed off its `type`.
 const RECEIVED_META = {
   SUCCESS: { icon: CheckCircle, color: "#10b981" },
   WARNING: { icon: AlertTriangle, color: "#f59e0b" },
@@ -50,239 +71,427 @@ const RECEIVED_META = {
   PROGRESS: { icon: TrendingUp, color: "#f59e0b" },
   EVENT: { icon: CalendarDays, color: "#ec4899" },
   PAYMENT: { icon: CheckCircle, color: "#10b981" },
-  GENERAL: { icon: Info, color: "#64748b" },
+  CERTIFICATE: { icon: CheckCircle, color: "#10b981" },
+  ENROLLMENT: { icon: BookOpen, color: "#6366f1" },
+  SYSTEM: { icon: Info, color: "#64748b" },
+  GENERAL: { icon: Info, color: "#64748b" }
 };
-
-const receivedMeta = (type) =>
-  RECEIVED_META[(type || "").toUpperCase()] || RECEIVED_META.GENERAL;
 
 const AUDIENCES = [
   { value: "ALL", label: "All users", icon: Users },
   { value: "COURSE", label: "Course students", icon: BookOpen },
   { value: "ROLE", label: "By role", icon: UserCheck },
-  { value: "USER", label: "Single user", icon: User },
+  { value: "USER", label: "Single user", icon: User }
 ];
 
-const emptyForm = {
+const EMPTY_FORM = {
   title: "",
   message: "",
   channel: "ANNOUNCEMENT",
   audience: "ALL",
   courseId: "",
   role: "STUDENT",
-  userId: "",
+  userId: ""
 };
 
-function AdminNotifications() {
-  // Which side of the mailbox we're looking at.
-  const [view, setView] = useState("sent"); // "sent" | "received"
+function prettyLabel(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
-  // Sent (broadcast history)
+function channelMeta(value) {
+  const found = CHANNELS.find((item) => item.value === value);
+
+  return found || {
+    value,
+    label: prettyLabel(value) || "General",
+    icon: Bell,
+    color: "#64748b"
+  };
+}
+
+function receivedMeta(type) {
+  return (
+    RECEIVED_META[String(type || "").toUpperCase()] ||
+    RECEIVED_META.GENERAL
+  );
+}
+
+function fmtDateTime(value) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return date.toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
+
+function readArray(response) {
+  const data = response.data?.data ?? response.data;
+
+  if (!Array.isArray(data)) {
+    throw new Error("Unexpected server response.");
+  }
+
+  return data;
+}
+
+function personText(person, fallback) {
+  if (!person) return fallback;
+
+  return [
+    person.name || fallback,
+    person.role ? prettyLabel(person.role) : null,
+    person.email || null
+  ].filter(Boolean).join(" · ");
+}
+
+export default function AdminNotifications() {
+  const { user: currentUser } = useAuth();
+  const currentUserId = Number(currentUser?.id);
+
+  const [view, setView] = useState("sent");
   const [history, setHistory] = useState([]);
+  const [inbox, setInbox] = useState([]);
   const [users, setUsers] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [apiError, setApiError] = useState("");
 
-  // Received (this admin's own inbox)
-  const [inbox, setInbox] = useState([]);
-  const [inboxLoading, setInboxLoading] = useState(true);
-  const [inboxFilter, setInboxFilter] = useState("all"); // "all" | "unread"
-  const [busyId, setBusyId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
+  const [actionError, setActionError] = useState("");
 
   const [search, setSearch] = useState("");
   const [channelFilter, setChannelFilter] = useState("all");
+  const [inboxFilter, setInboxFilter] = useState("all");
 
   const [showCompose, setShowCompose] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState({ ...EMPTY_FORM });
   const [formError, setFormError] = useState("");
-  const [sending, setSending] = useState(false);
+  const [busy, setBusy] = useState(null);
 
-  const [deletingKey, setDeletingKey] = useState(null);
+  const operationLock = useRef(false);
+  const loadSequence = useRef(0);
 
   useEffect(() => {
-    fetchAll();
-    fetchInbox();
+    refresh();
+
+    return () => {
+      loadSequence.current += 1;
+    };
   }, []);
 
-  const fetchAll = async () => {
-    try {
-      setLoading(true);
-      setApiError("");
+  useEffect(() => {
+    if (!showCompose) return undefined;
 
-      const [usersRes, coursesRes] = await Promise.all([
-        api.get("/users").catch(() => ({ data: { data: [] } })),
-        api.get("/courses").catch(() => ({ data: { data: [] } })),
-      ]);
-      setUsers(usersRes.data?.data || usersRes.data || []);
-      setCourses(coursesRes.data?.data || coursesRes.data || []);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
-      try {
-        const res = await api.get("/notifications/admin");
-        setHistory(res.data?.data || res.data || []);
-      } catch {
-        setApiError("Couldn't load your sent notifications. Please check the server and try again.");
-        setHistory([]);
+    function onKeyDown(event) {
+      if (event.key === "Escape" && !operationLock.current) {
+        setShowCompose(false);
       }
-    } catch {
-      setApiError("Something went wrong while loading this page. Please refresh.");
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const fetchInbox = async () => {
-    try {
-      setInboxLoading(true);
-      const res = await api.get("/notifications");
-      const data = res.data?.data ?? res.data ?? [];
-      setInbox(Array.isArray(data) ? data : []);
-    } catch {
-      setInbox([]);
-    } finally {
-      setInboxLoading(false);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showCompose]);
+
+  async function fetchAllUsers() {
+    const collected = new Map();
+    let page = 1;
+
+    while (true) {
+      const response = await api.get("/users", {
+        params: {
+          page,
+          limit: 100,
+          sortBy: "createdAt",
+          sortOrder: "asc"
+        }
+      });
+
+      const data = response.data?.data ?? response.data;
+      const rows = Array.isArray(data) ? data : data?.users;
+
+      if (!Array.isArray(rows)) {
+        throw new Error("Couldn't read the receiver list.");
+      }
+
+      rows.forEach((item) => {
+        collected.set(Number(item.id), item);
+      });
+
+      const pagination =
+        response.data?.pagination || data?.pagination;
+
+      if (!pagination) break;
+
+      const hasMore =
+        typeof pagination.hasMore === "boolean"
+          ? pagination.hasMore
+          : page < Number(pagination.totalPages || 1);
+
+      if (!hasMore) break;
+
+      if (!rows.length) {
+        throw new Error("Receiver list could not be loaded completely.");
+      }
+
+      page += 1;
     }
-  };
 
-  const refresh = () => {
-    fetchAll();
-    fetchInbox();
-  };
+    return [...collected.values()];
+  }
 
-  // ---- Received actions ----
-  const markAsRead = async (id) => {
-    try {
-      setBusyId(id);
-      await api.put(`/notifications/${id}/read`);
-      setInbox((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-    } catch (err) {
-      alert(err.response?.data?.message || "Couldn't mark this as read.");
-    } finally {
-      setBusyId(null);
+  async function refresh() {
+    const sequence = ++loadSequence.current;
+    setLoading(true);
+
+    const results = await Promise.allSettled([
+      api.get("/notifications/admin").then(readArray),
+      api.get("/notifications").then(readArray),
+      fetchAllUsers(),
+      api.get("/courses").then(readArray)
+    ]);
+
+    if (sequence !== loadSequence.current) return;
+
+    const keys = ["history", "inbox", "users", "courses"];
+    const setters = [setHistory, setInbox, setUsers, setCourses];
+    const nextErrors = {};
+
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        setters[index](result.value);
+      } else {
+        nextErrors[keys[index]] =
+          result.reason?.response?.data?.message ||
+          `Couldn't load ${keys[index]}. Please refresh.`;
+      }
+    });
+
+    setErrors(nextErrors);
+    setLoading(false);
+  }
+
+  const selectableUsers = useMemo(() => {
+    if (!Number.isSafeInteger(currentUserId) || currentUserId <= 0) {
+      return [];
     }
-  };
 
-  const markAllRead = async () => {
-    try {
-      setBusyId("all");
-      await api.put("/notifications/read-all");
-      setInbox((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    } catch (err) {
-      alert(err.response?.data?.message || "Couldn't mark all as read.");
-    } finally {
-      setBusyId(null);
-    }
-  };
+    return users.filter(
+      (item) => Number(item.id) !== currentUserId
+    );
+  }, [users, currentUserId]);
 
-  const removeInboxItem = async (id) => {
-    if (!window.confirm("Delete this notification from your inbox?")) return;
-    try {
-      setBusyId(id);
-      await api.delete(`/notifications/${id}`);
-      setInbox((prev) => prev.filter((n) => n.id !== id));
-    } catch (err) {
-      alert(err.response?.data?.message || "Couldn't delete this notification.");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  // ---- Derived data ----
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return history.filter((h) => {
-      const matchesSearch =
-        !q ||
-        h.title?.toLowerCase().includes(q) ||
-        h.message?.toLowerCase().includes(q);
-      const matchesChannel =
-        channelFilter === "all" || h.channel === channelFilter;
-      return matchesSearch && matchesChannel;
+    const query = search.trim().toLowerCase();
+
+    return history.filter((item) => {
+      const people = (item.receivers || []).flatMap((receiver) => [
+        receiver.name,
+        receiver.email,
+        receiver.role
+      ]);
+
+      const searchable = [
+        item.title,
+        item.message,
+        item.audienceLabel,
+        item.sender?.name,
+        item.sender?.email,
+        ...people
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      return (
+        (!query || searchable.includes(query)) &&
+        (channelFilter === "all" || item.channel === channelFilter)
+      );
     });
   }, [history, search, channelFilter]);
 
-  const inboxUnread = useMemo(
-    () => inbox.filter((n) => !n.isRead).length,
-    [inbox]
-  );
+  const inboxUnread = inbox.filter((item) => !item.isRead).length;
 
   const filteredInbox = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return inbox.filter((n) => {
-      const matchesSearch =
-        !q ||
-        n.title?.toLowerCase().includes(q) ||
-        n.message?.toLowerCase().includes(q);
-      const matchesFilter = inboxFilter === "all" || !n.isRead;
-      return matchesSearch && matchesFilter;
+    const query = search.trim().toLowerCase();
+
+    return inbox.filter((item) => {
+      const searchable = [
+        item.title,
+        item.message,
+        item.sender?.name,
+        item.sender?.role,
+        item.receiver?.name
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      return (
+        (!query || searchable.includes(query)) &&
+        (inboxFilter === "all" || !item.isRead)
+      );
     });
   }, [inbox, search, inboxFilter]);
 
   const stats = useMemo(() => {
-    const totalSent = history.reduce((s, h) => s + (h.recipientCount || 0), 0);
-    const totalRead = history.reduce((s, h) => s + (h.readCount || 0), 0);
+    const totalSent = history.reduce(
+      (total, item) => total + (item.recipientCount || 0), 0
+    );
+
+    const totalRead = history.reduce(
+      (total, item) => total + (item.readCount || 0), 0
+    );
+
     return {
       broadcasts: history.length,
       totalSent,
-      readRate: totalSent ? Math.round((totalRead / totalSent) * 100) : 0,
+      readRate: totalSent
+        ? Math.round((totalRead / totalSent) * 100)
+        : 0
     };
   }, [history]);
 
-  const fmtDateTime = (d) =>
-    d ? new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—";
+  const filterChannels = useMemo(() => {
+    const values = new Set([
+      ...CHANNELS.map((item) => item.value),
+      ...history.map((item) => item.channel)
+    ]);
 
-  // ---- Compose ----
-  const openCompose = () => {
-    setForm(emptyForm);
+    return [...values].map(channelMeta);
+  }, [history]);
+
+  function openCompose() {
+    setForm({ ...EMPTY_FORM });
     setFormError("");
     setShowCompose(true);
-  };
+  }
 
-  const submit = async () => {
+  function closeCompose() {
+    if (!operationLock.current) {
+      setShowCompose(false);
+    }
+  }
+
+  function changeForm(name, value) {
+    setForm((previous) => ({
+      ...previous,
+      [name]: value
+    }));
+  }
+
+  async function submit() {
+    if (operationLock.current) return;
+
     setFormError("");
-    if (!form.title.trim()) return setFormError("Please add a title.");
-    if (!form.message.trim()) return setFormError("Please write a message.");
-    if (form.audience === "COURSE" && !form.courseId)
+
+    if (!form.title.trim()) {
+      return setFormError("Please add a title.");
+    }
+
+    if (!form.message.trim()) {
+      return setFormError("Please write a message.");
+    }
+
+    if (form.audience === "COURSE" && !form.courseId) {
       return setFormError("Please choose a course.");
-    if (form.audience === "USER" && !form.userId)
-      return setFormError("Please choose a user.");
+    }
+
+    if (form.audience === "USER") {
+      if (!form.userId) {
+        return setFormError("Please choose a user.");
+      }
+
+      if (Number(form.userId) === currentUserId) {
+        return setFormError("You cannot send a notification to yourself.");
+      }
+    }
 
     const payload = {
       title: form.title.trim(),
       message: form.message.trim(),
       channel: form.channel,
-      audience: form.audience,
+      audience: form.audience
     };
-    if (form.audience === "COURSE") payload.courseId = parseInt(form.courseId);
-    if (form.audience === "ROLE") payload.role = form.role;
-    if (form.audience === "USER") payload.userId = parseInt(form.userId);
+
+    if (form.audience === "COURSE") {
+      payload.courseId = Number(form.courseId);
+    }
+
+    if (form.audience === "ROLE") {
+      payload.role = form.role;
+    }
+
+    if (form.audience === "USER") {
+      payload.userId = Number(form.userId);
+    }
+
+    operationLock.current = true;
+    setBusy("send");
+    setActionError("");
 
     try {
-      setSending(true);
-      const res = await api.post("/notifications/admin/send", payload);
+      const response = await api.post(
+        "/notifications/admin/send",
+        payload
+      );
+
       setShowCompose(false);
-      setForm(emptyForm);
-      await fetchAll();
-      alert(res.data?.message || "Notification sent.");
-    } catch (err) {
-      setFormError(err.response?.data?.message || "Couldn't send the notification. Please try again.");
-    } finally {
-      setSending(false);
-    }
-  };
+      setForm({ ...EMPTY_FORM });
+      await refresh();
 
-  const deleteBroadcast = async (item) => {
-    if (!window.confirm(`Delete this notification for all ${item.recipientCount} recipient(s)?`)) return;
-    try {
-      setDeletingKey(item.key);
-      await api.delete("/notifications/admin/batch", { data: { ids: item.ids } });
-      await fetchAll();
-    } catch (err) {
-      alert(err.response?.data?.message || "Couldn't delete the notification.");
+      alert(response.data?.message || "Notification sent.");
+    } catch (error) {
+      setFormError(
+        error.response?.data?.message ||
+        "Couldn't send the notification. Please try again."
+      );
     } finally {
-      setDeletingKey(null);
+      operationLock.current = false;
+      setBusy(null);
     }
-  };
+  }
+
+  async function runAction(key, request, confirmation) {
+    if (operationLock.current) return;
+
+    if (confirmation && !window.confirm(confirmation)) {
+      return;
+    }
+
+    operationLock.current = true;
+    setBusy(key);
+    setActionError("");
+
+    try {
+      await request();
+      await refresh();
+    } catch (error) {
+      setActionError(
+        error.response?.data?.message ||
+        "Couldn't complete this action."
+      );
+    } finally {
+      operationLock.current = false;
+      setBusy(null);
+    }
+  }
+
+  const isBusy = busy !== null;
+  const sending = busy === "send";
+
+  const receiverListUnavailable =
+    form.audience === "USER" &&
+    (!!errors.users || !selectableUsers.length);
+
+  const courseListUnavailable =
+    form.audience === "COURSE" && !!errors.courses;
 
   return (
     <div className="ntf-page">
@@ -294,21 +503,38 @@ function AdminNotifications() {
           <div>
             <h1 className="ntf-title">Notifications</h1>
             <p className="ntf-subtitle">
-              Send announcements and updates to your users, and review the ones you've received.
+              Send announcements and updates to your users, and review
+              the ones you've received.
             </p>
           </div>
         </div>
+
         <div className="ntf-actions">
-          <button className="ntf-btn ntf-btn-ghost" onClick={refresh} title="Refresh">
+          <button
+            className="ntf-btn ntf-btn-ghost"
+            onClick={refresh}
+            title="Refresh"
+            disabled={loading || isBusy}
+          >
             <RefreshCw size={18} />
           </button>
-          <button className="ntf-btn ntf-btn-primary" onClick={openCompose}>
+
+          <button
+            className="ntf-btn ntf-btn-primary"
+            onClick={openCompose}
+            disabled={loading || isBusy}
+          >
             <Plus size={18} /> New notification
           </button>
         </div>
       </div>
 
-      {/* Sent / Received toggle */}
+      {actionError && (
+        <div className="ntf-alert" role="alert">
+          {actionError}
+        </div>
+      )}
+
       <div className="ntf-tabs" role="tablist">
         <button
           role="tab"
@@ -319,6 +545,7 @@ function AdminNotifications() {
           <Send size={16} /> Sent
           <span className="ntf-tab-count">{history.length}</span>
         </button>
+
         <button
           role="tab"
           aria-selected={view === "received"}
@@ -326,31 +553,39 @@ function AdminNotifications() {
           onClick={() => setView("received")}
         >
           <Inbox size={16} /> Received
-          {inboxUnread > 0 && <span className="ntf-tab-count unread">{inboxUnread}</span>}
+          {inboxUnread > 0 && (
+            <span className="ntf-tab-count unread">{inboxUnread}</span>
+          )}
         </button>
       </div>
 
-      {/* ===================== SENT ===================== */}
       {view === "sent" && (
         <>
-          {/* Stats */}
           <div className="ntf-stats">
             <div className="ntf-stat">
-              <div className="ntf-stat-icon indigo"><Send size={20} /></div>
+              <div className="ntf-stat-icon indigo">
+                <Send size={20} />
+              </div>
               <div>
                 <div className="ntf-stat-value">{stats.broadcasts}</div>
                 <div className="ntf-stat-label">Notifications Sent</div>
               </div>
             </div>
+
             <div className="ntf-stat">
-              <div className="ntf-stat-icon green"><Users size={20} /></div>
+              <div className="ntf-stat-icon green">
+                <Users size={20} />
+              </div>
               <div>
                 <div className="ntf-stat-value">{stats.totalSent}</div>
-                <div className="ntf-stat-label">Total Recipients</div>
+                <div className="ntf-stat-label">Total Deliveries</div>
               </div>
             </div>
+
             <div className="ntf-stat">
-              <div className="ntf-stat-icon amber"><CheckCheck size={20} /></div>
+              <div className="ntf-stat-icon amber">
+                <CheckCheck size={20} />
+              </div>
               <div>
                 <div className="ntf-stat-value">{stats.readRate}%</div>
                 <div className="ntf-stat-label">Read Rate</div>
@@ -358,66 +593,149 @@ function AdminNotifications() {
             </div>
           </div>
 
-          {/* Toolbar */}
           <div className="ntf-toolbar">
             <div className="ntf-search">
               <Search size={18} />
               <input
                 placeholder="Search sent notifications…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
               />
             </div>
+
             <select
               className="ntf-select"
               value={channelFilter}
-              onChange={(e) => setChannelFilter(e.target.value)}
+              onChange={(event) => setChannelFilter(event.target.value)}
             >
               <option value="all">All channels</option>
-              {CHANNELS.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
+              {filterChannels.map((channel) => (
+                <option key={channel.value} value={channel.value}>
+                  {channel.label}
+                </option>
               ))}
             </select>
           </div>
 
-          {apiError && <div className="ntf-alert">{apiError}</div>}
-
-          {/* History */}
           {loading ? (
             <div className="ntf-empty">Loading…</div>
+          ) : errors.history ? (
+            <div className="ntf-alert" role="alert">{errors.history}</div>
           ) : filtered.length === 0 ? (
             <div className="ntf-empty">
-              You haven't sent any notifications yet. Click “New notification” to send your first.
+              {search || channelFilter !== "all"
+                ? "No notifications match your filters."
+                : "No notifications yet. Click “New notification” to send one."}
             </div>
           ) : (
             <div className="ntf-list">
               {filtered.map((item) => {
                 const meta = channelMeta(item.channel);
                 const Icon = meta.icon;
+
                 return (
                   <div className="ntf-card" key={item.key}>
-                    <div className="ntf-card-icon" style={{ background: meta.color }}>
+                    <div
+                      className="ntf-card-icon"
+                      style={{ background: meta.color }}
+                    >
                       <Icon size={18} color="#fff" />
                     </div>
+
                     <div className="ntf-card-body">
                       <div className="ntf-card-top">
                         <span className="ntf-card-title">{item.title}</span>
-                        <span className="ntf-badge" style={{ color: meta.color, borderColor: meta.color }}>
+                        <span
+                          className="ntf-badge"
+                          style={{
+                            color: meta.color,
+                            borderColor: meta.color
+                          }}
+                        >
                           {meta.label}
                         </span>
                       </div>
-                      <p className="ntf-card-message">{item.message}</p>
+
+                      <p
+                        className="ntf-card-message"
+                        style={{
+                          whiteSpace: "pre-wrap",
+                          overflowWrap: "anywhere"
+                        }}
+                      >
+                        {item.message}
+                      </p>
+
                       <div className="ntf-card-meta">
-                        <span><Users size={13} /> {item.recipientCount} recipient{item.recipientCount === 1 ? "" : "s"}</span>
-                        <span><CheckCheck size={13} /> {item.readCount} read</span>
-                        <span><CalendarDays size={13} /> {fmtDateTime(item.sentAt)}</span>
+                        <span>
+                          <User size={13} />
+                          From: {personText(item.sender, "Sender not recorded")}
+                        </span>
+                      </div>
+
+                      <div className="ntf-card-meta">
+                        <span>
+                          <Users size={13} />
+                          To: {item.audienceLabel || "Audience not recorded"}
+                        </span>
+                      </div>
+
+                      {(item.receivers || []).length > 0 && (
+                        <details style={{ margin: "8px 0" }}>
+                          <summary
+                            className="ntf-card-meta"
+                            style={{ cursor: "pointer" }}
+                          >
+                            View receiver details ({item.recipientCount})
+                          </summary>
+
+                          <div style={{ maxHeight: 220, overflowY: "auto" }}>
+                            {item.receivers.map((receiver) => (
+                              <div
+                                key={receiver.notificationId}
+                                className="ntf-card-meta"
+                                style={{ padding: "6px 0" }}
+                              >
+                                <span>
+                                  {personText(receiver, "Receiver unavailable")}
+                                </span>
+                                <span>
+                                  {receiver.isRead ? "Read" : "Unread"}
+                                  {receiver.hiddenAt && " · Removed from inbox"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+
+                      <div className="ntf-card-meta">
+                        <span>
+                          <Users size={13} />
+                          {item.recipientCount} recipient
+                          {item.recipientCount === 1 ? "" : "s"}
+                        </span>
+                        <span>
+                          <CheckCheck size={13} /> {item.readCount} read
+                        </span>
+                        <span>
+                          <CalendarDays size={13} />
+                          {fmtDateTime(item.sentAt)}
+                        </span>
                       </div>
                     </div>
+
                     <button
                       className="ntf-icon-btn danger"
                       title="Delete for all recipients"
-                      onClick={() => deleteBroadcast(item)}
-                      disabled={deletingKey === item.key}
+                      disabled={isBusy}
+                      onClick={() => runAction(
+                        item.key,
+                        () => api.delete("/notifications/admin/batch", {
+                          data: { ids: item.ids }
+                        }),
+                        `Delete this notification for all ${item.recipientCount} recipient(s)?`
+                      )}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -429,7 +747,6 @@ function AdminNotifications() {
         </>
       )}
 
-      {/* ===================== RECEIVED ===================== */}
       {view === "received" && (
         <>
           <div className="ntf-toolbar">
@@ -438,9 +755,10 @@ function AdminNotifications() {
               <input
                 placeholder="Search your inbox…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
               />
             </div>
+
             <div className="ntf-segment">
               <button
                 className={inboxFilter === "all" ? "active" : ""}
@@ -455,64 +773,125 @@ function AdminNotifications() {
                 Unread ({inboxUnread})
               </button>
             </div>
+
             {inboxUnread > 0 && (
               <button
                 className="ntf-btn ntf-btn-ghost"
-                onClick={markAllRead}
-                disabled={busyId === "all"}
+                disabled={isBusy || loading}
+                onClick={() => runAction(
+                  "read-all",
+                  () => api.put("/notifications/read-all")
+                )}
               >
-                <CheckCheck size={16} /> {busyId === "all" ? "Marking…" : "Mark all read"}
+                <CheckCheck size={16} />
+                {busy === "read-all" ? "Marking…" : "Mark all read"}
               </button>
             )}
           </div>
 
-          {inboxLoading ? (
+          {loading ? (
             <div className="ntf-empty">Loading…</div>
+          ) : errors.inbox ? (
+            <div className="ntf-alert" role="alert">{errors.inbox}</div>
           ) : filteredInbox.length === 0 ? (
             <div className="ntf-empty">
-              {inboxFilter === "unread"
-                ? "You're all caught up — no unread notifications."
-                : "Your inbox is empty. Updates sent to you will show up here."}
+              {search
+                ? "No notifications match your search."
+                : inboxFilter === "unread"
+                  ? "You're all caught up — no unread notifications."
+                  : "Your inbox is empty. Updates sent to you will show up here."}
             </div>
           ) : (
             <div className="ntf-list">
-              {filteredInbox.map((n) => {
-                const meta = receivedMeta(n.type);
+              {filteredInbox.map((notification) => {
+                const meta = receivedMeta(notification.type);
                 const Icon = meta.icon;
+
                 return (
                   <div
-                    className={`ntf-card ${n.isRead ? "" : "unread"}`}
-                    key={n.id}
+                    className={`ntf-card ${notification.isRead ? "" : "unread"}`}
+                    key={notification.id}
                   >
-                    <div className="ntf-card-icon" style={{ background: meta.color }}>
+                    <div
+                      className="ntf-card-icon"
+                      style={{ background: meta.color }}
+                    >
                       <Icon size={18} color="#fff" />
                     </div>
+
                     <div className="ntf-card-body">
                       <div className="ntf-card-top">
-                        <span className="ntf-card-title">{n.title}</span>
-                        {!n.isRead && <span className="ntf-unread-dot" title="Unread" />}
+                        <span className="ntf-card-title">
+                          {notification.title}
+                        </span>
+                        {!notification.isRead && (
+                          <span className="ntf-unread-dot" title="Unread" />
+                        )}
                       </div>
-                      <p className="ntf-card-message">{n.message}</p>
+
+                      <p
+                        className="ntf-card-message"
+                        style={{
+                          whiteSpace: "pre-wrap",
+                          overflowWrap: "anywhere"
+                        }}
+                      >
+                        {notification.message}
+                      </p>
+
                       <div className="ntf-card-meta">
-                        <span><CalendarDays size={13} /> {fmtDateTime(n.createdAt)}</span>
+                        <span>
+                          <User size={13} />
+                          From: {personText(
+                            notification.sender,
+                            "Sender not recorded"
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="ntf-card-meta">
+                        <span>
+                          <Users size={13} />
+                          To: {personText(notification.receiver, "You")}
+                        </span>
+                      </div>
+
+                      <div className="ntf-card-meta">
+                        <span>
+                          <CalendarDays size={13} />
+                          {fmtDateTime(notification.createdAt)}
+                        </span>
                       </div>
                     </div>
+
                     <div className="ntf-card-actions">
-                      {!n.isRead && (
+                      {!notification.isRead && (
                         <button
                           className="ntf-btn ntf-btn-ghost ntf-read-btn"
-                          onClick={() => markAsRead(n.id)}
-                          disabled={busyId === n.id}
+                          disabled={isBusy}
                           title="Mark as read"
+                          onClick={() => runAction(
+                            notification.id,
+                            () => api.put(
+                              `/notifications/${notification.id}/read`
+                            )
+                          )}
                         >
                           <CheckCheck size={15} /> Read
                         </button>
                       )}
+
                       <button
                         className="ntf-icon-btn danger"
-                        title="Delete"
-                        onClick={() => removeInboxItem(n.id)}
-                        disabled={busyId === n.id}
+                        title="Delete from inbox"
+                        disabled={isBusy}
+                        onClick={() => runAction(
+                          notification.id,
+                          () => api.delete(
+                            `/notifications/${notification.id}`
+                          ),
+                          "Delete this notification from your inbox?"
+                        )}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -525,149 +904,202 @@ function AdminNotifications() {
         </>
       )}
 
-      {/* Compose Modal */}
-      {showCompose &&
-        createPortal(
-          <div className="ntf-modal-overlay" onClick={() => setShowCompose(false)}>
-            <div className="ntf-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="ntf-modal-header">
-                <h3>New Notification</h3>
-                <button className="ntf-icon-btn" onClick={() => setShowCompose(false)}>
-                  <X size={18} />
-                </button>
+      {showCompose && createPortal(
+        <div className="ntf-modal-overlay" onClick={closeCompose}>
+          <div
+            className="ntf-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="notification-compose-heading"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="ntf-modal-header">
+              <h3 id="notification-compose-heading">New Notification</h3>
+              <button
+                className="ntf-icon-btn"
+                onClick={closeCompose}
+                disabled={isBusy}
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="ntf-modal-body">
+              {formError && (
+                <div className="ntf-form-error" role="alert">{formError}</div>
+              )}
+
+              <div className="ntf-field">
+                <label className="ntf-label">Channel</label>
+                <div className="ntf-channel-grid">
+                  {CHANNELS.map((channel) => {
+                    const Icon = channel.icon;
+                    const active = form.channel === channel.value;
+
+                    return (
+                      <button
+                        key={channel.value}
+                        type="button"
+                        disabled={isBusy}
+                        className={`ntf-channel-chip ${active ? "active" : ""}`}
+                        style={active ? {
+                          borderColor: channel.color,
+                          color: channel.color,
+                          background: `${channel.color}14`
+                        } : {}}
+                        onClick={() => changeForm("channel", channel.value)}
+                      >
+                        <Icon size={15} /> {channel.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="ntf-modal-body">
-                {formError && <div className="ntf-form-error">{formError}</div>}
+              <div className="ntf-field">
+                <label className="ntf-label">Send to</label>
+                <div className="ntf-audience-grid">
+                  {AUDIENCES.map((audience) => {
+                    const Icon = audience.icon;
+                    const active = form.audience === audience.value;
 
-                {/* Channel */}
-                <div className="ntf-field">
-                  <label className="ntf-label">Channel</label>
-                  <div className="ntf-channel-grid">
-                    {CHANNELS.map((c) => {
-                      const Icon = c.icon;
-                      const active = form.channel === c.value;
-                      return (
-                        <button
-                          key={c.value}
-                          type="button"
-                          className={`ntf-channel-chip ${active ? "active" : ""}`}
-                          style={active ? { borderColor: c.color, color: c.color, background: `${c.color}14` } : {}}
-                          onClick={() => setForm({ ...form, channel: c.value })}
-                        >
-                          <Icon size={15} /> {c.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                    return (
+                      <button
+                        key={audience.value}
+                        type="button"
+                        disabled={isBusy}
+                        className={`ntf-audience-chip ${active ? "active" : ""}`}
+                        onClick={() => changeForm("audience", audience.value)}
+                      >
+                        <Icon size={16} /> {audience.label}
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
 
-                {/* Audience */}
+              {form.audience === "COURSE" && (
                 <div className="ntf-field">
-                  <label className="ntf-label">Send to</label>
-                  <div className="ntf-audience-grid">
-                    {AUDIENCES.map((a) => {
-                      const Icon = a.icon;
-                      const active = form.audience === a.value;
-                      return (
-                        <button
-                          key={a.value}
-                          type="button"
-                          className={`ntf-audience-chip ${active ? "active" : ""}`}
-                          onClick={() => setForm({ ...form, audience: a.value })}
-                        >
-                          <Icon size={16} /> {a.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {form.audience === "COURSE" && (
-                  <div className="ntf-field">
-                    <label className="ntf-label">Course</label>
-                    <select
-                      className="ntf-input"
-                      value={form.courseId}
-                      onChange={(e) => setForm({ ...form, courseId: e.target.value })}
-                    >
-                      <option value="">Select a course…</option>
-                      {courses.map((c) => (
-                        <option key={c.id} value={c.id}>{c.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {form.audience === "ROLE" && (
-                  <div className="ntf-field">
-                    <label className="ntf-label">Role</label>
-                    <select
-                      className="ntf-input"
-                      value={form.role}
-                      onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    >
-                      <option value="STUDENT">Students</option>
-                      <option value="MENTOR">Mentors</option>
-                      <option value="ADMIN">Admins</option>
-                    </select>
-                  </div>
-                )}
-
-                {form.audience === "USER" && (
-                  <div className="ntf-field">
-                    <label className="ntf-label">User</label>
-                    <select
-                      className="ntf-input"
-                      value={form.userId}
-                      onChange={(e) => setForm({ ...form, userId: e.target.value })}
-                    >
-                      <option value="">Select a user…</option>
-                      {users.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div className="ntf-field">
-                  <label className="ntf-label">Title</label>
-                  <input
+                  <label className="ntf-label" htmlFor="ntf-course">Course</label>
+                  <select
+                    id="ntf-course"
                     className="ntf-input"
-                    placeholder="e.g. New course launched!"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  />
+                    value={form.courseId}
+                    disabled={isBusy || !!errors.courses}
+                    onChange={(event) => changeForm("courseId", event.target.value)}
+                  >
+                    <option value="">Select a course…</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.courses && (
+                    <div className="ntf-form-error">{errors.courses}</div>
+                  )}
                 </div>
+              )}
 
+              {form.audience === "ROLE" && (
                 <div className="ntf-field">
-                  <label className="ntf-label">Message</label>
-                  <textarea
-                    className="ntf-input ntf-textarea"
-                    rows={4}
-                    placeholder="Write your message…"
-                    value={form.message}
-                    onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  />
+                  <label className="ntf-label" htmlFor="ntf-role">Role</label>
+                  <select
+                    id="ntf-role"
+                    className="ntf-input"
+                    value={form.role}
+                    disabled={isBusy}
+                    onChange={(event) => changeForm("role", event.target.value)}
+                  >
+                    <option value="STUDENT">Students</option>
+                    <option value="MENTOR">Mentors</option>
+                    <option value="ADMIN">Admins</option>
+                  </select>
                 </div>
+              )}
+
+              {form.audience === "USER" && (
+                <div className="ntf-field">
+                  <label className="ntf-label" htmlFor="ntf-user">User</label>
+                  <select
+                    id="ntf-user"
+                    className="ntf-input"
+                    value={form.userId}
+                    disabled={isBusy || !!errors.users}
+                    onChange={(event) => changeForm("userId", event.target.value)}
+                  >
+                    <option value="">Select a user…</option>
+                    {selectableUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+
+                  {errors.users ? (
+                    <div className="ntf-form-error">{errors.users}</div>
+                  ) : !selectableUsers.length ? (
+                    <div className="ntf-form-error">
+                      No other users are available.
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              <div className="ntf-field">
+                <label className="ntf-label" htmlFor="ntf-title">Title</label>
+                <input
+                  id="ntf-title"
+                  className="ntf-input"
+                  placeholder="e.g. New course launched!"
+                  value={form.title}
+                  maxLength={200}
+                  disabled={isBusy}
+                  onChange={(event) => changeForm("title", event.target.value)}
+                />
               </div>
 
-              <div className="ntf-modal-footer">
-                <button className="ntf-btn ntf-btn-ghost" onClick={() => setShowCompose(false)} disabled={sending}>
-                  Cancel
-                </button>
-                <button className="ntf-btn ntf-btn-primary" onClick={submit} disabled={sending}>
-                  {sending ? "Sending…" : (<><Send size={16} /> Send</>)}
-                </button>
+              <div className="ntf-field">
+                <label className="ntf-label" htmlFor="ntf-message">Message</label>
+                <textarea
+                  id="ntf-message"
+                  className="ntf-input ntf-textarea"
+                  rows={4}
+                  placeholder="Write your message…"
+                  value={form.message}
+                  maxLength={5000}
+                  disabled={isBusy}
+                  onChange={(event) => changeForm("message", event.target.value)}
+                />
               </div>
             </div>
-          </div>,
-          document.body
-        )}
+
+            <div className="ntf-modal-footer">
+              <button
+                className="ntf-btn ntf-btn-ghost"
+                onClick={closeCompose}
+                disabled={isBusy}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="ntf-btn ntf-btn-primary"
+                onClick={submit}
+                disabled={
+                  isBusy ||
+                  receiverListUnavailable ||
+                  courseListUnavailable
+                }
+              >
+                {sending ? "Sending…" : <><Send size={16} /> Send</>}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
-
-export default AdminNotifications;

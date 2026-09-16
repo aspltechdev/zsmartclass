@@ -100,7 +100,7 @@ const StudentSidebar = ({
    *
    * The sidebar will show:
    *
-   * ZSMARTCLASS
+   * ZMARTCLASS
    * RENUKA R
    */
   const studentName = user?.name || "STUDENT";

@@ -179,7 +179,7 @@ function AdminHeader({ collapsed = false, onToggleCollapse, onToggleMobile }) {
                 </div>
                 <div>
                   <h4>{user?.name || "Admin"}</h4>
-                  <span>{user?.email || "admin@zsmartclass.com"}</span>
+                  <span>{user?.email || "admin@zmartclass.com"}</span>
                 </div>
               </div>
 
