@@ -9,7 +9,7 @@ class EmailService {
   async sendMail(to, subject, html) {
     try {
       return await transporter.sendMail({
-        from: `"ZsmartClass LMS" <${process.env.SMTP_USER}>`,
+        from: `"ZmartClass LMS" <${process.env.SMTP_USER}>`,
         to,
         subject,
         html
@@ -29,7 +29,7 @@ class EmailService {
 
     return await this.sendMail(
       user.email,
-      "You're Invited to Join ZsmartClass!",
+      "You're Invited to Join ZmartClass!",
       `
         <!DOCTYPE html>
         <html>
@@ -54,11 +54,11 @@ class EmailService {
           <div class="container">
             <div class="header">
               <h2>🎓 You're Invited!</h2>
-              <p>Join ZsmartClass - The Future of Learning</p>
+              <p>Join ZmartClass - The Future of Learning</p>
             </div>
             <div class="content">
               <p>Hello <strong>${user.name}</strong>! 👋</p>
-              <p>An administrator has invited you to join <strong>ZsmartClass</strong>, a modern Learning Management System.</p>
+              <p>An administrator has invited you to join <strong>ZmartClass</strong>, a modern Learning Management System.</p>
               
               <div class="info-box">
                 <p><strong>📧 Email:</strong> ${user.email}</p>
@@ -81,7 +81,7 @@ class EmailService {
               </p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} ZsmartClass. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
               <p>This is an automated message. Please do not reply to this email.</p>
             </div>
           </div>
@@ -97,7 +97,7 @@ class EmailService {
   async sendOTP(email, otp) {
     return await this.sendMail(
       email,
-      "Verify Your Email - ZsmartClass LMS",
+      "Verify Your Email - ZmartClass LMS",
       `
         <!DOCTYPE html>
         <html>
@@ -121,7 +121,7 @@ class EmailService {
             </div>
             <div class="content">
               <p>Hello!</p>
-              <p>Thank you for registering with ZsmartClass. Use the following OTP to verify your email address:</p>
+              <p>Thank you for registering with ZmartClass. Use the following OTP to verify your email address:</p>
               
               <div class="otp-box">
                 <h1>${otp}</h1>
@@ -131,7 +131,7 @@ class EmailService {
               <p class="info">🔒 If you didn't request this, please ignore this email.</p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} ZsmartClass. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -146,7 +146,7 @@ class EmailService {
   async sendResetOTP(email, otp) {
     return await this.sendMail(
       email,
-      "Reset Your Password - ZsmartClass LMS",
+      "Reset Your Password - ZmartClass LMS",
       `
         <!DOCTYPE html>
         <html>
@@ -182,7 +182,7 @@ class EmailService {
               </div>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} ZsmartClass. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -197,7 +197,7 @@ class EmailService {
   async sendPaymentSuccess(email, studentName, courseTitle, amount) {
     return await this.sendMail(
       email,
-      "Payment Successful - ZsmartClass LMS",
+      "Payment Successful - ZmartClass LMS",
       `
         <!DOCTYPE html>
         <html>
@@ -238,7 +238,7 @@ class EmailService {
               </center>
             </div>
             <div class="footer">
-              <p>Thank you for choosing ZsmartClass!</p>
+              <p>Thank you for choosing ZmartClass!</p>
             </div>
           </div>
         </body>
@@ -253,7 +253,7 @@ class EmailService {
   async sendWelcomeCourse(email, studentName, courseTitle) {
     return await this.sendMail(
       email,
-      "Welcome to Your Course - ZsmartClass LMS",
+      "Welcome to Your Course - ZmartClass LMS",
       `
         <!DOCTYPE html>
         <html>
@@ -298,10 +298,10 @@ class EmailService {
               
               <br>
               <p>Happy Learning!</p>
-              <p><strong>The ZsmartClass Team</strong></p>
+              <p><strong>The ZmartClass Team</strong></p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} ZsmartClass. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -316,7 +316,7 @@ class EmailService {
   async sendCertificate(email, studentName, courseTitle, certificateUrl) {
     return await this.sendMail(
       email,
-      "Your Certificate is Ready - ZsmartClass LMS",
+      "Your Certificate is Ready - ZmartClass LMS",
       `
         <!DOCTYPE html>
         <html>
@@ -352,11 +352,11 @@ class EmailService {
               </center>
               
               <p style="margin-top: 20px; color: #666;">
-                Keep learning and growing with ZsmartClass!
+                Keep learning and growing with ZmartClass!
               </p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} ZsmartClass. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -371,7 +371,7 @@ class EmailService {
   async sendWelcomeEmail(user, password) {
     return await this.sendMail(
       user.email,
-      "Welcome to ZsmartClass LMS - Your Account is Ready",
+      "Welcome to ZmartClass LMS - Your Account is Ready",
       `
         <!DOCTYPE html>
         <html>
@@ -395,7 +395,7 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <h2>🎉 Welcome to ZsmartClass!</h2>
+              <h2>🎉 Welcome to ZmartClass!</h2>
               <p>Your Learning Journey Begins Now</p>
             </div>
             <div class="content">
@@ -426,7 +426,7 @@ class EmailService {
 
               <center>
                 <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" class="btn">
-                  🚀 Login to ZsmartClass
+                  🚀 Login to ZmartClass
                 </a>
               </center>
               
@@ -435,7 +435,7 @@ class EmailService {
               </p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} ZsmartClass LMS. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} ZmartClass LMS. All rights reserved.</p>
               <p>This is an automated message. Please do not reply to this email.</p>
             </div>
           </div>
@@ -451,7 +451,7 @@ class EmailService {
   async sendPasswordResetEmail(user, newPassword) {
     return await this.sendMail(
       user.email,
-      "Your Password Has Been Reset - ZsmartClass LMS",
+      "Your Password Has Been Reset - ZmartClass LMS",
       `
         <!DOCTYPE html>
         <html>
@@ -494,7 +494,7 @@ class EmailService {
               </center>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} ZsmartClass LMS. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} ZmartClass LMS. All rights reserved.</p>
               <p>This is an automated message. Please do not reply to this email.</p>
             </div>
           </div>

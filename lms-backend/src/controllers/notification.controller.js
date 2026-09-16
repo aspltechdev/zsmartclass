@@ -1,86 +1,145 @@
-// src/controllers/notification.controller.js
 const notificationService = require("../services/notification.service");
 
-// ADMIN: send to an audience (broadcast / course / role / user)
+function sendError(res, error) {
+  const status = error.statusCode || 500;
+
+  if (status >= 500) {
+    console.error("Notification error:", error);
+  }
+
+  return res.status(status).json({
+    success: false,
+    message:
+      status >= 500
+        ? "Unable to complete the notification request. Please try again."
+        : error.message
+  });
+}
+
 exports.adminSend = async (req, res) => {
   try {
-    const result = await notificationService.sendNotification(req.body);
-    res.status(201).json({
+    const result = await notificationService.sendNotification(
+      req.body,
+      req.user
+    );
+
+    return res.status(201).json({
       success: true,
-      message: `Notification sent to ${result.recipients} recipient(s).`,
+      message:
+        `In-app notification sent to ${result.recipients} ` +
+        `receiver${result.recipients === 1 ? "" : "s"}.`,
       data: result
     });
-  } catch (err) {
-    res.status(err.statusCode || 400).json({
-      success: false,
-      message: err.message
-    });
+  } catch (error) {
+    return sendError(res, error);
   }
 };
 
-// Single create (kept for compatibility / other flows)
 exports.create = async (req, res) => {
   try {
-    const notification = await notificationService.create(req.body);
-    res.status(201).json({ success: true, data: notification });
-  } catch (err) {
-    res.status(err.statusCode || 400).json({ success: false, message: err.message });
+    const result = await notificationService.create(
+      req.body,
+      req.user
+    );
+
+    return res.status(201).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    return sendError(res, error);
   }
 };
 
-// ADMIN: grouped sent history
 exports.getAllNotifications = async (req, res) => {
   try {
-    const data = await notificationService.getAllNotifications();
-    res.json({ success: true, data });
-  } catch (err) {
-    res.status(err.statusCode || 500).json({ success: false, message: err.message });
+    const result = await notificationService.getAllNotifications(
+      req.user
+    );
+
+    return res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    return sendError(res, error);
   }
 };
 
-// USER: my notifications
 exports.getMyNotifications = async (req, res) => {
   try {
-    const data = await notificationService.getMyNotifications(req.user.id);
-    res.json({ success: true, data });
-  } catch (err) {
-    res.status(err.statusCode || 500).json({ success: false, message: err.message });
+    const result = await notificationService.getMyNotifications(
+      req.user.id
+    );
+
+    return res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    return sendError(res, error);
   }
 };
 
 exports.markAsRead = async (req, res) => {
   try {
-    const data = await notificationService.markAsRead(req.params.id, req.user.id);
-    res.json({ success: true, data });
-  } catch (err) {
-    res.status(err.statusCode || 400).json({ success: false, message: err.message });
+    const result = await notificationService.markAsRead(
+      req.params.id,
+      req.user.id
+    );
+
+    return res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    return sendError(res, error);
   }
 };
 
 exports.markAllRead = async (req, res) => {
   try {
-    const data = await notificationService.markAllRead(req.user.id);
-    res.json({ success: true, data });
-  } catch (err) {
-    res.status(err.statusCode || 400).json({ success: false, message: err.message });
+    const result = await notificationService.markAllRead(
+      req.user.id
+    );
+
+    return res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    return sendError(res, error);
   }
 };
 
 exports.delete = async (req, res) => {
   try {
-    const data = await notificationService.deleteNotification(req.params.id, req.user);
-    res.json({ success: true, data });
-  } catch (err) {
-    res.status(err.statusCode || 400).json({ success: false, message: err.message });
+    const result = await notificationService.deleteNotification(
+      req.params.id,
+      req.user
+    );
+
+    return res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    return sendError(res, error);
   }
 };
 
-// ADMIN: delete a whole broadcast group
 exports.deleteBatch = async (req, res) => {
   try {
-    const data = await notificationService.deleteBatch(req.body.ids);
-    res.json({ success: true, ...data });
-  } catch (err) {
-    res.status(err.statusCode || 400).json({ success: false, message: err.message });
+    const result = await notificationService.deleteBatch(
+      req.body.ids,
+      req.user
+    );
+
+    return res.json({
+      success: true,
+      deleted: result.deleted
+    });
+  } catch (error) {
+    return sendError(res, error);
   }
 };

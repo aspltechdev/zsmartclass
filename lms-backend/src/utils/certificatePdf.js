@@ -95,7 +95,7 @@ class CertificatePdfGenerator {
     doc.fillColor('#1a1a2e')
        .font('Helvetica-Bold')
        .fontSize(18)
-       .text('ZSmartClass', textX, textY, { align: 'left' });
+       .text('ZmartClass', textX, textY, { align: 'left' });
   }
 
   /**
@@ -115,7 +115,7 @@ class CertificatePdfGenerator {
     const textColor = template?.textColor || '#1a1a2e';
     const accentColor = template?.borderColor || '#667eea';
     const backgroundColor = template?.backgroundColor || '#ffffff';
-    const footerText = template?.footer || 'Issued by ZSmartClass';
+    const footerText = template?.footer || 'Issued by ZmartClass';
     const fontBold = resolveFont(template?.fontFamily, true);
     const fontRegular = resolveFont(template?.fontFamily, false);
 
@@ -292,7 +292,7 @@ class CertificatePdfGenerator {
         doc.fontSize(7)
            .fillColor(textColor)
            .font(fontBold)
-           .text('ZSMARTCLASS', sealX - 30, sealY - 12, {
+           .text('ZMARTCLASS', sealX - 30, sealY - 12, {
              width: 60, align: 'center', letterSpacing: 1
            });
 

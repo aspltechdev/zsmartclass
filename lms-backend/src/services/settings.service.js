@@ -7,7 +7,7 @@ const prisma = require("../config/prisma");
 // instead of silently missing keys the UI expects.
 const DEFAULTS = {
     general: {
-        siteName: "ZsmartClass",
+        siteName: "ZmartClass",
         siteEmail: "",
         sitePhone: "",
         address: "",

@@ -803,7 +803,7 @@ class ReportService {
 
         // ===== HEADER =====
         doc.fillColor('#1a1a2e').fontSize(22).font('Helvetica-Bold')
-           .text('ZsmartClass', doc.page.margins.left, 50, { continued: false });
+           .text('ZmartClass', doc.page.margins.left, 50, { continued: false });
         doc.fillColor('#667eea').fontSize(13).font('Helvetica')
            .text(`${typeLabels[type] || 'Overview'} Report`, doc.page.margins.left, 78);
         doc.fillColor('#94a3b8').fontSize(9)
@@ -1021,7 +1021,7 @@ class ReportService {
         for (let i = range.start; i < range.start + range.count; i++) {
             doc.switchToPage(i);
             doc.fillColor('#cbd5e1').fontSize(8).text(
-                `ZsmartClass LMS — generated ${new Date().toLocaleDateString()} — page ${i + 1} of ${range.count}`,
+                `ZmartClass LMS — generated ${new Date().toLocaleDateString()} — page ${i + 1} of ${range.count}`,
                 doc.page.margins.left,
                 doc.page.height - doc.page.margins.bottom + 15,
                 { width: contentWidth, align: 'center' }

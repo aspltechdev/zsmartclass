@@ -7,7 +7,9 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+
+// Allow the JSON request containing the processed category image.
+app.use(express.json({ limit: "4mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // Health-check route

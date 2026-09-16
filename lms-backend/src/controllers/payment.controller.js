@@ -811,7 +811,7 @@ exports.createManualPayment = async (req, res) => {
         try {
             await emailService.sendMail(
                 student.email,
-                `Payment Receipt ${orderId} - ZsmartClass`,
+                `Payment Receipt ${orderId} - ZmartClass`,
                 `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">
                     <h2 style="color:#4f46e5">Payment Receipt</h2>
                     <p>Hi ${student.name},</p>
@@ -824,7 +824,7 @@ exports.createManualPayment = async (req, res) => {
                         <tr><td style="border:1px solid #eee"><b>Date</b></td><td style="border:1px solid #eee">${new Date(payment.createdAt).toLocaleString("en-IN")}</td></tr>
                     </table>
                     <p style="margin-top:16px">You can now access your course(s) from your dashboard.</p>
-                    <p style="color:#888;font-size:12px">ZsmartClass LMS</p>
+                    <p style="color:#888;font-size:12px">ZmartClass LMS</p>
                 </div>`
             );
         } catch (e) {

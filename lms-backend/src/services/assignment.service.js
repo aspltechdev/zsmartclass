@@ -1,16 +1,42 @@
-// src/services/assignment.service.js
 const prisma = require("../config/prisma");
 const { computeCourseGating } = require("./gating.service");
 
-/**
- * NOTE ON NAMING: the Prisma schema names these relations `Course`, `User`
- * (the mentor) and `AssignmentSubmission`. We query with those names and then
- * expose them to the API as `course`, `mentor` and `submissions`, which is what
- * the frontend already reads.
- */
-const shape = (a) => {
-  if (!a) return a;
-  const { Course, User, AssignmentSubmission, ...rest } = a;
+const fail = (message, statusCode = 400) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  throw error;
+};
+
+const positiveId = (value, label) => {
+  const id = Number(value);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    fail(`Invalid ${label}.`);
+  }
+
+  return id;
+};
+
+const totalMarksValue = (value) => {
+  const marks = Number(value);
+
+  if (!Number.isInteger(marks) || marks <= 0) {
+    fail("Total marks must be a whole number greater than zero.");
+  }
+
+  return marks;
+};
+
+const shape = (assignment) => {
+  if (!assignment) return assignment;
+
+  const {
+    Course,
+    User,
+    AssignmentSubmission,
+    ...rest
+  } = assignment;
+
   return {
     ...rest,
     course: Course ?? null,
@@ -21,334 +47,546 @@ const shape = (a) => {
 
 class AssignmentService {
   async create(data, mentorId) {
-    if (!data.title || !String(data.title).trim()) {
-      const e = new Error("Assignment title is required."); e.statusCode = 400; throw e;
-    }
-    if (!data.courseId) {
-      const e = new Error("Course is required."); e.statusCode = 400; throw e;
-    }
-    if (!data.dueDate) {
-      const e = new Error("Due date is required."); e.statusCode = 400; throw e;
-    }
-    const marks = Number(data.totalMarks);
-    if (!marks || marks <= 0) {
-      const e = new Error("Total marks must be greater than 0."); e.statusCode = 400; throw e;
-    }
+    const title = String(data.title || "").trim();
+
+    if (!title) fail("Assignment title is required.");
 
     const created = await prisma.assignment.create({
       data: {
-        title: String(data.title).trim(),
-        description: data.description || "",
-        dueDate: new Date(data.dueDate),
-        totalMarks: marks,
-        courseId: Number(data.courseId),
-        mentorId: Number(mentorId),
-        // `updatedAt` has no @default / @updatedAt in the schema, so it must be set.
+        title,
+        description: String(data.description || ""),
+        dueDate: null,
+        totalMarks: totalMarksValue(data.totalMarks),
+        courseId: positiveId(data.courseId, "course"),
+        mentorId: positiveId(mentorId, "mentor"),
         updatedAt: new Date(),
       },
-      include: { Course: true },
+      include: {
+        Course: true,
+      },
     });
+
     return shape(created);
   }
 
   async getAll() {
-    const list = await prisma.assignment.findMany({
+    const assignments = await prisma.assignment.findMany({
       include: {
         Course: true,
-        User: { select: { id: true, name: true, email: true } },
+        User: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         AssignmentSubmission: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
-    return list.map(shape);
+
+    return assignments.map(shape);
   }
 
   async getById(id) {
-    const found = await prisma.assignment.findUnique({
-      where: { id: Number(id) },
+    const assignment = await prisma.assignment.findUnique({
+      where: {
+        id: positiveId(id, "assignment"),
+      },
       include: {
         Course: true,
-        User: { select: { id: true, name: true, email: true } },
+        User: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         AssignmentSubmission: true,
       },
     });
-    if (!found) {
-      const e = new Error("Assignment not found."); e.statusCode = 404; throw e;
-    }
-    return shape(found);
+
+    if (!assignment) fail("Assignment not found.", 404);
+
+    return shape(assignment);
   }
 
   async update(id, data) {
-    const exists = await prisma.assignment.findUnique({
-      where: { id: Number(id) }, select: { id: true },
+    const assignmentId = positiveId(id, "assignment");
+
+    const existing = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      select: { id: true },
     });
-    if (!exists) {
-      const e = new Error("Assignment not found."); e.statusCode = 404; throw e;
+
+    if (!existing) fail("Assignment not found.", 404);
+
+    const payload = {
+      updatedAt: new Date(),
+      dueDate: null,
+    };
+
+    if (data.title !== undefined) {
+      payload.title = String(data.title || "").trim();
+
+      if (!payload.title) {
+        fail("Assignment title is required.");
+      }
     }
 
-    // Whitelist: spreading req.body straight into Prisma lets stray fields
-    // (id, course, submissions…) through and throws.
-    const payload = { updatedAt: new Date() };
-    if (data.title !== undefined) payload.title = String(data.title).trim();
-    if (data.description !== undefined) payload.description = data.description;
-    if (data.dueDate) payload.dueDate = new Date(data.dueDate);
-    if (data.totalMarks !== undefined) payload.totalMarks = Number(data.totalMarks);
-    if (data.courseId) payload.courseId = Number(data.courseId);
+    if (data.description !== undefined) {
+      payload.description = String(data.description || "");
+    }
+
+    if (data.totalMarks !== undefined) {
+      payload.totalMarks = totalMarksValue(data.totalMarks);
+    }
+
+    if (data.courseId !== undefined) {
+      payload.courseId = positiveId(data.courseId, "course");
+    }
 
     const updated = await prisma.assignment.update({
-      where: { id: Number(id) },
+      where: { id: assignmentId },
       data: payload,
       include: { Course: true },
     });
+
     return shape(updated);
   }
 
   async remove(id) {
-    const exists = await prisma.assignment.findUnique({
-      where: { id: Number(id) }, select: { id: true },
+    const assignmentId = positiveId(id, "assignment");
+
+    const existing = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      select: { id: true },
     });
-    if (!exists) {
-      const e = new Error("Assignment not found."); e.statusCode = 404; throw e;
-    }
-    // Submissions have no cascade — remove them first, atomically.
+
+    if (!existing) fail("Assignment not found.", 404);
+
     await prisma.$transaction([
-      prisma.assignmentSubmission.deleteMany({ where: { assignmentId: Number(id) } }),
-      prisma.assignment.delete({ where: { id: Number(id) } }),
+      prisma.assignmentSubmission.deleteMany({
+        where: { assignmentId },
+      }),
+      prisma.assignment.delete({
+        where: { id: assignmentId },
+      }),
     ]);
-    return { success: true, message: "Assignment deleted successfully." };
+
+    return {
+      success: true,
+      message: "Assignment deleted successfully.",
+    };
   }
 
-  // Idempotent submit: one submission per (assignment, student). There is no
-  // @@unique([assignmentId, studentId]) to upsert on, so findFirst → update /
-  // create. A re-submission before grading is fresh work, so it resets to an
-  // ungraded "SUBMITTED" state and refreshes the timestamp. Once a mentor has
-  // graded the work it LOCKS — the student can no longer overwrite the grade.
-  //
-  // GATE: the assignment only opens once the student has finished the whole
-  // course (every module's lessons AND quizzes). This mirrors the student flow
-  // "complete all lessons + quizzes → assignment unlocks → submit → certificate".
   async submit(assignmentId, studentId, data = {}) {
-    const aId = Number(assignmentId);
-    const sId = Number(studentId);
+    const aId = positiveId(assignmentId, "assignment");
+    const sId = positiveId(studentId, "student");
 
-    const attachment = data.attachment || null;
-    const submissionText = data.submissionText
-      ? String(data.submissionText).trim()
-      : null;
-
-    // The assignment must exist — we also need its course to gate submission.
     const assignment = await prisma.assignment.findUnique({
       where: { id: aId },
-      select: { id: true, courseId: true },
+      select: {
+        id: true,
+        courseId: true,
+      },
     });
-    if (!assignment) {
-      const e = new Error("Assignment not found.");
-      e.statusCode = 404;
-      throw e;
+
+    if (!assignment) fail("Assignment not found.", 404);
+
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        userId: sId,
+        courseId: assignment.courseId,
+      },
+      select: { id: true },
+    });
+
+    if (!enrollment) {
+      fail("You are not enrolled in this course.", 403);
     }
 
-    // Enforce course completion server-side. A course with no modules has
-    // nothing to gate behind, so its assignment is open immediately.
-    const gating = await computeCourseGating(sId, assignment.courseId);
-    const hasModules = gating.modules.length > 0;
-    if (hasModules && !gating.allModulesComplete) {
-      const e = new Error(
-        "Finish all lessons and quizzes in this course before submitting the assignment."
+    const gating = await computeCourseGating(
+      sId,
+      assignment.courseId
+    );
+
+    if (
+      gating.modules.length > 0 &&
+      !gating.allModulesComplete
+    ) {
+      fail(
+        "Finish all lessons and quizzes in this course before submitting the assignment.",
+        403
       );
-      e.statusCode = 403;
-      throw e;
     }
 
-    // The flow is upload-based: a file is required (an optional note may ride along).
+    const attachment = data.attachment || null;
+
     if (!attachment) {
-      const e = new Error(
-        "Please attach a file (PDF, DOCX, ZIP, etc.) to submit your assignment."
-      );
-      e.statusCode = 400;
-      throw e;
+      fail("Please attach a file to submit your assignment.");
     }
 
-    const existing = await prisma.assignmentSubmission.findFirst({
-      where: { assignmentId: aId, studentId: sId },
-      select: { id: true, status: true },
-    });
+    const submissionText =
+      String(data.submissionText || "").trim() || null;
+
+    const existing =
+      await prisma.assignmentSubmission.findFirst({
+        where: {
+          assignmentId: aId,
+          studentId: sId,
+        },
+        orderBy: [
+          { submittedAt: "desc" },
+          { id: "desc" },
+        ],
+      });
 
     if (existing) {
       if (existing.status === "GRADED") {
-        const e = new Error(
-          "This assignment has already been graded and can no longer be resubmitted."
+        fail(
+          "This assignment has already been accepted and cannot be resubmitted.",
+          409
         );
-        e.statusCode = 409;
-        throw e;
       }
-      return await prisma.assignmentSubmission.update({
+
+      // Rejected work can be replaced and reviewed again.
+      // Conditional update prevents overwriting a concurrent acceptance.
+      const result =
+        await prisma.assignmentSubmission.updateMany({
+          where: {
+            id: existing.id,
+            status: existing.status,
+            submittedAt: existing.submittedAt,
+          },
+          data: {
+            attachment,
+            submissionText,
+            status: "SUBMITTED",
+            marks: null,
+            feedback: null,
+            submittedAt: new Date(),
+          },
+        });
+
+      if (result.count !== 1) {
+        fail(
+          "This submission changed. Refresh the page and try again.",
+          409
+        );
+      }
+
+      return prisma.assignmentSubmission.findUnique({
         where: { id: existing.id },
-        data: {
-          submissionText,
-          attachment,
-          status: "SUBMITTED",
-          marks: null,
-          feedback: null,
-          submittedAt: new Date(),
-        },
       });
     }
 
-    return await prisma.assignmentSubmission.create({
+    return prisma.assignmentSubmission.create({
       data: {
         assignmentId: aId,
         studentId: sId,
-        submissionText,
         attachment,
+        submissionText,
         status: "SUBMITTED",
       },
     });
   }
 
   async getSubmissions(id) {
-    const subs = await prisma.assignmentSubmission.findMany({
-      where: { assignmentId: Number(id) },
-      include: { User: { select: { id: true, name: true, email: true } } },
-      orderBy: { submittedAt: "desc" },
-    });
-    return subs.map(({ User, ...rest }) => ({ ...rest, student: User ?? null }));
+    const submissions =
+      await prisma.assignmentSubmission.findMany({
+        where: {
+          assignmentId: positiveId(id, "assignment"),
+        },
+        include: {
+          User: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: [
+          { submittedAt: "desc" },
+          { id: "desc" },
+        ],
+      });
+
+    return submissions.map(({ User, ...submission }) => ({
+      ...submission,
+      student: User ?? null,
+    }));
   }
 
-  /* =====================================================
-     ASSIGNMENTS VISIBLE TO A STUDENT
-     Only courses they're enrolled in, with their own
-     submission attached so the UI can show status/marks.
-  ===================================================== */
   async getForStudent(studentId) {
-    const sId = Number(studentId);
+    const sId = positiveId(studentId, "student");
 
     const enrollments = await prisma.enrollment.findMany({
       where: { userId: sId },
-      select: { courseId: true }
+      select: { courseId: true },
     });
 
-    const courseIds = [...new Set(enrollments.map((e) => e.courseId))];
-    if (courseIds.length === 0) return [];
+    const courseIds = [
+      ...new Set(enrollments.map((item) => item.courseId)),
+    ];
+
+    if (!courseIds.length) return [];
 
     const assignments = await prisma.assignment.findMany({
-      where: { courseId: { in: courseIds } },
-      orderBy: { dueDate: "asc" },
+      where: {
+        courseId: { in: courseIds },
+      },
+      orderBy: { createdAt: "desc" },
       include: {
-        Course: { select: { id: true, title: true } }
+        Course: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    const submissions =
+      await prisma.assignmentSubmission.findMany({
+        where: { studentId: sId },
+        orderBy: [
+          { submittedAt: "desc" },
+          { id: "desc" },
+        ],
+      });
+
+    const byAssignment = new Map();
+
+    for (const submission of submissions) {
+      if (!byAssignment.has(submission.assignmentId)) {
+        byAssignment.set(
+          submission.assignmentId,
+          submission
+        );
       }
-    });
+    }
 
-    const submissions = await prisma.assignmentSubmission.findMany({
-      where: { studentId: sId }
-    });
+    const assignmentCourseIds = [
+      ...new Set(assignments.map((item) => item.courseId)),
+    ];
 
-    const byAssignment = {};
-    submissions.forEach((sub) => {
-      byAssignment[sub.assignmentId] = sub;
-    });
+    const gatingByCourse = new Map();
 
-    // Assignments unlock only after the student finishes the whole course
-    // (every module's lessons AND quizzes). Compute gating once per course that
-    // actually carries an assignment, then tag each assignment locked/unlocked.
-    const assignmentCourseIds = [...new Set(assignments.map((a) => a.courseId))];
-    const gatingByCourse = {};
     await Promise.all(
-      assignmentCourseIds.map(async (cId) => {
-        gatingByCourse[cId] = await computeCourseGating(sId, cId);
+      assignmentCourseIds.map(async (courseId) => {
+        const gating = await computeCourseGating(
+          sId,
+          courseId
+        );
+
+        gatingByCourse.set(courseId, gating);
       })
     );
 
-    const now = new Date();
+    return assignments.map((assignment) => {
+      const mySubmission =
+        byAssignment.get(assignment.id) || null;
 
-    return assignments.map((a) => {
-      const mySubmission = byAssignment[a.id] || null;
+      const gating = gatingByCourse.get(
+        assignment.courseId
+      );
 
-      const gating = gatingByCourse[a.courseId];
-      const hasModules = !!gating && gating.modules.length > 0;
-      // A course with no modules has nothing to complete first, so its
-      // assignment is open right away; otherwise it stays locked until done.
-      const courseComplete = hasModules ? gating.allModulesComplete : true;
-      const locked = !courseComplete;
+      const courseComplete =
+        gating.modules.length === 0 ||
+        gating.allModulesComplete;
 
       return {
-        ...a,
+        ...assignment,
+        course: assignment.Course,
+        dueDate: null,
         mySubmission,
-        submitted: !!mySubmission,
-        status: mySubmission ? mySubmission.status : "PENDING",
+        submitted: Boolean(mySubmission),
+        status: mySubmission?.status || "PENDING",
         marks: mySubmission?.marks ?? null,
         feedback: mySubmission?.feedback ?? null,
-        overdue: !mySubmission && new Date(a.dueDate) < now,
-        locked,
-        lockReason: locked
+        overdue: false,
+        locked: !courseComplete,
+        lockReason: !courseComplete
           ? "Finish all lessons and quizzes in this course to unlock this assignment."
           : null,
       };
     });
   }
 
-  /* =====================================================
-     A STUDENT'S SUBMISSIONS
-  ===================================================== */
   async getMySubmissions(studentId) {
-    return await prisma.assignmentSubmission.findMany({
-      where: { studentId: Number(studentId) },
-      orderBy: { submittedAt: "desc" },
+    return prisma.assignmentSubmission.findMany({
+      where: {
+        studentId: positiveId(studentId, "student"),
+      },
+      orderBy: {
+        submittedAt: "desc",
+      },
       include: {
         Assignment: {
           select: {
             id: true,
             title: true,
-            dueDate: true,
             totalMarks: true,
-            Course: { select: { id: true, title: true } }
-          }
-        }
-      }
+            Course: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
-  /* =====================================================
-     GRADE A SUBMISSION  (mentor / admin)
-  ===================================================== */
-  async gradeSubmission(submissionId, data = {}) {
-    const id = Number(submissionId);
+  /**
+   * ACCEPT -> GRADED, preserving certificate compatibility.
+   * REJECT -> REJECTED, allowing the student to resubmit.
+   */
+  async gradeSubmission(submissionId, data = {}, actor) {
+    const id = positiveId(submissionId, "submission");
 
-    const submission = await prisma.assignmentSubmission.findUnique({
-      where: { id },
-      include: { Assignment: { select: { totalMarks: true } } }
-    });
+    const role = String(actor?.role || "").toUpperCase();
 
-    if (!submission) {
-      const e = new Error("Submission not found.");
-      e.statusCode = 404;
-      throw e;
+    if (!["MENTOR", "ADMIN"].includes(role)) {
+      fail("You cannot review submissions.", 403);
     }
 
-    const marks = Number(data.marks);
-    const total = Number(submission.Assignment?.totalMarks) || 0;
+    const submission =
+      await prisma.assignmentSubmission.findUnique({
+        where: { id },
+        include: {
+          Assignment: {
+            select: {
+              mentorId: true,
+              totalMarks: true,
+            },
+          },
+        },
+      });
 
-    if (Number.isNaN(marks) || marks < 0) {
-      const e = new Error("Marks must be zero or more.");
-      e.statusCode = 400;
-      throw e;
+    if (!submission) fail("Submission not found.", 404);
+
+    if (
+      role === "MENTOR" &&
+      Number(submission.Assignment.mentorId) !==
+        Number(actor.id)
+    ) {
+      fail(
+        "Only the assigned mentor can review this submission.",
+        403
+      );
     }
 
-    if (total > 0 && marks > total) {
-      const e = new Error(`Marks cannot exceed the total of ${total}.`);
-      e.statusCode = 400;
-      throw e;
+    const decision = String(
+      data.decision || ""
+    ).toUpperCase();
+
+    if (!["ACCEPT", "REJECT"].includes(decision)) {
+      fail("Please choose Accept or Reject.");
     }
 
-    return await prisma.assignmentSubmission.update({
-      where: { id },
-      data: {
-        marks,
-        feedback: data.feedback ? String(data.feedback).trim() : null,
-        status: "GRADED"
+    // Do not review an older file after the student replaces it.
+    const expectedDate = new Date(data.submittedAt);
+
+    if (
+      !data.submittedAt ||
+      !Number.isFinite(expectedDate.getTime()) ||
+      expectedDate.getTime() !==
+        new Date(submission.submittedAt).getTime()
+    ) {
+      fail(
+        "The submission changed. Refresh and review the latest file.",
+        409
+      );
+    }
+
+    if (data.previousStatus !== submission.status) {
+      fail(
+        "The review status changed. Refresh and try again.",
+        409
+      );
+    }
+
+    const feedback = String(data.feedback || "").trim();
+
+    let marks = null;
+
+    if (decision === "ACCEPT") {
+      if (
+        data.marks === null ||
+        data.marks === undefined ||
+        String(data.marks).trim() === ""
+      ) {
+        fail("Enter marks before accepting the assignment.");
       }
-    });
-  }
 
+      marks = Number(data.marks);
+
+      const total = Number(
+        submission.Assignment.totalMarks
+      );
+
+      if (
+        !Number.isFinite(marks) ||
+        marks < 0 ||
+        marks > total
+      ) {
+        fail(`Marks must be between 0 and ${total}.`);
+      }
+    } else if (!feedback) {
+      fail(
+        "Enter feedback explaining why the assignment is rejected."
+      );
+    }
+
+    const result =
+      await prisma.assignmentSubmission.updateMany({
+        where: {
+          id,
+          status: submission.status,
+          submittedAt: submission.submittedAt,
+        },
+        data: {
+          status:
+            decision === "ACCEPT" ? "GRADED" : "REJECTED",
+          marks,
+          feedback: feedback || null,
+        },
+      });
+
+    if (result.count !== 1) {
+      fail(
+        "This submission changed. Refresh before reviewing it again.",
+        409
+      );
+    }
+
+    const updated =
+      await prisma.assignmentSubmission.findUnique({
+        where: { id },
+        include: {
+          User: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+    const { User, ...rest } = updated;
+
+    return {
+      ...rest,
+      student: User ?? null,
+    };
+  }
 }
 
 module.exports = new AssignmentService();

@@ -275,7 +275,7 @@ exports.upsertTemplate = async (req, res) => {
         // Prepare data with defaults
         const templateData = {
             header: header || "Certificate of Completion",
-            footer: footer || "Issued by ZSmartClass",
+            footer: footer || "Issued by ZmartClass",
             textColor: textColor || "#1a1a2e",
             backgroundColor: backgroundColor || "#ffffff",
             borderColor: borderColor || "#667eea",
