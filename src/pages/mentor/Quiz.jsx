@@ -172,7 +172,13 @@ function Quiz() {
     return (
       <div className="modules-page">
         <div className="page-header">
-          <div><h1>Quizzes</h1><p className="subtitle">Pick a module to manage its quizzes</p></div>
+          <div>
+            <h1 className="mentor-quiz-heading">
+              <ClipboardList size={24} aria-hidden="true" />
+              <span>Quizzes</span>
+            </h1>
+          
+          <p className="subtitle">Pick a module to manage its quizzes</p></div>
           <button className="refresh-btn" onClick={() => navigate("/mentor/modules")}>
             <ArrowLeft size={18} />
           </button>

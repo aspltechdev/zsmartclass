@@ -829,3 +829,302 @@
     animation: none;
   }
 }
+
+/* =========================================================
+   ASSIGNMENT SUBMISSION — HEADING ICON AND MODAL FIXES
+   Paste at the END of AssignmentSubmission.css
+========================================================= */
+
+/* Purple heading icon, matching the Assignment page */
+.mentor-assignment-submissions .assignment-submission-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.mentor-assignment-submissions .assignment-submission-title > svg {
+  display: block;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 12px;
+
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 2;
+
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.24);
+}
+
+.mentor-assignment-submissions .assignment-submission-title > div {
+  min-width: 0;
+}
+
+.mentor-assignment-submissions .assignment-submission-title h1 {
+  margin: 0;
+  line-height: 1.3;
+}
+
+.mentor-assignment-submissions .assignment-submission-title p {
+  margin: 6px 0 0;
+  line-height: 1.6;
+}
+
+/* Full-screen, centered overlay */
+.submission-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 100%;
+  height: 100%;
+  padding: 24px !important;
+  box-sizing: border-box;
+
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* Rounded popup, including the scrollbar area */
+.submission-modal-overlay .submission-review-modal {
+  position: relative;
+  width: 100%;
+  max-width: 650px;
+  min-width: 0;
+
+  max-height: calc(100vh - 48px) !important;
+  max-height: calc(100dvh - 48px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 18px !important;
+  background: #ffffff;
+
+  /* Clip the content and scrollbar to all four rounded corners. */
+  clip-path: inset(0 round 18px);
+
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #ffffff;
+}
+
+/* Chrome, Edge and Safari scrollbar */
+.submission-modal-overlay .submission-review-modal::-webkit-scrollbar {
+  width: 7px;
+}
+
+.submission-modal-overlay .submission-review-modal::-webkit-scrollbar-track {
+  background: #ffffff;
+  margin-block: 18px;
+}
+
+.submission-modal-overlay .submission-review-modal::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+}
+
+.submission-modal-overlay .submission-review-modal::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.submission-modal-overlay .submission-review-modal::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Comfortable header spacing */
+.submission-review-modal .submission-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 20px !important;
+  margin: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.submission-review-modal .submission-modal-header > div {
+  min-width: 0;
+}
+
+.submission-review-modal .submission-modal-header h2 {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.submission-review-modal .submission-modal-header p {
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+}
+
+/* Close button */
+.submission-review-modal .submission-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  flex-shrink: 0;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.submission-review-modal .submission-modal-close:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* Prevent long student details from widening the popup */
+.submission-review-modal .review-student > div:last-child {
+  min-width: 0;
+}
+
+.submission-review-modal .review-student h3,
+.submission-review-modal .review-student p {
+  overflow-wrap: anywhere;
+}
+
+.submission-review-modal .review-student-avatar {
+  flex-shrink: 0;
+}
+
+/* Rounded inputs with a purple focus indicator */
+.submission-review-modal .marks-input-wrapper input,
+.submission-review-modal .feedback-field textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px !important;
+  background: #ffffff;
+  color: #334155;
+  font-family: inherit;
+}
+
+.submission-review-modal .marks-input-wrapper input:focus,
+.submission-review-modal .feedback-field textarea:focus {
+  outline: none !important;
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12) !important;
+}
+
+.submission-review-modal .feedback-field textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 12px;
+  resize: vertical;
+}
+
+/* Keep existing Accept/Reject button colors */
+.submission-review-modal .review-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  margin-top: 20px;
+  padding: 18px 20px !important;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.submission-review-modal .review-modal-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  width: auto;
+  min-height: 40px;
+  padding: 9px 16px;
+  border-radius: 10px !important;
+  font-family: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.submission-review-modal .review-modal-actions button svg {
+  flex-shrink: 0;
+}
+
+/* Visible keyboard focus */
+.submission-review-modal button:focus-visible,
+.submission-review-modal a:focus-visible {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 3px;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .mentor-assignment-submissions .assignment-submission-title {
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .mentor-assignment-submissions .assignment-submission-title > svg {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px;
+    padding: 11px;
+    border-radius: 12px;
+  }
+
+  .submission-modal-overlay {
+    padding: 12px !important;
+  }
+
+  .submission-modal-overlay .submission-review-modal {
+    max-height: calc(100vh - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  .submission-review-modal .submission-modal-header {
+    padding: 16px !important;
+  }
+
+  .submission-review-modal .review-student {
+    padding: 16px;
+  }
+
+  .submission-review-modal .review-section {
+    padding: 16px 16px 0;
+  }
+
+  .submission-review-modal .review-file {
+    flex-wrap: wrap;
+  }
+
+  .submission-review-modal .review-modal-actions {
+    padding: 16px !important;
+    gap: 8px;
+  }
+
+  .submission-review-modal .review-modal-actions button {
+    padding: 9px 12px;
+  }
+}
