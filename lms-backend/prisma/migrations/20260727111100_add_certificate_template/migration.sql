@@ -21,7 +21,7 @@ CREATE TABLE "public"."CertificateTemplate" (
     "id" SERIAL NOT NULL,
     "courseId" INTEGER NOT NULL,
     "header" TEXT NOT NULL DEFAULT 'Certificate of Completion',
-    "footer" TEXT NOT NULL DEFAULT 'Issued by ZSmartClass',
+    "footer" TEXT NOT NULL DEFAULT 'Issued by ZmartClass',
     "textColor" TEXT NOT NULL DEFAULT '#1a1a2e',
     "backgroundColor" TEXT NOT NULL DEFAULT '#ffffff',
     "borderColor" TEXT NOT NULL DEFAULT '#667eea',

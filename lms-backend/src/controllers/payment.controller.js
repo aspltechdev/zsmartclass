@@ -211,7 +211,7 @@ const receiptHTML = (payment, courses, note = "") => {
       ${note ? `<p style="margin-top:16px">${escapeHTML(note)}</p>` : ""}
 
       <p style="color:#888;font-size:12px">
-        ZsmartClass LMS
+        ZmartClass LMS
       </p>
     </div>
   `;
@@ -662,7 +662,7 @@ exports.sendReceipt = async (req, res) => {
 
     await emailService.sendMail(
       payment.student.email,
-      `Payment Receipt ${payment.orderId} - ZsmartClass`,
+      `Payment Receipt ${payment.orderId} - ZmartClass`,
       receiptHTML(details, details.courses)
     );
 
@@ -1004,7 +1004,7 @@ exports.createManualPayment = async (req, res) => {
     try {
       await emailService.sendMail(
         student.email,
-        `Payment Receipt ${payment.orderId} - ZsmartClass`,
+        `Payment Receipt ${payment.orderId} - ZmartClass`,
         receiptHTML(
           { ...payment, student },
           courses,
