@@ -230,8 +230,13 @@ model Payment {
   currency  String   @default("INR")
   status    String   @default("PENDING")
   method    String?
+
+  recordedByName String?
+  upiAccountName String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
   course    Course   @relation(fields: [courseId], references: [id])
   student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

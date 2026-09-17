@@ -492,3 +492,92 @@
     overflow-x: auto;
   }
 }
+
+/* Payment table: prevent the Actions column being clipped. */
+
+.pay-page .pay-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+}
+
+.pay-page .pay-table {
+  width: 100%;
+  min-width: 1150px;
+}
+
+/* Keep Actions visible while scrolling horizontally. */
+
+.pay-page .pay-table th.pay-actions-column,
+.pay-page .pay-table td.pay-actions-column {
+  display: table-cell !important;
+  position: sticky;
+  right: 0;
+  width: 88px;
+  min-width: 88px;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: -3px 0 8px rgb(15 23 42 / 5%);
+}
+
+.pay-page .pay-table th.pay-actions-column {
+  z-index: 3;
+  background: #f8fafc;
+}
+
+.pay-page .pay-table td.pay-actions-column {
+  z-index: 2;
+  background: #ffffff;
+}
+
+.pay-page .pay-table tbody tr:hover td.pay-actions-column {
+  background: #fafbff;
+}
+
+.pay-page .pay-actions-column .pay-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cyan View button */
+
+.pay-page .pay-actions-column .pay-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  border: 1px solid #a5f3fc;
+  border-radius: 8px;
+  background: #ecfeff;
+  color: #0e7490;
+  cursor: pointer;
+}
+
+.pay-page .pay-actions-column .pay-view-btn:hover {
+  background: #cffafe;
+  border-color: #67e8f9;
+}
+
+.pay-page .pay-actions-column .pay-view-btn svg {
+  stroke: currentColor;
+}
+
+.pay-page .pay-actions-column .pay-view-btn:focus-visible {
+  outline: 2px solid #06b6d4;
+  outline-offset: 2px;
+}
+
+/* Long names and references inside payment details */
+
+.pay-modal .pay-detail-row {
+  gap: 16px;
+}
+
+.pay-modal .pay-detail-row b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
