@@ -750,3 +750,49 @@
     transition: none;
   }
 }
+
+/* Center ZC logo in the collapsed desktop sidebar */
+@media (min-width: 901px) {
+  .student-sidebar.collapsed .sidebar-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100%;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    gap: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .student-sidebar.collapsed .sidebar-header .logo-container {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .student-sidebar.collapsed .sidebar-header .logo-icon {
+    position: static !important;
+    transform: none !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 42px !important;
+    height: 42px !important;
+    flex: 0 0 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .student-sidebar.collapsed .sidebar-header .logo-text {
+    display: none !important;
+  }
+}

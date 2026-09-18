@@ -1042,3 +1042,56 @@
     transform: rotate(360deg);
   }
 }
+
+.reviews-page .reviews-header .quizmarks-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 48px;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.reviews-page .reviews-header .quizmarks-title > svg {
+  position: static;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  flex: 0 0 48px !important;
+  padding: 12px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.24);
+}
+
+.reviews-page .reviews-header .quizmarks-title > h1 {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 28px !important;
+}
+
+/* If a description already follows the title */
+.reviews-page .reviews-header .quizmarks-title:has(+ p) {
+  position: relative;
+  display: block !important;
+  min-height: 0 !important;
+  padding-left: 54px !important;
+}
+
+.reviews-page .reviews-header .quizmarks-title:has(+ p) > svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.reviews-page .reviews-header .quizmarks-title + p {
+  margin: 2px 0 0 !important;
+  padding: 0 0 0 54px !important;
+  font-size: 13px !important;
+  line-height: 18px !important;
+}

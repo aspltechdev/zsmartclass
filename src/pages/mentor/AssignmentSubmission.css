@@ -1128,3 +1128,47 @@
     padding: 9px 12px;
   }
 }
+
+.mentor-assignment-submissions .assignment-submission-title {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.mentor-assignment-submissions .assignment-submission-title > svg {
+  position: static;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  flex: 0 0 48px !important;
+  padding: 12px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.24);
+}
+
+.mentor-assignment-submissions .assignment-submission-title > div {
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.mentor-assignment-submissions .assignment-submission-title h1 {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 28px !important;
+}
+
+.mentor-assignment-submissions .assignment-submission-title p {
+  margin: 2px 0 0 !important;
+  padding: 0 !important;
+  font-size: 13px !important;
+  line-height: 18px !important;
+}

@@ -959,3 +959,53 @@
     height: 21px;
   }
 }
+
+/* Only change the heading icon appearance */
+.mentor-courses .courses-header .course-title > svg {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  flex-shrink: 0 !important;
+
+  padding: 12px !important;
+  box-sizing: border-box !important;
+
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 2;
+
+  background: linear-gradient(
+    135deg,
+    #6366f1,
+    #8b5cf6
+  ) !important;
+
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.24) !important;
+}
+
+/* Keep the existing icon appearance */
+.mentor-courses .courses-header .course-title {
+  position: relative;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 0 0 54px !important;
+  min-height: 0 !important;
+  line-height: 28px !important;
+}
+
+.mentor-courses .courses-header .course-title > svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0 !important;
+}
+
+/* Description directly below the title */
+.mentor-courses .courses-header .course-title + p {
+  margin: 0 !important;
+  padding: 0 0 0 54px !important;
+  font-size: 13px;
+  line-height: 18px !important;
+}

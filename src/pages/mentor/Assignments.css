@@ -1467,3 +1467,42 @@
   height: 16px;
   stroke: currentColor !important;
 }
+
+.mentor-assignments .assignment-header .assignments-title {
+  position: relative;
+  display: block !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 0 0 54px !important;
+}
+
+.mentor-assignments .assignment-header .assignments-title > svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px !important;
+  height: 48px !important;
+  padding: 12px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.24);
+}
+
+.mentor-assignments .assignment-header .assignments-title > h1 {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 28px !important;
+}
+
+.mentor-assignments .assignment-header .assignments-title + p {
+  margin: 2px 0 0 !important;
+  padding: 0 0 0 54px !important;
+  font-size: 13px !important;
+  line-height: 18px !important;
+}
