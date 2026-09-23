@@ -1,5 +1,3 @@
-// src/pages/mentor/Assignments.jsx
-
 import { useEffect, useState } from "react";
 import {
   Plus,
@@ -224,6 +222,7 @@ function Assignments() {
 
           <div className="assignments-title">
 
+            {/* ONLY ICON STYLE CHANGED */}
             <ClipboardList
               className="assignments-title-icon"
             />
@@ -458,8 +457,6 @@ function Assignments() {
 
                   <div className="marks-counter">
 
-                    {/* MINUS */}
-
                     <button
                       type="button"
                       className="marks-btn"
@@ -478,8 +475,6 @@ function Assignments() {
                       −
                     </button>
 
-                    {/* VALUE */}
-
                     <input
                       type="number"
                       name="totalMarks"
@@ -488,8 +483,6 @@ function Assignments() {
                       min="1"
                       required
                     />
-
-                    {/* PLUS */}
 
                     <button
                       type="button"
@@ -549,8 +542,6 @@ function Assignments() {
             }
           >
 
-            {/* MODAL HEADER */}
-
             <div className="modal-header">
 
               <h2>
@@ -572,11 +563,7 @@ function Assignments() {
 
             </div>
 
-            {/* ASSIGNMENT DETAILS */}
-
             <div className="assignment-view">
-
-              {/* COURSE */}
 
               <label>
                 Course
@@ -591,8 +578,6 @@ function Assignments() {
                 }
                 readOnly
               />
-
-              {/* TITLE */}
 
               <label>
                 Assignment Title
@@ -611,8 +596,6 @@ function Assignments() {
                   }))
                 }
               />
-
-              {/* DESCRIPTION */}
 
               <label>
                 Description
@@ -633,8 +616,6 @@ function Assignments() {
                   }))
                 }
               />
-
-              {/* DATE + MARKS */}
 
               <div className="row">
 
@@ -695,8 +676,6 @@ function Assignments() {
                 </div>
 
               </div>
-
-              {/* POPUP BUTTONS */}
 
               <div className="popup-buttons">
 
@@ -810,20 +789,14 @@ function Assignments() {
               </h3>
 
               <p>
-
                 Are you sure you want to
                 delete{" "}
-
                 <strong>
                   "{selectedAssignment.title}"
                 </strong>
-
                 ?
-
                 <br />
-
                 This action cannot be undone.
-
               </p>
 
               <div className="delete-confirm-buttons">
