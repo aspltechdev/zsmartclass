@@ -27,6 +27,7 @@ import "./MentorShared.css";
 const EMPTY_FORM = {
   title: "",
   description: "",
+  courseId: "",
 };
 
 function Modules() {
@@ -38,19 +39,20 @@ function Modules() {
      ========================================================= */
 
   const [modules, setModules] = useState([]);
+  const [courses, setCourses] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(false);
 
   const [error, setError] = useState("");
+  const [courseError, setCourseError] = useState("");
 
   const [search, setSearch] = useState("");
 
   const [showModal, setShowModal] = useState(false);
-
   const [editing, setEditing] = useState(null);
 
   const [form, setForm] = useState(EMPTY_FORM);
-
   const [formErrors, setFormErrors] = useState({});
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,25 +60,59 @@ function Modules() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   /* =========================================================
-     FETCH MODULES + QUIZZES FOR EACH MODULE
-     
-     IMPORTANT:
-     
-     Backend does NOT have:
-     
-     GET /api/quizzes
-     
-     Backend DOES have:
-     
-     GET /api/quizzes/module/:moduleId
-     
-     So we first get modules, then get quizzes for each
-     individual module.
+     INITIAL LOAD
      ========================================================= */
 
   useEffect(() => {
+    fetchCourses();
     fetchModules();
   }, []);
+
+  /* =========================================================
+     FETCH COURSES
+     ========================================================= */
+
+  const fetchCourses = async () => {
+    try {
+      setCoursesLoading(true);
+      setCourseError("");
+
+      const response = await api.get("/courses");
+
+      console.log("COURSES API RESPONSE:", response.data);
+
+      const courseData =
+        response.data?.data ??
+        response.data?.courses ??
+        response.data ??
+        [];
+
+      if (!Array.isArray(courseData)) {
+        console.error("Invalid courses response:", courseData);
+
+        setCourses([]);
+        setCourseError("Invalid courses response from server.");
+        return;
+      }
+
+      setCourses(courseData);
+    } catch (err) {
+      console.error("Failed to load courses:", err);
+
+      setCourses([]);
+
+      setCourseError(
+        err.response?.data?.message ||
+          "Failed to load courses."
+      );
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
+  /* =========================================================
+     FETCH MODULES + QUIZZES FOR EACH MODULE
+     ========================================================= */
 
   const fetchModules = async () => {
     try {
@@ -102,19 +138,15 @@ function Modules() {
 
       if (!Array.isArray(moduleData)) {
         setModules([]);
-        setError("Invalid modules response from server.");
+        setError(
+          "Invalid modules response from server."
+        );
         return;
       }
 
       /* -------------------------------------------------------
          STEP 2:
          Get quizzes for every module
-         
-         Example:
-         
-         /api/quizzes/module/36
-         /api/quizzes/module/37
-         /api/quizzes/module/38
          ------------------------------------------------------- */
 
       const modulesWithQuizzes = await Promise.all(
@@ -136,7 +168,6 @@ function Modules() {
 
             return {
               ...module,
-
               quizzes: Array.isArray(quizData)
                 ? quizData
                 : [],
@@ -146,11 +177,6 @@ function Modules() {
               `Failed to load quizzes for module ${module.id}:`,
               quizError
             );
-
-            /*
-             * If one module's quiz request fails,
-             * don't destroy the entire module page.
-             */
 
             return {
               ...module,
@@ -174,7 +200,7 @@ function Modules() {
 
       setError(
         err.response?.data?.message ||
-        "Couldn't load modules."
+          "Couldn't load modules."
       );
 
       setModules([]);
@@ -202,12 +228,6 @@ function Modules() {
 
   /* =========================================================
      TOTAL QUIZZES
-     
-     Since every module now contains:
-     
-     module.quizzes
-     
-     we can calculate the total easily.
      ========================================================= */
 
   const totalQuizzes = modules.reduce(
@@ -243,9 +263,14 @@ function Modules() {
       const description =
         module.description?.toLowerCase() || "";
 
+      const courseTitle =
+        module.course?.title?.toLowerCase() ||
+        "";
+
       return (
         title.includes(searchText) ||
-        description.includes(searchText)
+        description.includes(searchText) ||
+        courseTitle.includes(searchText)
       );
     }
   );
@@ -257,9 +282,19 @@ function Modules() {
   const openCreate = () => {
     setEditing(null);
 
-    setForm(EMPTY_FORM);
+    setForm({
+      ...EMPTY_FORM,
+    });
 
     setFormErrors({});
+
+    setCourseError("");
+
+    /*
+     * Refresh courses whenever modal opens.
+     * This ensures newly-created courses appear.
+     */
+    fetchCourses();
 
     setShowModal(true);
   };
@@ -271,14 +306,41 @@ function Modules() {
   const openEdit = (module) => {
     setEditing(module);
 
+    const moduleCourseId =
+      module.courseId ||
+      module.course?.id ||
+      "";
+
     setForm({
       title: module.title || "",
       description: module.description || "",
+      courseId: moduleCourseId
+        ? String(moduleCourseId)
+        : "",
     });
 
     setFormErrors({});
 
+    setCourseError("");
+
+    fetchCourses();
+
     setShowModal(true);
+  };
+
+  /* =========================================================
+     CLOSE MODAL
+     ========================================================= */
+
+  const closeModal = () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    setShowModal(false);
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setFormErrors({});
   };
 
   /* =========================================================
@@ -286,73 +348,110 @@ function Modules() {
      ========================================================= */
 
   const saveModule = async () => {
-    if (!form.title.trim()) {
-      setFormErrors({
-        title: "Module title is required.",
-      });
+    const errors = {};
 
+    if (!form.title.trim()) {
+      errors.title = "Module title is required.";
+    }
+
+    const selectedCourseId = Number(
+      form.courseId ||
+        editing?.courseId ||
+        editing?.course?.id
+    );
+
+    if (
+      !selectedCourseId ||
+      !Number.isInteger(selectedCourseId)
+    ) {
+      errors.courseId =
+        "Please select a course.";
+    }
+
+    if (!user?.id) {
+      errors.submit =
+        "User session not found. Please login again.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
 
     try {
       setIsSubmitting(true);
-
       setFormErrors({});
-
-      // const payload = {
-      //   title: form.title.trim(),
-      //   description: form.description || "",
-      //   createdBy: user?.id,
-      // };
-
-      // if (editing) {
-      //   await api.put(
-      //     `/modules/${editing.id}`,
-      //     payload
-      //   );
-      // } else {
-      //   await api.post(
-      //     "/modules",
-      //     payload
-      //   );
-      // }
-
 
       const payload = {
         title: form.title.trim(),
-        description: form.description || "",
-        createdBy: Number(user?.id),
-        courseId: Number(
-          form.courseId ||
-          editing?.courseId ||
-          editing?.course?.id
-        ),
+        description:
+          form.description?.trim() || "",
+        createdBy: Number(user.id),
+        courseId: selectedCourseId,
       };
 
-      if (!payload.courseId) {
-        setFormErrors({
-          submit: "Please select a course for this module.",
-        });
-        setIsSubmitting(false);
-        return;
+      console.log(
+        "📤 MODULE PAYLOAD:",
+        payload
+      );
+
+      /* -------------------------------------------------------
+         UPDATE
+         ------------------------------------------------------- */
+
+      if (editing) {
+        const response = await api.put(
+          `/modules/${editing.id}`,
+          payload
+        );
+
+        console.log(
+          "MODULE UPDATE RESPONSE:",
+          response.data
+        );
       }
 
+      /* -------------------------------------------------------
+         CREATE
+         ------------------------------------------------------- */
+
+      else {
+        const response = await api.post(
+          "/modules",
+          payload
+        );
+
+        console.log(
+          "MODULE CREATE RESPONSE:",
+          response.data
+        );
+      }
+
+      /* -------------------------------------------------------
+         SUCCESS
+         ------------------------------------------------------- */
+
       setShowModal(false);
-
       setEditing(null);
-
       setForm(EMPTY_FORM);
+      setFormErrors({});
 
       await fetchModules();
     } catch (err) {
       console.error(
-        "Failed to save module:",
+        "❌ Failed to save module:",
         err
+      );
+
+      console.error(
+        "API ERROR:",
+        err.response?.data
       );
 
       setFormErrors({
         submit:
           err.response?.data?.message ||
+          err.response?.data?.error ||
           "Failed to save module.",
       });
     } finally {
@@ -381,7 +480,7 @@ function Modules() {
 
       alert(
         err.response?.data?.message ||
-        "Failed to delete module."
+          "Failed to delete module."
       );
 
       setDeleteTarget(null);
@@ -408,6 +507,34 @@ function Modules() {
   };
 
   /* =========================================================
+     GET COURSE NAME
+     ========================================================= */
+
+  const getCourseName = (module) => {
+    if (module.course?.title) {
+      return module.course.title;
+    }
+
+    const courseId =
+      module.courseId;
+
+    if (!courseId) {
+      return "No course";
+    }
+
+    const course = courses.find(
+      (item) =>
+        Number(item.id) ===
+        Number(courseId)
+    );
+
+    return (
+      course?.title ||
+      `Course #${courseId}`
+    );
+  };
+
+  /* =========================================================
      NAVIGATION
      ========================================================= */
 
@@ -430,17 +557,13 @@ function Modules() {
   if (loading) {
     return (
       <div className="modules-page">
-
         <div className="loading-state">
-
           <div className="spinner"></div>
 
           <p>
             Loading modules...
           </p>
-
         </div>
-
       </div>
     );
   }
@@ -458,44 +581,42 @@ function Modules() {
 
       <div className="page-header">
 
-          <div className="quiz-marks-header">
+        <div className="quiz-marks-header">
 
-        <div>
+          <div>
 
-          <div className="quizmarks-title">
+            <div className="quizmarks-title">
 
-            <Layers
-              className="quizmarks-title-icon"
-            />
+              <Layers
+                className="quizmarks-title-icon"
+              />
 
-            <h1>
-              Modules
-            </h1>
+              <h1>
+                Modules
+              </h1>
+
+            </div>
+
+            <p>
+              View students' quiz
+              performance module by
+              module.
+            </p>
 
           </div>
 
-          <p>
-            View students' quiz
-            performance module by
-            module.
-          </p>
-
         </div>
-
-      </div>
 
         <button
           type="button"
           className="add-btn"
           onClick={openCreate}
         >
-
           <Plus size={18} />
 
           <span>
             New Module
           </span>
-
         </button>
 
       </div>
@@ -590,25 +711,28 @@ function Modules() {
 
       <div className="toolbar">
 
-      <div className="modules-search">
-  <Search size={19} />
+        <div className="modules-search">
 
-  <input
-    type="text"
-    placeholder="Search modules..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-  />
-</div>
+          <Search size={19} />
+
+          <input
+            type="text"
+            placeholder="Search modules..."
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+          />
+
+        </div>
+
         <button
           type="button"
           className="refresh-btn"
           onClick={fetchModules}
           title="Refresh"
         >
-
           <RefreshCw size={18} />
-
         </button>
 
       </div>
@@ -630,7 +754,8 @@ function Modules() {
             </h3>
 
             <p>
-              Create your first module to get started
+              Create your first module
+              to get started
             </p>
 
             <button
@@ -638,13 +763,11 @@ function Modules() {
               className="add-btn"
               onClick={openCreate}
             >
-
               <Plus size={18} />
 
               <span>
                 Create Module
               </span>
-
             </button>
 
           </div>
@@ -669,10 +792,6 @@ function Modules() {
 
                 /* -----------------------------------------
                    QUIZZES
-                   
-                   These quizzes came from:
-                   
-                   GET /api/quizzes/module/:moduleId
                    ----------------------------------------- */
 
                 const moduleQuizzes =
@@ -696,9 +815,7 @@ function Modules() {
                     <div className="module-card-header">
 
                       <div className="module-card-icon">
-
                         <Layers size={20} />
-
                       </div>
 
                       <div className="module-card-info">
@@ -711,9 +828,21 @@ function Modules() {
 
                         </div>
 
-                        {/* =================================================
-                            LESSON + QUIZ COUNT
-                            ================================================= */}
+                        {/* COURSE */}
+
+                        <div
+                          className="module-course-name"
+                          style={{
+                            marginTop: "5px",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: "#6366f1",
+                          }}
+                        >
+                          {getCourseName(module)}
+                        </div>
+
+                        {/* LESSON + QUIZ COUNT */}
 
                         <div className="module-card-meta">
 
@@ -835,9 +964,7 @@ function Modules() {
                           openEdit(module)
                         }
                       >
-
                         <Edit size={16} />
-
                       </button>
 
                       <button
@@ -850,9 +977,7 @@ function Modules() {
                           )
                         }
                       >
-
                         <Trash2 size={16} />
-
                       </button>
 
                     </div>
@@ -878,9 +1003,7 @@ function Modules() {
 
           <div
             className="modal"
-            onClick={() =>
-              setShowModal(false)
-            }
+            onClick={closeModal}
           >
 
             <div
@@ -901,18 +1024,17 @@ function Modules() {
                 <button
                   type="button"
                   className="modal-close"
-                  onClick={() =>
-                    setShowModal(false)
-                  }
+                  onClick={closeModal}
+                  disabled={isSubmitting}
                 >
-
                   <X size={20} />
-
                 </button>
 
               </div>
 
               <div className="modal-body">
+
+                {/* SUBMIT ERROR */}
 
                 {formErrors.submit && (
 
@@ -922,20 +1044,120 @@ function Modules() {
 
                 )}
 
-                <div className="form-group">
+                {/* COURSE ERROR */}
 
-                  <label>
-                    Module Title *
+                {courseError && (
+
+                  <p className="error-text">
+                    {courseError}
+                  </p>
+
+                )}
+
+                {/* =================================================
+                    COURSE
+                    ================================================= */}
+
+                <div className="form-group full-width">
+
+                  <label htmlFor="module-course">
+
+                    Course *
+
                   </label>
 
-                  <input
-                    type="text"
-                    value={form.title}
-                    placeholder="e.g. HTML Basics"
+                  <select
+                    id="module-course"
+                    value={form.courseId}
+                    disabled={
+                      coursesLoading ||
+                      isSubmitting
+                    }
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        title: e.target.value,
+                        courseId:
+                          e.target.value,
+                      })
+                    }
+                    className={
+                      formErrors.courseId
+                        ? "input-error"
+                        : ""
+                    }
+                  >
+
+                    <option value="">
+                      {coursesLoading
+                        ? "Loading courses..."
+                        : "Select Course"}
+                    </option>
+
+                    {courses.map(
+                      (course) => (
+
+                        <option
+                          key={course.id}
+                          value={course.id}
+                        >
+                          {course.title}
+                        </option>
+
+                      )
+                    )}
+
+                  </select>
+
+                  {formErrors.courseId && (
+
+                    <p className="error-text">
+                      {formErrors.courseId}
+                    </p>
+
+                  )}
+
+                  {!coursesLoading &&
+                    courses.length === 0 &&
+                    !courseError && (
+
+                      <p
+                        style={{
+                          marginTop: "6px",
+                          fontSize: "12px",
+                          color: "#dc2626",
+                        }}
+                      >
+                        No courses available.
+                        Create a course first.
+                      </p>
+
+                    )}
+
+                </div>
+
+                {/* =================================================
+                    MODULE TITLE
+                    ================================================= */}
+
+                <div className="form-group">
+
+                  <label htmlFor="module-title">
+
+                    Module Title *
+
+                  </label>
+
+                  <input
+                    id="module-title"
+                    type="text"
+                    value={form.title}
+                    placeholder="e.g. HTML Basics"
+                    disabled={isSubmitting}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        title:
+                          e.target.value,
                       })
                     }
                   />
@@ -950,16 +1172,24 @@ function Modules() {
 
                 </div>
 
+                {/* =================================================
+                    DESCRIPTION
+                    ================================================= */}
+
                 <div className="form-group full-width">
 
-                  <label>
+                  <label htmlFor="module-description">
+
                     Description
+
                   </label>
 
                   <textarea
+                    id="module-description"
                     rows={4}
                     value={form.description}
                     placeholder="What does this module cover?"
+                    disabled={isSubmitting}
                     onChange={(e) =>
                       setForm({
                         ...form,
@@ -973,14 +1203,16 @@ function Modules() {
 
               </div>
 
+              {/* =================================================
+                  FOOTER
+                  ================================================= */}
+
               <div className="modal-footer">
 
                 <button
                   type="button"
                   className="btn-cancel"
-                  onClick={() =>
-                    setShowModal(false)
-                  }
+                  onClick={closeModal}
                   disabled={isSubmitting}
                 >
                   Cancel
@@ -990,7 +1222,11 @@ function Modules() {
                   type="button"
                   className="btn-save"
                   onClick={saveModule}
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting ||
+                    coursesLoading ||
+                    courses.length === 0
+                  }
                 >
 
                   <Save size={16} />
@@ -998,6 +1234,8 @@ function Modules() {
                   <span>
                     {isSubmitting
                       ? "Saving..."
+                      : editing
+                      ? "Update Module"
                       : "Save Module"}
                   </span>
 
@@ -1036,9 +1274,7 @@ function Modules() {
               <div className="confirm-content">
 
                 <div className="confirm-icon">
-
                   <Trash2 size={24} />
-
                 </div>
 
                 <div className="confirm-body">
@@ -1048,8 +1284,9 @@ function Modules() {
                   </h3>
 
                   <p className="confirm-sub">
-                    Its lessons, quizzes and student
-                    progress will also be removed.
+                    Its lessons, quizzes and
+                    student progress will also
+                    be removed.
                   </p>
 
                 </div>
