@@ -1,4 +1,5 @@
 // src/controllers/module.controller.js
+
 const moduleService = require("../services/module.service");
 
 // ==========================================
@@ -6,28 +7,64 @@ const moduleService = require("../services/module.service");
 // ==========================================
 exports.create = async (req, res) => {
     try {
-        // ─── FIX: Get user from req.user ─────────────────────────────
-        const userId = req.user?.id || 1;
-        
+        const userId = req.user?.id;
+
+        // ------------------------------------------
+        // AUTHENTICATION CHECK
+        // ------------------------------------------
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required.",
+            });
+        }
+
+        // ------------------------------------------
+        // GET COURSE ID
+        // Supports:
+//        // body.courseId
+//        // params.courseId
+        // ------------------------------------------
+        const courseId =
+            req.body.courseId ||
+            req.params.courseId;
+
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID is required.",
+            });
+        }
+
+        // ------------------------------------------
+        // BUILD DATA
+        // ------------------------------------------
         const data = {
             title: req.body.title,
             description: req.body.description || "",
-            createdBy: userId,
+            courseId: Number(courseId),
+            createdBy: Number(userId),
         };
 
-        console.log("📥 Received data:", data);
+        console.log("📥 Create module data:", data);
 
+        // ------------------------------------------
+        // CREATE MODULE
+        // ------------------------------------------
         const result = await moduleService.create(data);
-        res.status(201).json({
+
+        return res.status(201).json({
             success: true,
             data: result,
-            message: "Module created successfully."
+            message: "Module created successfully.",
         });
+
     } catch (err) {
         console.error("❌ Create module error:", err);
-        res.status(400).json({
+
+        return res.status(err.statusCode || 400).json({
             success: false,
-            message: err.message
+            message: err.message || "Failed to create module.",
         });
     }
 };
@@ -38,14 +75,18 @@ exports.create = async (req, res) => {
 exports.getAll = async (req, res) => {
     try {
         const result = await moduleService.getAll();
-        res.json({
+
+        return res.json({
             success: true,
-            data: result
+            data: result,
         });
+
     } catch (err) {
-        res.status(500).json({
+        console.error("❌ Get modules error:", err);
+
+        return res.status(500).json({
             success: false,
-            message: err.message
+            message: err.message || "Failed to fetch modules.",
         });
     }
 };
@@ -55,17 +96,22 @@ exports.getAll = async (req, res) => {
 // ==========================================
 exports.getById = async (req, res) => {
     try {
-        // Pass the requester (may be undefined for anon) so the service can
-        // decide whether to expose lesson videoUrls. Only MENTOR/ADMIN do.
-        const result = await moduleService.getById(req.params.id, req.user);
-        res.json({
+        const result = await moduleService.getById(
+            req.params.id,
+            req.user
+        );
+
+        return res.json({
             success: true,
-            data: result
+            data: result,
         });
+
     } catch (err) {
-        res.status(404).json({
+        console.error("❌ Get module error:", err);
+
+        return res.status(err.statusCode || 404).json({
             success: false,
-            message: err.message
+            message: err.message || "Module not found.",
         });
     }
 };
@@ -75,16 +121,23 @@ exports.getById = async (req, res) => {
 // ==========================================
 exports.update = async (req, res) => {
     try {
-        const result = await moduleService.update(req.params.id, req.body);
-        res.json({
+        const result = await moduleService.update(
+            req.params.id,
+            req.body
+        );
+
+        return res.json({
             success: true,
             data: result,
-            message: "Module updated successfully."
+            message: "Module updated successfully.",
         });
+
     } catch (err) {
-        res.status(400).json({
+        console.error("❌ Update module error:", err);
+
+        return res.status(err.statusCode || 400).json({
             success: false,
-            message: err.message
+            message: err.message || "Failed to update module.",
         });
     }
 };
@@ -94,12 +147,18 @@ exports.update = async (req, res) => {
 // ==========================================
 exports.delete = async (req, res) => {
     try {
-        const result = await moduleService.delete(req.params.id);
-        res.json(result);
+        const result = await moduleService.delete(
+            req.params.id
+        );
+
+        return res.json(result);
+
     } catch (err) {
-        res.status(400).json({
+        console.error("❌ Delete module error:", err);
+
+        return res.status(err.statusCode || 400).json({
             success: false,
-            message: err.message
+            message: err.message || "Failed to delete module.",
         });
     }
 };
@@ -110,14 +169,18 @@ exports.delete = async (req, res) => {
 exports.getStats = async (req, res) => {
     try {
         const result = await moduleService.getStats();
-        res.json({
+
+        return res.json({
             success: true,
-            data: result
+            data: result,
         });
+
     } catch (err) {
-        res.status(500).json({
+        console.error("❌ Get module stats error:", err);
+
+        return res.status(500).json({
             success: false,
-            message: err.message
+            message: err.message || "Failed to fetch module statistics.",
         });
     }
 };
