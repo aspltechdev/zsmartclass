@@ -299,22 +299,42 @@ function Modules() {
 
       setFormErrors({});
 
+      // const payload = {
+      //   title: form.title.trim(),
+      //   description: form.description || "",
+      //   createdBy: user?.id,
+      // };
+
+      // if (editing) {
+      //   await api.put(
+      //     `/modules/${editing.id}`,
+      //     payload
+      //   );
+      // } else {
+      //   await api.post(
+      //     "/modules",
+      //     payload
+      //   );
+      // }
+
+
       const payload = {
         title: form.title.trim(),
         description: form.description || "",
-        createdBy: user?.id,
+        createdBy: Number(user?.id),
+        courseId: Number(
+          form.courseId ||
+          editing?.courseId ||
+          editing?.course?.id
+        ),
       };
 
-      if (editing) {
-        await api.put(
-          `/modules/${editing.id}`,
-          payload
-        );
-      } else {
-        await api.post(
-          "/modules",
-          payload
-        );
+      if (!payload.courseId) {
+        setFormErrors({
+          submit: "Please select a course for this module.",
+        });
+        setIsSubmitting(false);
+        return;
       }
 
       setShowModal(false);
