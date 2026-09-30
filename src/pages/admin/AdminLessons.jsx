@@ -307,7 +307,7 @@ function AdminLessons() {
                   {VIDEO_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div className="form-group full-width">
+              {/* <div className="form-group full-width">
                 <label>Upload Video <span className="label-tag">recommended</span></label>
                 <label className="video-upload-box">
                   <input
@@ -334,7 +334,7 @@ function AdminLessons() {
                   Uploaded videos play in a clean player with no channel name, logo or
                   “Watch on YouTube”. Max 500MB.
                 </span>
-              </div>
+              </div> */}
 
               <div className="form-group">
                 <label>Content URL</label>

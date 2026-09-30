@@ -4,12 +4,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import api from "../services/api";
 import "./InviteRegistration.css";
-
 function InviteRegistration() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get("token");
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [userData, setUserData] = useState(null);
@@ -192,14 +190,12 @@ function InviteRegistration() {
                     </button>
                   </div>
                 </div>
-
                 {error && (
                   <div className="form-error">
                     <AlertCircle size={18} />
                     <span>{error}</span>
                   </div>
                 )}
-
                 <button
                   type="submit"
                   className="invite-submit-btn"
@@ -214,7 +210,6 @@ function InviteRegistration() {
                     "Activate Account"
                   )}
                 </button>
-
                 <p className="invite-footer-text">
                   This invitation will expire in 48 hours.
                 </p>
@@ -226,5 +221,4 @@ function InviteRegistration() {
     </div>
   );
 }
-
 export default InviteRegistration;
