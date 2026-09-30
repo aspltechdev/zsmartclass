@@ -1,8 +1,8 @@
-// src/services/email.service.js
+// lms-backend/src/services/email.service.js
+
 const transporter = require("../config/mail");
 
 class EmailService {
-
   // ==========================================
   // Generic Email Sender
   // ==========================================
@@ -12,7 +12,7 @@ class EmailService {
         from: `"ZmartClass LMS" <${process.env.SMTP_USER}>`,
         to,
         subject,
-        html
+        html,
       });
     } catch (error) {
       console.error(`Failed to send email to ${to}:`, error.message);
@@ -21,11 +21,14 @@ class EmailService {
   }
 
   // ==========================================
-  // INVITATION EMAIL - NEW
+  // Invitation Email
   // ==========================================
   async sendInvitationEmail(user, token) {
-    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const invitationLink = `${FRONTEND_URL}/register/invite?token=${token}`;
+    const FRONTEND_URL =
+      process.env.FRONTEND_URL || "http://localhost:5173";
+
+    const invitationLink =
+      `${FRONTEND_URL}/register/invite?token=${token}`;
 
     return await this.sendMail(
       user.email,
@@ -56,30 +59,32 @@ class EmailService {
               <h2>🎓 You're Invited!</h2>
               <p>Join ZmartClass - The Future of Learning</p>
             </div>
+
             <div class="content">
               <p>Hello <strong>${user.name}</strong>! 👋</p>
               <p>An administrator has invited you to join <strong>ZmartClass</strong>, a modern Learning Management System.</p>
-              
+
               <div class="info-box">
                 <p><strong>📧 Email:</strong> ${user.email}</p>
                 <p><strong>👤 Role:</strong> <span class="role-badge">${user.role}</span></p>
               </div>
-              
+
               <p>Click the button below to set up your account and start learning:</p>
-              
+
               <center>
                 <a href="${invitationLink}" class="btn">🚀 Complete Registration</a>
               </center>
-              
+
               <div class="warning">
                 ⏰ This invitation link will expire in <strong>48 hours</strong>.<br>
                 🔒 If you didn't request this, please ignore this email.
               </div>
-              
+
               <p style="margin-top: 20px; color: #666; font-size: 14px;">
                 Need help? Contact your administrator.
               </p>
             </div>
+
             <div class="footer">
               <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
               <p>This is an automated message. Please do not reply to this email.</p>
@@ -119,17 +124,19 @@ class EmailService {
             <div class="header">
               <h2>🔐 Email Verification</h2>
             </div>
+
             <div class="content">
               <p>Hello!</p>
               <p>Thank you for registering with ZmartClass. Use the following OTP to verify your email address:</p>
-              
+
               <div class="otp-box">
                 <h1>${otp}</h1>
               </div>
-              
+
               <p class="info">⏰ This OTP expires in <strong>5 minutes</strong>.</p>
               <p class="info">🔒 If you didn't request this, please ignore this email.</p>
             </div>
+
             <div class="footer">
               <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
             </div>
@@ -168,19 +175,21 @@ class EmailService {
             <div class="header">
               <h2>🔑 Password Reset</h2>
             </div>
+
             <div class="content">
               <p>Hello!</p>
               <p>You have requested to reset your password. Use the following OTP to proceed:</p>
-              
+
               <div class="otp-box">
                 <h1>${otp}</h1>
               </div>
-              
+
               <div class="warning">
                 ⚠️ This OTP expires in <strong>5 minutes</strong>.<br>
                 🔒 If you didn't request a password reset, please secure your account immediately.
               </div>
             </div>
+
             <div class="footer">
               <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
             </div>
@@ -219,24 +228,26 @@ class EmailService {
             <div class="header">
               <h2>✅ Payment Successful</h2>
             </div>
+
             <div class="content">
               <p>Hello <strong>${studentName}</strong>!</p>
               <p>Your payment has been processed successfully.</p>
-              
+
               <div class="receipt">
                 <h3>📚 ${courseTitle}</h3>
                 <div class="amount">₹${amount}</div>
                 <p style="text-align: center; color: #666;">Amount Paid</p>
               </div>
-              
+
               <p>You now have full access to the course. Start learning today!</p>
-              
+
               <center>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/student/my-courses" class="btn">
+                <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/student/my-courses" class="btn">
                   Access Your Course →
                 </a>
               </center>
             </div>
+
             <div class="footer">
               <p>Thank you for choosing ZmartClass!</p>
             </div>
@@ -276,30 +287,32 @@ class EmailService {
             <div class="header">
               <h2>🎉 Welcome ${studentName}!</h2>
             </div>
+
             <div class="content">
               <p>Congratulations! You are now enrolled in:</p>
-              
+
               <div class="course-badge">
                 <h3>📚 ${courseTitle}</h3>
               </div>
-              
+
               <ul class="features">
                 <li>✅ Full lifetime access to course materials</li>
                 <li>✅ Learn at your own pace</li>
                 <li>✅ Track your progress</li>
                 <li>✅ Earn a certificate upon completion</li>
               </ul>
-              
+
               <center>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/student/my-courses" class="btn">
+                <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/student/my-courses" class="btn">
                   Start Learning Now 🚀
                 </a>
               </center>
-              
+
               <br>
               <p>Happy Learning!</p>
               <p><strong>The ZmartClass Team</strong></p>
             </div>
+
             <div class="footer">
               <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
             </div>
@@ -314,13 +327,90 @@ class EmailService {
   // Certificate Ready
   // ==========================================
   async sendCertificate(email, studentName, courseTitle, certificateUrl) {
+    // Keep the fourth argument compatible with existing callers.
+    // The stored relative PDF path is not used as an email link.
+    // Downloads continue through the authenticated student page.
+    const configuredFrontend = String(
+      process.env.FRONTEND_URL || ""
+    ).trim();
+
+    if (!configuredFrontend) {
+      throw new Error(
+        "FRONTEND_URL is missing. Configure the public frontend address before sending certificate emails."
+      );
+    }
+
+    let frontend;
+
+    try {
+      frontend = new URL(configuredFrontend);
+    } catch {
+      throw new Error(
+        "FRONTEND_URL must be a complete address, for example https://zmartclass.com."
+      );
+    }
+
+    if (
+      !/^https?:\/\/[^/\\\s?#]+(?:[/?#]|$)/i.test(configuredFrontend) ||
+      !["http:", "https:"].includes(frontend.protocol) ||
+      !frontend.hostname ||
+      frontend.username ||
+      frontend.password
+    ) {
+      throw new Error(
+        "FRONTEND_URL is not a valid website address."
+      );
+    }
+
+    if (
+      process.env.NODE_ENV === "production" &&
+      (
+        frontend.protocol !== "https:" ||
+        ["localhost", "127.0.0.1", "[::1]"].includes(
+          frontend.hostname
+        )
+      )
+    ) {
+      throw new Error(
+        "Production FRONTEND_URL must use your public HTTPS website address."
+      );
+    }
+
+    const downloadPageUrl = new URL(
+      "/student/certificates",
+      frontend
+    ).href;
+
+    const escapeHTML = (value) =>
+      String(value ?? "").replace(
+        /[&<>"']/g,
+        (character) =>
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          })[character]
+      );
+
+    const safeName = escapeHTML(studentName || "Student");
+    const safeCourse = escapeHTML(courseTitle || "Your course");
+    const safeDownloadUrl = escapeHTML(downloadPageUrl);
+
     return await this.sendMail(
       email,
       "Your Certificate is Ready - ZmartClass LMS",
       `
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
+          <meta charset="UTF-8">
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+          >
+          <title>Your Certificate is Ready</title>
           <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -336,25 +426,38 @@ class EmailService {
             <div class="header">
               <h2>🎓 Certificate of Completion</h2>
             </div>
+
             <div class="content">
-              <p>Congratulations <strong>${studentName}</strong>! 🎉</p>
+              <p>Congratulations <strong>${safeName}</strong>! 🎉</p>
               <p>You have successfully completed:</p>
-              
+
               <div class="certificate-box">
-                <h3>📚 ${courseTitle}</h3>
-                <p style="color: #666;">Your certificate is ready for download</p>
+                <h3>📚 ${safeCourse}</h3>
+                <p style="color: #666;">
+                  Your certificate is ready for download
+                </p>
               </div>
-              
+
               <center>
-                <a href="${certificateUrl}" class="btn">
+                <a
+                  href="${safeDownloadUrl}"
+                  class="btn"
+                  style="display:inline-block;padding:12px 30px;background:#f5576c;color:#ffffff;text-decoration:none;border-radius:5px;margin-top:20px;"
+                >
                   📥 Download Certificate
                 </a>
+
+                <p style="margin-top:14px;color:#666;font-size:13px;">
+                  Sign in to your student account, open your approved
+                  certificate, and select Download.
+                </p>
               </center>
-              
+
               <p style="margin-top: 20px; color: #666;">
                 Keep learning and growing with ZmartClass!
               </p>
             </div>
+
             <div class="footer">
               <p>© ${new Date().getFullYear()} ZmartClass. All rights reserved.</p>
             </div>
@@ -366,7 +469,8 @@ class EmailService {
   }
 
   // ==========================================
-  // Welcome Email for New Users (Admin Created - Legacy)
+  // Welcome Email for New Users
+  // Admin Created - Legacy
   // ==========================================
   async sendWelcomeEmail(user, password) {
     return await this.sendMail(
@@ -398,12 +502,14 @@ class EmailService {
               <h2>🎉 Welcome to ZmartClass!</h2>
               <p>Your Learning Journey Begins Now</p>
             </div>
+
             <div class="content">
               <p>Hello <strong>${user.name}</strong>! 👋</p>
               <p>Your LMS account has been created successfully. You can now access all the learning resources and courses available on our platform.</p>
-              
+
               <div class="credentials">
                 <h3>📋 Your Account Details</h3>
+
                 <table>
                   <tr>
                     <td>📧 Email</td>
@@ -415,7 +521,11 @@ class EmailService {
                   </tr>
                   <tr>
                     <td>👤 Role</td>
-                    <td><span style="background: #667eea; color: white; padding: 3px 12px; border-radius: 12px; font-size: 12px;">${user.role}</span></td>
+                    <td>
+                      <span style="background: #667eea; color: white; padding: 3px 12px; border-radius: 12px; font-size: 12px;">
+                        ${user.role}
+                      </span>
+                    </td>
                   </tr>
                 </table>
               </div>
@@ -425,15 +535,16 @@ class EmailService {
               </div>
 
               <center>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" class="btn">
+                <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/login" class="btn">
                   🚀 Login to ZmartClass
                 </a>
               </center>
-              
+
               <p style="margin-top: 20px; color: #666; font-size: 14px;">
                 If you have any questions, please contact your administrator.
               </p>
             </div>
+
             <div class="footer">
               <p>© ${new Date().getFullYear()} ZmartClass LMS. All rights reserved.</p>
               <p>This is an automated message. Please do not reply to this email.</p>
@@ -446,7 +557,8 @@ class EmailService {
   }
 
   // ==========================================
-  // Password Reset Confirmation (Admin Action)
+  // Password Reset Confirmation
+  // Admin Action
   // ==========================================
   async sendPasswordResetEmail(user, newPassword) {
     return await this.sendMail(
@@ -474,13 +586,17 @@ class EmailService {
             <div class="header">
               <h2>🔐 Password Reset Notification</h2>
             </div>
+
             <div class="content">
               <p>Hello <strong>${user.name}</strong>,</p>
               <p>Your password has been reset by an administrator. Use the following credentials to log in:</p>
-              
+
               <div class="credentials">
                 <p><strong>📧 Email:</strong> ${user.email}</p>
-                <p><strong>🔑 New Password:</strong> <span class="password-box">${newPassword}</span></p>
+                <p>
+                  <strong>🔑 New Password:</strong>
+                  <span class="password-box">${newPassword}</span>
+                </p>
               </div>
 
               <div class="warning">
@@ -488,11 +604,12 @@ class EmailService {
               </div>
 
               <center>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" class="btn">
+                <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/login" class="btn">
                   🔑 Login Now
                 </a>
               </center>
             </div>
+
             <div class="footer">
               <p>© ${new Date().getFullYear()} ZmartClass LMS. All rights reserved.</p>
               <p>This is an automated message. Please do not reply to this email.</p>

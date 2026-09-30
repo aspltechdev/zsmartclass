@@ -1,5 +1,3 @@
-// lms-backend/src/controllers/payment.controller.js
-
 const crypto = require("crypto");
 const prisma = require("../config/prisma");
 const notificationService = require("../services/notification.service");
@@ -51,40 +49,64 @@ const positiveId = (value, label) => {
 const sendError = (res, error) => {
   console.error("Payment error:", error.message);
 
-  return res.status(
-    error.code === "P2002"
-      ? 409
-      : error.statusCode || 400
-  ).json({
-    success: false,
-    message:
-      error.code === "P2002"
-        ? "A payment with this reference already exists. Refresh payment records before retrying."
-        : error.message,
-  });
+  return res
+    .status(error.code === "P2002" ? 409 : error.statusCode || 400)
+    .json({
+      success: false,
+      message:
+        error.code === "P2002"
+          ? "A payment with this reference already exists. Refresh payment records before retrying."
+          : error.message,
+    });
 };
 
 const requireAdmin = (req) => {
-  if (
-    String(req.user?.role || "").toUpperCase() !== "ADMIN"
-  ) {
+  if (String(req.user?.role || "").toUpperCase() !== "ADMIN") {
     fail("Only administrators can perform this action.", 403);
   }
 };
 
 const escapeHTML = (value) =>
-  String(value ?? "").replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  }[character]));
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character]
+  );
+
+const receiptAmount = (payment) =>
+  `${payment.currency || "INR"} ${Number(
+    payment.amount || 0
+  ).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const receiptDate = (value) => {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+
+  return date.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }) + " IST";
+};
 
 /**
- * Add the complete course list to payment records.
- * Falls back to the primary course when PaymentCourse
- * is unavailable in an older database.
+ * Attach the complete course list where PaymentCourse is available.
+ * Otherwise retain the primary course.
  */
 const attachCourses = async (payments) => {
   const coursesByPayment = new Map();
@@ -103,19 +125,12 @@ const attachCourses = async (payments) => {
         },
       });
 
-      const courseIds = [
-        ...new Set(links.map((link) => link.courseId)),
-      ];
+      const courseIds = [...new Set(links.map((link) => link.courseId))];
 
       const courses = courseIds.length
         ? await prisma.course.findMany({
-            where: {
-              id: { in: courseIds },
-            },
-            select: {
-              id: true,
-              title: true,
-            },
+            where: { id: { in: courseIds } },
+            select: { id: true, title: true },
           })
         : [];
 
@@ -125,7 +140,6 @@ const attachCourses = async (payments) => {
 
       for (const link of links) {
         const course = courseById.get(link.courseId);
-
         if (!course) continue;
 
         if (!coursesByPayment.has(link.paymentId)) {
@@ -151,95 +165,283 @@ const attachCourses = async (payments) => {
 };
 
 /**
- * Shared receipt HTML.
- * All manually entered values are escaped.
+ * Branded receipt email.
+ * Used by both manual payment creation and receipt resending.
+ * ZC is rendered using HTML, so no external logo image is required.
+ * All dynamic values are escaped.
  */
-const receiptHTML = (payment, courses, note = "") => {
+const receiptHTML = (payment, courses = [], note = "") => {
   const method = String(payment.method || "").toUpperCase();
-
-  const courseTitles =
-    courses.map((course) => course.title).join(", ") || "—";
+  const status = String(payment.status || "").toUpperCase();
+  const receiptNo = payment.orderId || payment.id || "—";
+  const amount = receiptAmount(payment);
 
   const rows = [
-    ["Receipt No", payment.orderId || "—"],
-    [
-      "Amount",
-      `${payment.currency || "INR"} ${Number(
-        payment.amount || 0
-      ).toLocaleString("en-IN", {
-        maximumFractionDigits: 2,
-      })}`,
-    ],
-    ["Status", payment.status || "—"],
-    ["Method", method || "—"],
+    ["Receipt No", receiptNo],
+    ["Student", payment.student?.name || "—"],
+    ["Email", payment.student?.email || "—"],
+    ["Payment date", receiptDate(payment.createdAt)],
+    ["Status", status || "—"],
+    ["Payment method", method || "—"],
     ["Recorded by", payment.recordedByName || "Not recorded"],
     ...(method === "UPI"
       ? [
-          [
-            "UPI account name",
-            payment.upiAccountName || "Not recorded",
-          ],
+          ["UPI account name", payment.upiAccountName || "Not recorded"],
           ["UTR / Reference", payment.paymentId || "—"],
         ]
       : []),
-    ["Course(s)", courseTitles],
-    [
-      "Date",
-      new Date(payment.createdAt).toLocaleString("en-IN"),
-    ],
   ];
 
-  return `
-    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">
-      <h2 style="color:#4f46e5">Payment Receipt</h2>
-      <p>Hi ${escapeHTML(payment.student?.name || "Student")},</p>
-      <p>Here are your payment details:</p>
+  const detailsHTML = rows
+    .map(
+      ([label, value]) => `
+        <tr>
+          <td
+            width="38%"
+            style="padding:11px 14px;border-bottom:1px solid #e8edf3;color:#64748b;font-size:13px;vertical-align:top;"
+          >
+            ${escapeHTML(label)}
+          </td>
+          <td
+            style="padding:11px 14px;border-bottom:1px solid #e8edf3;color:#172033;font-size:13px;vertical-align:top;word-break:break-word;"
+          >
+            ${escapeHTML(value)}
+          </td>
+        </tr>
+      `
+    )
+    .join("");
 
-      <table cellpadding="8" style="border-collapse:collapse;width:100%">
-        ${rows.map(([label, value]) => `
+  const coursesHTML = courses.length
+    ? courses
+        .map(
+          (course) => `
+            <div style="margin-top:6px;color:#475569;font-size:13px;line-height:20px;">
+              ${escapeHTML(course.title || "Course")}
+            </div>
+          `
+        )
+        .join("")
+    : `
+        <div style="margin-top:6px;color:#64748b;font-size:13px;">
+          Course details unavailable
+        </div>
+      `;
+
+  return `
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Payment Receipt - ZmartClass</title>
+      </head>
+
+      <body style="margin:0;padding:0;background:#f3f5f9;font-family:Arial,Helvetica,sans-serif;color:#172033;">
+        <table
+          role="presentation"
+          width="100%"
+          cellpadding="0"
+          cellspacing="0"
+          border="0"
+          style="background:#f3f5f9;"
+        >
           <tr>
-            <td style="border:1px solid #eee">
-              <b>${escapeHTML(label)}</b>
-            </td>
-            <td style="border:1px solid #eee">
-              ${escapeHTML(value)}
+            <td align="center" style="padding:24px 12px;">
+              <table
+                role="presentation"
+                width="100%"
+                cellpadding="0"
+                cellspacing="0"
+                border="0"
+                style="max-width:640px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;"
+              >
+                <tr>
+                  <td style="padding:26px 24px 22px;border-bottom:3px solid #6455ed;">
+                    <table
+                      role="presentation"
+                      width="100%"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
+                    >
+                      <tr>
+                        <td width="70" style="vertical-align:middle;">
+                          <table
+                            role="presentation"
+                            cellpadding="0"
+                            cellspacing="0"
+                            border="0"
+                          >
+                            <tr>
+                              <td
+                                width="56"
+                                height="56"
+                                align="center"
+                                valign="middle"
+                                bgcolor="#ffbf19"
+                                style="width:56px;height:56px;border-radius:14px;color:#111827;font-family:Georgia,serif;font-size:23px;"
+                              >
+                                ZC
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+
+                        <td style="vertical-align:middle;">
+                          <div style="color:#172033;font-size:25px;font-weight:700;line-height:30px;">
+                            ZmartClass
+                          </div>
+                          <div style="margin-top:4px;color:#64748b;font-size:12px;line-height:18px;">
+                            Learning Management System
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:24px;">
+                    <h2 style="margin:0 0 8px;color:#5145ce;font-size:22px;line-height:30px;">
+                      Payment Receipt
+                    </h2>
+
+                    <p style="margin:0 0 22px;color:#64748b;font-size:13px;">
+                      Receipt No: <strong>${escapeHTML(receiptNo)}</strong>
+                    </p>
+
+                    <p style="margin:0 0 10px;font-size:14px;line-height:22px;">
+                      Hi ${escapeHTML(payment.student?.name || "Student")},
+                    </p>
+
+                    <p style="margin:0 0 20px;font-size:14px;line-height:22px;color:#475569;">
+                      Here are your payment details:
+                    </p>
+
+                    <table
+                      width="100%"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
+                      style="border:1px solid #e2e8f0;border-collapse:collapse;"
+                    >
+                      <tbody>
+                        ${detailsHTML}
+                      </tbody>
+                    </table>
+
+                    <table
+                      width="100%"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
+                      style="margin-top:24px;border:1px solid #e2e8f0;border-collapse:collapse;"
+                    >
+                      <thead>
+                        <tr>
+                          <th
+                            align="left"
+                            style="padding:12px 14px;background:#f1f3fc;border-bottom:1px solid #e2e8f0;color:#475569;font-size:12px;"
+                          >
+                            DESCRIPTION / COURSE(S)
+                          </th>
+                          <th
+                            align="right"
+                            style="padding:12px 14px;background:#f1f3fc;border-bottom:1px solid #e2e8f0;color:#475569;font-size:12px;"
+                          >
+                            AMOUNT
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        <tr>
+                          <td style="padding:16px 14px;vertical-align:top;">
+                            <strong style="font-size:14px;color:#172033;">
+                              Course payment
+                            </strong>
+                            ${coursesHTML}
+                          </td>
+                          <td
+                            align="right"
+                            style="padding:16px 14px;vertical-align:top;font-size:14px;font-weight:700;white-space:nowrap;"
+                          >
+                            ${escapeHTML(amount)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <table
+                      role="presentation"
+                      width="100%"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
+                      style="margin-top:16px;background:#f5f3ff;border:1px solid #ded8ff;border-radius:8px;"
+                    >
+                      <tr>
+                        <td style="padding:16px;color:#33268e;font-size:16px;font-weight:700;">
+                          Total amount
+                        </td>
+                        <td align="right" style="padding:16px;color:#33268e;font-size:18px;font-weight:700;">
+                          ${escapeHTML(amount)}
+                        </td>
+                      </tr>
+                    </table>
+
+                    ${
+                      note
+                        ? `
+                          <p style="margin:22px 0 0;font-size:14px;line-height:22px;color:#475569;">
+                            ${escapeHTML(note)}
+                          </p>
+                        `
+                        : ""
+                    }
+
+                    <p style="margin:20px 0 0;color:#64748b;font-size:12px;line-height:20px;">
+                      Please quote receipt number
+                      <strong>${escapeHTML(receiptNo)}</strong>
+                      for any payment enquiries.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td
+                    align="center"
+                    style="padding:20px 24px;border-top:1px solid #e2e8f0;background:#fafbfe;"
+                  >
+                    <div style="color:#172033;font-size:14px;font-weight:700;">
+                      Thank you for choosing ZmartClass.
+                    </div>
+                    <div style="margin-top:5px;color:#64748b;font-size:12px;">
+                      ZmartClass LMS
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
-        `).join("")}
-      </table>
-
-      ${note ? `<p style="margin-top:16px">${escapeHTML(note)}</p>` : ""}
-
-      <p style="color:#888;font-size:12px">
-        ZmartClass LMS
-      </p>
-    </div>
+        </table>
+      </body>
+    </html>
   `;
 };
 
-// ============================================================
 // STUDENT: CREATE A PENDING PAYMENT
-// ============================================================
 
 exports.createPayment = async (req, res) => {
   try {
     const studentId = positiveId(req.user.id, "student");
-
-    const {
-      courseId,
-      amount,
-      method,
-      currency,
-      orderId,
-    } = req.body;
+    const { courseId, amount, method, currency, orderId } = req.body;
 
     const cId = positiveId(courseId, "course");
     const paymentAmount = Number(amount);
 
-    if (
-      !Number.isFinite(paymentAmount) ||
-      paymentAmount <= 0
-    ) {
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
       fail("Enter a valid payment amount greater than zero.");
     }
 
@@ -249,13 +451,12 @@ exports.createPayment = async (req, res) => {
 
     if (!course) fail("Course not found.", 404);
 
-    const existingEnrollment =
-      await prisma.enrollment.findFirst({
-        where: {
-          userId: studentId,
-          courseId: cId,
-        },
-      });
+    const existingEnrollment = await prisma.enrollment.findFirst({
+      where: {
+        userId: studentId,
+        courseId: cId,
+      },
+    });
 
     if (existingEnrollment) {
       fail("Already enrolled in this course.");
@@ -269,8 +470,7 @@ exports.createPayment = async (req, res) => {
         currency: currency || "INR",
         method: method || "CARD",
         status: "PENDING",
-        orderId:
-          orderId || `ORD-${crypto.randomUUID()}`,
+        orderId: orderId || `ORD-${crypto.randomUUID()}`,
       },
       include: paymentInclude,
     });
@@ -285,9 +485,7 @@ exports.createPayment = async (req, res) => {
   }
 };
 
-// ============================================================
 // STUDENT: PAYMENT HISTORY
-// ============================================================
 
 exports.getMyPayments = async (req, res) => {
   try {
@@ -308,9 +506,7 @@ exports.getMyPayments = async (req, res) => {
   }
 };
 
-// ============================================================
 // STUDENT: PAYMENT DETAILS
-// ============================================================
 
 exports.getMyPaymentById = async (req, res) => {
   try {
@@ -326,28 +522,19 @@ exports.getMyPaymentById = async (req, res) => {
 
     const [data] = await attachCourses([payment]);
 
-    return res.json({
-      success: true,
-      data,
-    });
+    return res.json({ success: true, data });
   } catch (error) {
     return sendError(res, error);
   }
 };
 
-// ============================================================
 // STUDENT: CANCEL A PENDING PAYMENT
-// Payment completion must come from an admin or verified gateway.
-// ============================================================
 
 exports.updateMyPaymentStatus = async (req, res) => {
   try {
     const studentId = positiveId(req.user.id, "student");
     const paymentId = positiveId(req.params.id, "payment");
-
-    const status = String(
-      req.body.status || ""
-    ).toUpperCase();
+    const status = String(req.body.status || "").toUpperCase();
 
     if (status !== "CANCELLED") {
       fail(
@@ -357,10 +544,7 @@ exports.updateMyPaymentStatus = async (req, res) => {
     }
 
     const payment = await prisma.payment.findFirst({
-      where: {
-        id: paymentId,
-        studentId,
-      },
+      where: { id: paymentId, studentId },
     });
 
     if (!payment) fail("Payment not found.", 404);
@@ -375,9 +559,7 @@ exports.updateMyPaymentStatus = async (req, res) => {
         studentId,
         status: "PENDING",
       },
-      data: {
-        status: "CANCELLED",
-      },
+      data: { status: "CANCELLED" },
     });
 
     if (result.count !== 1) {
@@ -399,9 +581,7 @@ exports.updateMyPaymentStatus = async (req, res) => {
   }
 };
 
-// ============================================================
 // ADMIN: ALL PAYMENTS
-// ============================================================
 
 exports.getAllPayments = async (req, res) => {
   try {
@@ -421,37 +601,27 @@ exports.getAllPayments = async (req, res) => {
   }
 };
 
-// ============================================================
 // ADMIN: PAYMENT DETAILS
-// ============================================================
 
 exports.getPaymentById = async (req, res) => {
   try {
     requireAdmin(req);
 
     const payment = await prisma.payment.findUnique({
-      where: {
-        id: positiveId(req.params.id, "payment"),
-      },
+      where: { id: positiveId(req.params.id, "payment") },
       include: paymentInclude,
     });
 
     if (!payment) fail("Payment not found.", 404);
 
     const [data] = await attachCourses([payment]);
-
-    return res.json({
-      success: true,
-      data,
-    });
+    return res.json({ success: true, data });
   } catch (error) {
     return sendError(res, error);
   }
 };
 
-// ============================================================
 // ADMIN: PAYMENT STATISTICS
-// ============================================================
 
 exports.getPaymentStats = async (req, res) => {
   try {
@@ -466,18 +636,10 @@ exports.getPaymentStats = async (req, res) => {
       revenue,
     ] = await Promise.all([
       prisma.payment.count(),
-      prisma.payment.count({
-        where: { status: "COMPLETED" },
-      }),
-      prisma.payment.count({
-        where: { status: "PENDING" },
-      }),
-      prisma.payment.count({
-        where: { status: "FAILED" },
-      }),
-      prisma.payment.count({
-        where: { status: "REFUNDED" },
-      }),
+      prisma.payment.count({ where: { status: "COMPLETED" } }),
+      prisma.payment.count({ where: { status: "PENDING" } }),
+      prisma.payment.count({ where: { status: "FAILED" } }),
+      prisma.payment.count({ where: { status: "REFUNDED" } }),
       prisma.payment.aggregate({
         where: { status: "COMPLETED" },
         _sum: { amount: true },
@@ -503,18 +665,13 @@ exports.getPaymentStats = async (req, res) => {
       const monthly = await prisma.payment.aggregate({
         where: {
           status: "COMPLETED",
-          createdAt: {
-            gte: start,
-            lt: end,
-          },
+          createdAt: { gte: start, lt: end },
         },
         _sum: { amount: true },
       });
 
       monthlyRevenue.push({
-        month: start.toLocaleString("default", {
-          month: "short",
-        }),
+        month: start.toLocaleString("default", { month: "short" }),
         revenue: monthly._sum.amount || 0,
       });
     }
@@ -536,19 +693,14 @@ exports.getPaymentStats = async (req, res) => {
   }
 };
 
-// ============================================================
 // ADMIN: UPDATE PAYMENT STATUS
-// ============================================================
 
 exports.updatePaymentStatus = async (req, res) => {
   try {
     requireAdmin(req);
 
     const paymentId = positiveId(req.params.id, "payment");
-
-    const status = String(
-      req.body.status || ""
-    ).toUpperCase();
+    const status = String(req.body.status || "").toUpperCase();
 
     const allowedStatuses = [
       "PENDING",
@@ -568,38 +720,35 @@ exports.updatePaymentStatus = async (req, res) => {
 
     if (!payment) fail("Payment not found.", 404);
 
-    const updatedPayment = await prisma.$transaction(
-      async (tx) => {
-        const updated = await tx.payment.update({
-          where: { id: paymentId },
-          data: { status },
-          include: paymentInclude,
+    const updatedPayment = await prisma.$transaction(async (tx) => {
+      const updated = await tx.payment.update({
+        where: { id: paymentId },
+        data: { status },
+        include: paymentInclude,
+      });
+
+      if (status === "COMPLETED") {
+        const existingEnrollment = await tx.enrollment.findFirst({
+          where: {
+            userId: payment.studentId,
+            courseId: payment.courseId,
+          },
         });
 
-        if (status === "COMPLETED") {
-          const existingEnrollment =
-            await tx.enrollment.findFirst({
-              where: {
-                userId: payment.studentId,
-                courseId: payment.courseId,
-              },
-            });
-
-          if (!existingEnrollment) {
-            await tx.enrollment.create({
-              data: {
-                userId: payment.studentId,
-                courseId: payment.courseId,
-                progress: 0,
-                completed: false,
-              },
-            });
-          }
+        if (!existingEnrollment) {
+          await tx.enrollment.create({
+            data: {
+              userId: payment.studentId,
+              courseId: payment.courseId,
+              progress: 0,
+              completed: false,
+            },
+          });
         }
-
-        return updated;
       }
-    );
+
+      return updated;
+    });
 
     return res.json({
       success: true,
@@ -611,9 +760,7 @@ exports.updatePaymentStatus = async (req, res) => {
   }
 };
 
-// ============================================================
 // ADMIN: DELETE PAYMENT
-// ============================================================
 
 exports.deletePayment = async (req, res) => {
   try {
@@ -628,9 +775,7 @@ exports.deletePayment = async (req, res) => {
 
     if (!payment) fail("Payment not found.", 404);
 
-    await prisma.payment.delete({
-      where: { id: paymentId },
-    });
+    await prisma.payment.delete({ where: { id: paymentId } });
 
     return res.json({
       success: true,
@@ -641,18 +786,14 @@ exports.deletePayment = async (req, res) => {
   }
 };
 
-// ============================================================
 // ADMIN: SEND EMAIL RECEIPT
-// ============================================================
 
 exports.sendReceipt = async (req, res) => {
   try {
     requireAdmin(req);
 
     const payment = await prisma.payment.findUnique({
-      where: {
-        id: positiveId(req.params.id, "payment"),
-      },
+      where: { id: positiveId(req.params.id, "payment") },
       include: paymentInclude,
     });
 
@@ -675,19 +816,15 @@ exports.sendReceipt = async (req, res) => {
   }
 };
 
-// ============================================================
 // ADMIN: INVOICE DATA
-// The existing frontend handles printing.
-// ============================================================
+// Printing is handled by the frontend.
 
 exports.downloadInvoice = async (req, res) => {
   try {
     requireAdmin(req);
 
     const payment = await prisma.payment.findUnique({
-      where: {
-        id: positiveId(req.params.id, "payment"),
-      },
+      where: { id: positiveId(req.params.id, "payment") },
       include: paymentInclude,
     });
 
@@ -721,9 +858,7 @@ exports.downloadInvoice = async (req, res) => {
   }
 };
 
-// ============================================================
 // ADMIN: RECORD MANUAL CASH / UPI PAYMENT
-// ============================================================
 
 exports.createManualPayment = async (req, res) => {
   try {
@@ -759,9 +894,7 @@ exports.createManualPayment = async (req, res) => {
         : "";
 
     if (!recorder) {
-      fail(
-        "Enter the name of the person recording this payment."
-      );
+      fail("Enter the name of the person recording this payment.");
     }
 
     if (recorder.length > 120) {
@@ -778,41 +911,27 @@ exports.createManualPayment = async (req, res) => {
           : "";
 
       if (!accountName) {
-        fail(
-          "Enter the UPI account name that received the payment."
-        );
+        fail("Enter the UPI account name that received the payment.");
       }
 
       if (accountName.length > 120) {
-        fail(
-          "UPI account name must not exceed 120 characters."
-        );
+        fail("UPI account name must not exceed 120 characters.");
       }
 
-      reference =
-        typeof utr === "string" ? utr.trim() : "";
+      reference = typeof utr === "string" ? utr.trim() : "";
 
       if (!reference) {
-        fail(
-          "UTR / reference is required for UPI payments."
-        );
+        fail("UTR / reference is required for UPI payments.");
       }
     }
 
-    if (
-      !Array.isArray(courseIds) ||
-      courseIds.length === 0
-    ) {
+    if (!Array.isArray(courseIds) || courseIds.length === 0) {
       fail("Select at least one course.");
     }
 
     const ids = [...new Set(courseIds.map(Number))];
 
-    if (
-      ids.some(
-        (id) => !Number.isInteger(id) || id <= 0
-      )
-    ) {
+    if (ids.some((id) => !Number.isInteger(id) || id <= 0)) {
       fail("One or more selected courses are invalid.");
     }
 
@@ -834,9 +953,7 @@ exports.createManualPayment = async (req, res) => {
         duration <= 0 ||
         !Number.isFinite(expiryTime)
       ) {
-        fail(
-          "Access duration must be a valid positive number of days."
-        );
+        fail("Access duration must be a valid positive number of days.");
       }
     }
 
@@ -852,20 +969,13 @@ exports.createManualPayment = async (req, res) => {
 
     if (!student) fail("Student not found.", 404);
 
-    if (
-      String(student.role).toUpperCase() !== "STUDENT"
-    ) {
+    if (String(student.role).toUpperCase() !== "STUDENT") {
       fail("Please select a student account.");
     }
 
     const courses = await prisma.course.findMany({
-      where: {
-        id: { in: ids },
-      },
-      select: {
-        id: true,
-        title: true,
-      },
+      where: { id: { in: ids } },
+      select: { id: true, title: true },
     });
 
     if (courses.length !== ids.length) {
@@ -879,46 +989,39 @@ exports.createManualPayment = async (req, res) => {
       });
 
       if (duplicate) {
-        fail(
-          "A payment with this UTR / reference already exists.",
-          409
-        );
+        fail("A payment with this UTR / reference already exists.", 409);
       }
     }
 
-    // Save both receipt identifiers atomically.
-    const payment = await prisma.$transaction(
-      async (tx) => {
-        const created = await tx.payment.create({
-          data: {
-            orderId: `TMP-${crypto.randomUUID()}`,
-            paymentId: reference,
-            studentId: sId,
-            courseId: ids[0],
-            amount: amt,
-            currency: "INR",
-            status: "COMPLETED",
-            method: pm,
-            recordedByName: recorder,
-            upiAccountName: accountName,
-          },
-        });
+    // Save the payment and final receipt number atomically.
+    const payment = await prisma.$transaction(async (tx) => {
+      const created = await tx.payment.create({
+        data: {
+          orderId: `TMP-${crypto.randomUUID()}`,
+          paymentId: reference,
+          studentId: sId,
+          courseId: ids[0],
+          amount: amt,
+          currency: "INR",
+          status: "COMPLETED",
+          method: pm,
+          recordedByName: recorder,
+          upiAccountName: accountName,
+        },
+      });
 
-        return tx.payment.update({
-          where: { id: created.id },
-          data: {
-            orderId:
-              `PAY-${String(created.id).padStart(6, "0")}`,
-          },
-        });
-      }
-    );
+      return tx.payment.update({
+        where: { id: created.id },
+        data: {
+          orderId: `PAY-${String(created.id).padStart(6, "0")}`,
+        },
+      });
+    });
 
     const warnings = [];
     const accessWarnings = [];
 
-    // Preserve existing course access behavior.
-    // Already-active enrollments do not require another grant.
+    // Preserve the existing course access behavior.
     for (const courseId of ids) {
       try {
         await enrollmentService.grantAccess(
@@ -962,10 +1065,7 @@ exports.createManualPayment = async (req, res) => {
           )
         );
       } catch (error) {
-        console.error(
-          "Payment course linking failed:",
-          error.message
-        );
+        console.error("Payment course linking failed:", error.message);
 
         warnings.push(
           "Payment was saved, but the complete course list could not be linked to the receipt."
@@ -995,27 +1095,17 @@ exports.createManualPayment = async (req, res) => {
         type: "PAYMENT",
       });
     } catch (error) {
-      console.error(
-        "Payment notification failed:",
-        error.message
-      );
+      console.error("Payment notification failed:", error.message);
     }
 
     try {
       await emailService.sendMail(
         student.email,
         `Payment Receipt ${payment.orderId} - ZmartClass`,
-        receiptHTML(
-          { ...payment, student },
-          courses,
-          accessNote
-        )
+        receiptHTML({ ...payment, student }, courses, accessNote)
       );
     } catch (error) {
-      console.error(
-        "Payment receipt email failed:",
-        error.message
-      );
+      console.error("Payment receipt email failed:", error.message);
 
       warnings.push(
         "Payment was saved, but the email receipt could not be sent."
