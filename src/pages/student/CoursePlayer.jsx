@@ -1,4 +1,6 @@
-﻿import { useEffect, useRef, useState } from "react";
+﻿// src/pages/student/CoursePlayer.jsx
+
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -18,7 +20,7 @@ import {
   X,
   AlertCircle,
   HelpCircle,
-  ShieldQuestion, // used as the "locked" glyph (avoids a Lucide Lock crash seen earlier)
+  ShieldQuestion,
 } from "lucide-react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 
@@ -26,21 +28,124 @@ import api from "../../services/api";
 import "./CoursePlayer.css";
 import "./StudentShared.css";
 
-/*
- * Student Course Player.
- *
- * All structure, gating and progress come from the server-enforced player API:
- *   - GET /player/course/:courseId          → gated module/lesson tree + progress
- *   - GET /player/lesson/:lessonId?courseId  → the ONLY path to a playable videoUrl
- *   - POST /player/lesson/:lessonId/watch-time → persists watch time; server marks
- *                                                a lesson complete at >=95% watched
- *
- * Module locks, quiz-unlock and quiz pass/fail all read from the gating flags on
- * each module (unlocked / lessonsComplete / quizRequired / quizPassed /
- * moduleComplete) — never computed client-side. Course progress is whatever the
- * server reports (completed lessons / total lessons), so it matches the admin,
- * dashboard and My Learning views exactly.
- */
+const SAVE_INTERVAL_MS = 15000;
+const WATCH_TICK_MS = 1000;
+
+let youtubeApiPromise;
+
+function loadYoutubeAPI() {
+  if (window.YT?.Player) {
+    return Promise.resolve(window.YT);
+  }
+
+  if (youtubeApiPromise) return youtubeApiPromise;
+
+  youtubeApiPromise = new Promise((resolve, reject) => {
+    const previousCallback = window.onYouTubeIframeAPIReady;
+
+    window.onYouTubeIframeAPIReady = () => {
+      try {
+        previousCallback?.();
+      } finally {
+        resolve(window.YT);
+      }
+    };
+
+    let script = document.getElementById("youtube-iframe-api");
+
+    if (!script) {
+      script = document.createElement("script");
+      script.id = "youtube-iframe-api";
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+
+    script.addEventListener(
+      "error",
+      () => {
+        youtubeApiPromise = null;
+        script.remove();
+        reject(new Error("Unable to load the YouTube player."));
+      },
+      { once: true }
+    );
+  });
+
+  return youtubeApiPromise;
+}
+
+function getYoutubeId(value) {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "").toLowerCase();
+
+    if (host === "youtu.be") {
+      return url.pathname.split("/").filter(Boolean)[0] || null;
+    }
+
+    if (
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "youtube-nocookie.com"
+    ) {
+      const queryId = url.searchParams.get("v");
+      if (queryId) return queryId;
+
+      const segments = url.pathname.split("/").filter(Boolean);
+
+      if (["embed", "shorts", "live"].includes(segments[0])) {
+        return segments[1] || null;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+const isDirectVideo = (url) =>
+  Boolean(url) &&
+  /\.(mp4|webm|ogg|ogv|mov|m4v)(?:[?#].*)?$/i.test(
+    String(url).trim()
+  );
+
+const formatTime = (seconds) => {
+  const value = Math.max(0, Math.floor(Number(seconds) || 0));
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  const secs = value % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(
+      secs
+    ).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(secs).padStart(2, "0")}`;
+};
+
+const normalizeModules = (list) =>
+  (Array.isArray(list) ? [...list] : [])
+    .sort((a, b) => Number(a.position || 0) - Number(b.position || 0))
+    .map((module) => ({
+      ...module,
+      lessons: (Array.isArray(module.lessons) ? [...module.lessons] : [])
+        .sort(
+          (a, b) => Number(a.position || 0) - Number(b.position || 0)
+        ),
+    }));
+
+const progressSignature = (payload) =>
+  [
+    payload.watchedSeconds,
+    payload.lastPosition,
+    payload.durationSeconds,
+  ].join(":");
+
 function CoursePlayer() {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -49,22 +154,16 @@ function CoursePlayer() {
   const [modules, setModules] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [expandedModules, setExpandedModules] = useState({});
-
-  // Per-lesson live progress (for the smooth in-progress bars). Seeded from the
-  // structure payload, updated from each watch-time save.
   const [progressMap, setProgressMap] = useState({});
-
-  // Server-reported overall course progress (completed lessons / total lessons).
   const [courseProgress, setCourseProgress] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [savingProgress, setSavingProgress] = useState(false);
   const [error, setError] = useState("");
   const [lessonError, setLessonError] = useState("");
+  const [progressError, setProgressError] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Custom LMS video-player UI. This does not change lesson gating,
-  // watch-time, progress, quiz, or module logic.
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [videoTime, setVideoTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
@@ -72,434 +171,855 @@ function CoursePlayer() {
   const [videoMuted, setVideoMuted] = useState(false);
   const [videoFullscreen, setVideoFullscreen] = useState(false);
 
-  /* =====================================================
-     REFS
-  ===================================================== */
   const nativeVideoRef = useRef(null);
   const youtubeContainerRef = useRef(null);
-  const playerRef = useRef(null);
-  const progressMapRef = useRef({});
-  const modulesRef = useRef([]);
-  const currentLessonRef = useRef(null);
-  const watchedSecondsRef = useRef(0);
-  const lastPositionRef = useRef(0);
-  const durationSecondsRef = useRef(0);
-  const lastTickRef = useRef(null);
-  const progressTimerRef = useRef(null);
-  const isPlayingRef = useRef(false);
-  const savingRef = useRef(false);
-  const videoUiTimerRef = useRef(null);
   const videoShellRef = useRef(null);
+  const playerRef = useRef(null);
 
-  /* =====================================================
-     YOUTUBE IFRAME API
-  ===================================================== */
-  useEffect(() => {
-    if (window.YT && window.YT.Player) {
-      if (currentLessonRef.current) createYoutubePlayer(currentLessonRef.current);
-      return;
-    }
+  const mountedRef = useRef(false);
+  const courseIdRef = useRef(String(courseId || ""));
+  const courseRequestRef = useRef(0);
+  const lessonRequestRef = useRef(0);
+  const structureRequestRef = useRef(0);
+  const playerGenerationRef = useRef(0);
 
-    if (document.getElementById("youtube-iframe-api")) return;
+  const progressMapRef = useRef({});
+  const activeSessionRef = useRef(null);
+  const sessionsRef = useRef(new Map());
 
-    const script = document.createElement("script");
-    script.id = "youtube-iframe-api";
-    script.src = "https://www.youtube.com/iframe_api";
-    script.async = true;
-    document.body.appendChild(script);
+  const watchTimerRef = useRef(null);
+  const videoUiTimerRef = useRef(null);
 
-    window.onYouTubeIframeAPIReady = () => {
-      if (currentLessonRef.current) createYoutubePlayer(currentLessonRef.current);
+  // One shared queue for this player component.
+  // Each session can have only its latest snapshot queued.
+  const pendingSavesRef = useRef(new Map());
+  const saveWorkerRef = useRef(null);
+
+  const volumeRef = useRef(100);
+  const mutedRef = useRef(false);
+
+  courseIdRef.current = String(courseId || "");
+  volumeRef.current = videoVolume;
+  mutedRef.current = videoMuted;
+
+  const isCurrentCourse = (id) =>
+    mountedRef.current && courseIdRef.current === String(id);
+
+  const publishProgress = (session) => {
+    if (!isCurrentCourse(session.courseId)) return;
+
+    const next = {
+      ...progressMapRef.current,
+      [session.lessonId]: {
+        watchedSeconds: session.watched,
+        lastPosition: session.position,
+        durationSeconds: session.duration,
+        completed: session.completed,
+      },
     };
 
-    return () => {
-      stopProgressTimer();
-      destroyYoutubePlayer();
-    };
-  }, []);
-
-  /* =====================================================
-     LOAD COURSE (gated structure + progress)
-  ===================================================== */
-  useEffect(() => {
-    if (!courseId) {
-      setError("Course ID is missing.");
-      setLoading(false);
-      return;
-    }
-    loadCourse();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId]);
-
-  const normalizeModules = (list) => {
-    const arr = Array.isArray(list) ? [...list] : [];
-    arr.sort((a, b) => Number(a?.position || 0) - Number(b?.position || 0));
-    return arr.map((m) => ({
-      ...m,
-      lessons: Array.isArray(m?.lessons)
-        ? [...m.lessons].sort(
-            (a, b) => Number(a?.position || 0) - Number(b?.position || 0)
-          )
-        : [],
-    }));
+    progressMapRef.current = next;
+    setProgressMap(next);
   };
 
-  const seedProgressMap = (moduleList, previous = {}) => {
+  const seedProgressMap = (moduleList, selectedCourseId) => {
     const map = {};
-    moduleList.forEach((m) => {
-      (m.lessons || []).forEach((l) => {
-        const id = Number(l.id);
+
+    moduleList.forEach((module) => {
+      (module.lessons || []).forEach((lesson) => {
+        const id = Number(lesson.id);
+        const session = sessionsRef.current.get(
+          `${selectedCourseId}:${id}`
+        );
+
         const server = {
-          watchedSeconds: Number(l.watchedSeconds) || 0,
-          lastPosition: Number(l.lastPosition) || 0,
-          durationSeconds: Number(l.durationSeconds) || 0,
-          completed: Boolean(l.completed),
+          watchedSeconds: Number(lesson.watchedSeconds) || 0,
+          lastPosition: Number(lesson.lastPosition) || 0,
+          durationSeconds: Number(lesson.durationSeconds) || 0,
+          completed: Boolean(lesson.completed),
         };
-        // For the lesson currently playing, don't let a structure refresh
-        // pull its live watched time backwards.
-        if (
-          currentLessonRef.current &&
-          Number(currentLessonRef.current.id) === id &&
-          previous[id]
-        ) {
-          server.watchedSeconds = Math.max(
-            server.watchedSeconds,
-            Number(previous[id].watchedSeconds) || 0
+
+        if (session) {
+          session.watched = Math.max(
+            session.watched,
+            server.watchedSeconds
           );
-          server.durationSeconds =
-            server.durationSeconds || Number(previous[id].durationSeconds) || 0;
+          session.duration =
+            server.durationSeconds || session.duration;
+          session.completed = server.completed;
+
+          map[id] = {
+            watchedSeconds: session.watched,
+            lastPosition: session.position,
+            durationSeconds: session.duration,
+            completed: session.completed,
+          };
+        } else {
+          map[id] = server;
         }
-        map[id] = server;
       });
     });
+
     return map;
   };
 
-  const loadCourse = async () => {
+  const refreshStructure = async (selectedCourseId) => {
+    if (!isCurrentCourse(selectedCourseId)) return;
+
+    const request = ++structureRequestRef.current;
+
     try {
-      setLoading(true);
-      setError("");
-
-      const response = await api.get(`/player/course/${courseId}`);
-      const data = response?.data?.data || response?.data || null;
-      if (!data) throw new Error("Course data not found.");
-
-      setCourse(data.course || null);
-
-      const courseModules = normalizeModules(data.modules);
-      modulesRef.current = courseModules;
-      setModules(courseModules);
-
-      const map = seedProgressMap(courseModules);
-      progressMapRef.current = map;
-      setProgressMap(map);
-
-      setCourseProgress(Number(data.progress) || 0);
-
-      // Auto-open + select the first lesson of the first unlocked, non-empty module.
-      const firstPlayable = courseModules.find(
-        (m) => m.unlocked && (m.lessons || []).length > 0
+      const response = await api.get(
+        `/player/course/${selectedCourseId}`
       );
-      if (firstPlayable) {
-        setExpandedModules({ [firstPlayable.id]: true });
-        await selectLesson(firstPlayable.lessons[0]);
-      } else if (courseModules.length > 0) {
-        setExpandedModules({ [courseModules[0].id]: true });
+
+      if (
+        !isCurrentCourse(selectedCourseId) ||
+        request !== structureRequestRef.current
+      ) {
+        return;
       }
-    } catch (err) {
-      console.error("Course loading error:", err);
-      setError(
-        err?.response?.data?.message || err?.message || "Unable to load course."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  /*
-   * Re-pull the gated structure. Called after a lesson completes so the next
-   * module unlocks (and quiz-unlock / pass flags update) without a page reload.
-   */
-  const refreshStructure = async () => {
-    try {
-      const response = await api.get(`/player/course/${courseId}`);
-      const data = response?.data?.data || response?.data || null;
+      const data = response?.data?.data || response?.data;
       if (!data) return;
 
-      const courseModules = normalizeModules(data.modules);
-      modulesRef.current = courseModules;
-      setModules(courseModules);
+      const nextModules = normalizeModules(data.modules);
+      const nextMap = seedProgressMap(nextModules, selectedCourseId);
 
-      const map = seedProgressMap(courseModules, progressMapRef.current);
-      progressMapRef.current = map;
-      setProgressMap(map);
-
+      setModules(nextModules);
+      progressMapRef.current = nextMap;
+      setProgressMap(nextMap);
       setCourseProgress(Number(data.progress) || 0);
     } catch (err) {
       console.error("Structure refresh failed:", err?.message);
     }
   };
 
-  /* =====================================================
-     MODULE TOGGLE (locked modules can't expand)
-  ===================================================== */
-  const toggleModule = (module) => {
-    if (!module?.unlocked) return;
-    setExpandedModules((previous) => ({
-      ...previous,
-      [module.id]: !previous[module.id],
-    }));
-  };
+  // ==========================================
+  // Progress save queue
+  // ==========================================
 
-  /* =====================================================
-     VIDEO HELPERS
-  ===================================================== */
-  const getYoutubeId = (url) => {
-    if (!url) return null;
-    const watch = url.match(/[?&]v=([^&#]+)/);
-    if (watch?.[1]) return watch[1];
-    const short = url.match(/youtu\.be\/([^?&#]+)/);
-    if (short?.[1]) return short[1];
-    const embed = url.match(/youtube\.com\/embed\/([^?&#]+)/);
-    if (embed?.[1]) return embed[1];
-    const shorts = url.match(/youtube\.com\/shorts\/([^?&#]+)/);
-    if (shorts?.[1]) return shorts[1];
-    return null;
-  };
+  const runSaveQueue = () => {
+    if (saveWorkerRef.current) return saveWorkerRef.current;
 
-  const isDirectVideo = (url) =>
-    !!url && /\.(mp4|webm|ogg|ogv|mov|m4v)(\?.*)?$/i.test(String(url).trim());
+    const worker = Promise.resolve().then(async () => {
+      if (mountedRef.current) setSavingProgress(true);
 
-  const makeNativeAdapter = (el) => ({
-    getCurrentTime: () => Number(el?.currentTime) || 0,
-    getDuration: () => Number(el?.duration) || 0,
-    play: () => el?.play?.(),
-    pause: () => el?.pause?.(),
-    seekTo: (seconds) => {
-      if (el) el.currentTime = Number(seconds) || 0;
-    },
-    mute: () => {
-      if (el) el.muted = true;
-    },
-    unMute: () => {
-      if (el) el.muted = false;
-    },
-    setVolume: (value) => {
-      if (el) el.volume = Math.max(0, Math.min(100, Number(value) || 0)) / 100;
-    },
-    destroy: () => {},
-    isNative: true,
-    el,
-  });
+      try {
+        while (pendingSavesRef.current.size > 0) {
+          const [session, snapshot] =
+            pendingSavesRef.current.entries().next().value;
 
-  /* =====================================================
-     SELECT LESSON
-     Fetches the playable URL through the gated lesson endpoint — the only
-     place a student ever receives a real videoUrl.
-  ===================================================== */
-  const selectLesson = async (lesson) => {
-    if (!lesson) return;
+          pendingSavesRef.current.delete(session);
 
-    await saveCurrentProgress();
-    stopProgressTimer();
-    destroyYoutubePlayer();
-    isPlayingRef.current = false;
-    setLessonError("");
-
-    let full = null;
-    try {
-      const response = await api.get(
-        `/player/lesson/${lesson.id}?courseId=${courseId}`
-      );
-      full = response?.data?.data || response?.data || null;
-    } catch (err) {
-      // 403 => module locked (defensive; the UI already hides locked lessons).
-      console.error("Lesson open failed:", err?.response?.data || err);
-      setLessonError(
-        err?.response?.data?.message ||
-          "This lesson is locked. Complete the previous module first."
-      );
-      setSelectedLesson({ ...lesson, videoUrl: null });
-      currentLessonRef.current = null;
-      return;
-    }
-
-    if (!full) {
-      setLessonError("Unable to open this lesson.");
-      return;
-    }
-
-    const stored = progressMapRef.current[Number(full.id)] || {};
-    const watched = Number(full.watchedSeconds ?? stored.watchedSeconds ?? 0);
-    const lastPosition = Number(full.lastPosition ?? stored.lastPosition ?? 0);
-    const duration = Number(
-      full.durationSeconds ?? stored.durationSeconds ?? 0
-    );
-
-    currentLessonRef.current = full;
-    setVideoPlaying(false);
-    setVideoTime(0);
-    setVideoDuration(duration);
-    setVideoMuted(false);
-    watchedSecondsRef.current = watched;
-    lastPositionRef.current = lastPosition;
-    durationSecondsRef.current = duration;
-    lastTickRef.current = null;
-
-    setSelectedLesson(full);
-    setMobileSidebarOpen(false);
-
-    // Let React paint the container before mounting the YT player.
-    setTimeout(() => createYoutubePlayer(full), 50);
-  };
-
-  /* =====================================================
-     CREATE YOUTUBE PLAYER
-  ===================================================== */
-  const createYoutubePlayer = (lesson) => {
-    if (!lesson || !youtubeContainerRef.current || !window.YT || !window.YT.Player)
-      return;
-    if (isDirectVideo(lesson.videoUrl)) return; // native <video> handles these
-    if (!lesson.videoUrl) return;
-
-    const videoId = getYoutubeId(lesson.videoUrl);
-    if (!videoId) return;
-
-    destroyYoutubePlayer();
-    const element = document.createElement("div");
-    youtubeContainerRef.current.appendChild(element);
-
-    playerRef.current = new window.YT.Player(element, {
-      width: "100%",
-      height: "100%",
-      videoId,
-      // YouTube's native control bar is disabled. The controls rendered below
-      // are the LMS controls, so Share / Watch Later / More Videos / Settings
-      // are not shown in the student lesson player.
-      playerVars: {
-        controls: 0,
-        rel: 0,
-        modestbranding: 1,
-        playsinline: 1,
-        fs: 0,
-        disablekb: 1,
-        iv_load_policy: 3,
-      },
-      events: {
-        onReady: (event) => {
-          const duration = Number(event.target.getDuration()) || 0;
-          durationSecondsRef.current = duration;
-          setVideoDuration(duration);
-          setVideoTime(Number(event.target.getCurrentTime()) || 0);
-          setVideoPlaying(false);
-          event.target.setVolume?.(videoVolume);
-          if (videoMuted) event.target.mute?.();
-          setProgressMap((previous) => ({
-            ...previous,
-            [lesson.id]: {
-              ...(previous[lesson.id] || {}),
-              durationSeconds: duration,
-            },
-          }));
-          const resumeAt = Math.max(0, lastPositionRef.current);
-          if (resumeAt > 0 && resumeAt < duration) event.target.seekTo(resumeAt, true);
-        },
-        onStateChange: (event) => {
-          if (event.data === window.YT.PlayerState.PLAYING) {
-            setVideoPlaying(true);
-            isPlayingRef.current = true;
-            lastTickRef.current = Date.now();
-            startProgressTimer();
+          if (snapshot.signature === session.confirmedSignature) {
+            continue;
           }
-          if (event.data === window.YT.PlayerState.PAUSED) {
-            setVideoPlaying(false);
-            accumulateWatchTime(true);
-            isPlayingRef.current = false;
-            stopProgressTimer();
-            saveCurrentProgress();
+
+          session.inFlightSignature = snapshot.signature;
+
+          try {
+            const response = await api.post(
+              `/player/lesson/${session.lessonId}/watch-time`,
+              snapshot.payload
+            );
+
+            if (response?.data?.success === false) {
+              throw new Error(
+                response.data.message || "Unable to save progress."
+              );
+            }
+
+            const returned = response?.data?.data;
+            const saved = returned?.lessonProgress || returned || {};
+
+            const wasCompleted = session.completed;
+            session.confirmedSignature = snapshot.signature;
+
+            // Keep watch time accumulated while the request was running.
+            session.watched = Math.max(
+              session.watched,
+              Number(saved.watchedSeconds ?? snapshot.payload.watchedSeconds)
+            );
+
+            if (Number(saved.durationSeconds) > 0) {
+              session.duration = Number(saved.durationSeconds);
+            }
+
+            if (typeof saved.completed === "boolean") {
+              session.completed = saved.completed;
+            }
+
+            publishProgress(session);
+
+            if (isCurrentCourse(session.courseId)) {
+              setProgressError("");
+
+              if (typeof returned?.overallProgress === "number") {
+                setCourseProgress(returned.overallProgress);
+              }
+
+              if (session.completed && !wasCompleted) {
+                void refreshStructure(session.courseId);
+              }
+            }
+          } catch (err) {
+            // Do not mark failed data as saved.
+            // It will be retried at the next interval or final save.
+            session.nextSaveAt = Date.now() + SAVE_INTERVAL_MS;
+
+            console.error(
+              "Progress save failed:",
+              err?.response?.data || err
+            );
+
+            if (isCurrentCourse(session.courseId)) {
+              setProgressError(
+                "Progress could not be saved. It will retry while you continue watching."
+              );
+            }
+          } finally {
+            session.inFlightSignature = null;
           }
-          if (event.data === window.YT.PlayerState.ENDED) {
-            setVideoPlaying(false);
-            setVideoTime(durationSecondsRef.current);
-            accumulateWatchTime(true);
-            isPlayingRef.current = false;
-            stopProgressTimer();
-            // No /complete call — the watch-time save marks completion at >=95%.
-            saveCurrentProgress();
-          }
-        },
-      },
+        }
+      } finally {
+        saveWorkerRef.current = null;
+        if (mountedRef.current) setSavingProgress(false);
+      }
     });
+
+    saveWorkerRef.current = worker;
+    return worker;
   };
 
-  /* =====================================================
-     CUSTOM LMS VIDEO CONTROLS
-     ===================================================== */
-  const updateVideoUi = () => {
+  const saveSession = (session) => {
+    if (!session || !session.touched) {
+      return saveWorkerRef.current || Promise.resolve();
+    }
+
+    const payload = {
+      watchedSeconds: Math.max(0, Math.floor(session.watched)),
+      lastPosition: Math.max(0, Math.floor(session.position)),
+      durationSeconds: Math.max(0, Math.floor(session.duration)),
+    };
+
+    const signature = progressSignature(payload);
+    session.nextSaveAt = Date.now() + SAVE_INTERVAL_MS;
+
+    if (
+      signature === session.confirmedSignature &&
+      !session.inFlightSignature
+    ) {
+      pendingSavesRef.current.delete(session);
+      return saveWorkerRef.current || Promise.resolve();
+    }
+
+    if (signature === session.inFlightSignature) {
+      pendingSavesRef.current.delete(session);
+      return saveWorkerRef.current || Promise.resolve();
+    }
+
+    pendingSavesRef.current.set(session, { payload, signature });
+    return runSaveQueue();
+  };
+
+  // ==========================================
+  // Local watch tracking
+  // ==========================================
+
+  const readPlayerPosition = (session) => {
+    if (activeSessionRef.current !== session) return;
+
     const player = playerRef.current;
     if (!player) return;
 
     try {
-      const current = Number(player.getCurrentTime()) || 0;
-      const duration = Number(player.getDuration()) || durationSecondsRef.current || 0;
-      setVideoTime(current);
-      if (duration > 0) {
-        setVideoDuration(duration);
-        durationSecondsRef.current = duration;
+      const position = Number(player.getCurrentTime());
+      const duration = Number(player.getDuration());
+
+      if (Number.isFinite(position) && position >= 0) {
+        session.position = position;
       }
-    } catch {}
-  };
 
-  const startVideoUiTimer = () => {
-    if (videoUiTimerRef.current) clearInterval(videoUiTimerRef.current);
-    videoUiTimerRef.current = setInterval(updateVideoUi, 250);
-  };
-
-  const stopVideoUiTimer = () => {
-    if (videoUiTimerRef.current) {
-      clearInterval(videoUiTimerRef.current);
-      videoUiTimerRef.current = null;
+      if (Number.isFinite(duration) && duration > 0) {
+        session.duration = duration;
+      }
+    } catch {
+      // The player may be shutting down.
     }
   };
 
-  const toggleVideoPlay = () => {
+  const sampleWatchTime = (session) => {
+    if (!session) return;
+
+    const now = Date.now();
+    const previousPosition = session.position;
+
+    readPlayerPosition(session);
+
+    if (session.playing && session.lastTick !== null) {
+      const elapsed = Math.min(
+        6,
+        Math.max(0, (now - session.lastTick) / 1000)
+      );
+
+      if (elapsed > 0) {
+        session.watched += elapsed;
+        session.touched = true;
+      }
+    }
+
+    session.lastTick = session.playing ? now : null;
+
+    if (session.position !== previousPosition) {
+      session.touched = true;
+    }
+
+    publishProgress(session);
+  };
+
+  const stopWatchTimer = () => {
+    if (watchTimerRef.current) {
+      clearInterval(watchTimerRef.current);
+      watchTimerRef.current = null;
+    }
+  };
+
+  const startWatchTimer = () => {
+    stopWatchTimer();
+
+    watchTimerRef.current = setInterval(() => {
+      const session = activeSessionRef.current;
+      if (!session?.playing) return;
+
+      // Local tracking only: no API call every second.
+      sampleWatchTime(session);
+
+      if (Date.now() >= session.nextSaveAt) {
+        void saveSession(session);
+      }
+    }, WATCH_TICK_MS);
+  };
+
+  const handlePlaybackStart = () => {
+    const session = activeSessionRef.current;
+    if (!session) return;
+
+    if (!session.playing) {
+      session.playing = true;
+      session.lastTick = Date.now();
+      session.nextSaveAt = Date.now() + SAVE_INTERVAL_MS;
+    }
+
+    setVideoPlaying(true);
+    startWatchTimer();
+  };
+
+  const handlePlaybackStop = (save = true, ended = false) => {
+    const session = activeSessionRef.current;
+    if (!session) return;
+
+    sampleWatchTime(session);
+    session.playing = false;
+    session.lastTick = null;
+
+    stopWatchTimer();
+
+    if (mountedRef.current) {
+      setVideoPlaying(false);
+      if (ended) setVideoTime(session.duration);
+    }
+
+    if (save) void saveSession(session);
+  };
+
+  const flushCurrentProgress = () => {
+    const session = activeSessionRef.current;
+    if (!session) return saveWorkerRef.current || Promise.resolve();
+
+    sampleWatchTime(session);
+    return saveSession(session);
+  };
+
+  const pauseAndSave = () => {
+    const session = activeSessionRef.current;
+    if (!session) return saveWorkerRef.current || Promise.resolve();
+
+    sampleWatchTime(session);
+    session.playing = false;
+    session.lastTick = null;
+    stopWatchTimer();
+
+    try {
+      if (playerRef.current?.isNative) {
+        playerRef.current.pause();
+      } else {
+        playerRef.current?.pauseVideo?.();
+      }
+    } catch {
+      // Preserve the snapshot even if pausing fails.
+    }
+
+    if (mountedRef.current) setVideoPlaying(false);
+    return saveSession(session);
+  };
+
+  // ==========================================
+  // Player lifecycle
+  // ==========================================
+
+  const destroyPlayer = () => {
+    playerGenerationRef.current += 1;
+
+    const player = playerRef.current;
+    playerRef.current = null;
+
+    try {
+      if (player?.isNative) {
+        player.pause();
+      } else {
+        player?.destroy?.();
+      }
+    } catch {
+      // Already destroyed.
+    }
+
+    if (youtubeContainerRef.current) {
+      youtubeContainerRef.current.innerHTML = "";
+    }
+  };
+
+  const makeNativeAdapter = (element) => ({
+    isNative: true,
+    el: element,
+    getCurrentTime: () => Number(element.currentTime) || 0,
+    getDuration: () => Number(element.duration) || 0,
+    play: () => element.play(),
+    pause: () => element.pause(),
+    seekTo: (seconds) => {
+      element.currentTime = Number(seconds) || 0;
+    },
+    mute: () => {
+      element.muted = true;
+    },
+    unMute: () => {
+      element.muted = false;
+    },
+    setVolume: (value) => {
+      element.volume = Math.max(0, Math.min(100, value)) / 100;
+    },
+  });
+
+  const selectLesson = async (lesson, selectedCourseId = courseId) => {
+    if (!lesson) return;
+
+    const request = ++lessonRequestRef.current;
+
+    await pauseAndSave();
+
+    if (
+      !isCurrentCourse(selectedCourseId) ||
+      request !== lessonRequestRef.current
+    ) {
+      return;
+    }
+
+    activeSessionRef.current = null;
+    destroyPlayer();
+    setLessonError("");
+    setSelectedLesson(null);
+
+    try {
+      const response = await api.get(`/player/lesson/${lesson.id}`, {
+        params: { courseId: selectedCourseId },
+      });
+
+      if (
+        !isCurrentCourse(selectedCourseId) ||
+        request !== lessonRequestRef.current
+      ) {
+        return;
+      }
+
+      const full = response?.data?.data || response?.data;
+      if (!full?.id) throw new Error("Unable to open this lesson.");
+
+      const lessonId = Number(full.id);
+      const key = `${selectedCourseId}:${lessonId}`;
+      const stored = progressMapRef.current[lessonId] || {};
+      const previousSession = sessionsRef.current.get(key);
+
+      const watched = Number(
+        full.watchedSeconds ?? stored.watchedSeconds ?? 0
+      );
+      const position = Number(
+        full.lastPosition ?? stored.lastPosition ?? 0
+      );
+      const duration = Number(
+        full.durationSeconds ?? stored.durationSeconds ?? 0
+      );
+
+      const session = previousSession || {
+        key,
+        courseId: String(selectedCourseId),
+        lessonId,
+        watched,
+        position,
+        duration,
+        touched: false,
+        confirmedSignature: progressSignature({
+          watchedSeconds: Math.floor(watched),
+          lastPosition: Math.floor(position),
+          durationSeconds: Math.floor(duration),
+        }),
+        inFlightSignature: null,
+      };
+
+      session.watched = Math.max(session.watched, watched);
+      session.duration = duration || session.duration;
+      session.completed = Boolean(full.completed ?? stored.completed);
+      session.playing = false;
+      session.lastTick = null;
+      session.nextSaveAt = Date.now() + SAVE_INTERVAL_MS;
+
+      sessionsRef.current.set(key, session);
+      activeSessionRef.current = session;
+
+      setVideoPlaying(false);
+      setVideoTime(session.position);
+      setVideoDuration(session.duration);
+      setSelectedLesson(full);
+      setMobileSidebarOpen(false);
+      publishProgress(session);
+    } catch (err) {
+      if (
+        !isCurrentCourse(selectedCourseId) ||
+        request !== lessonRequestRef.current
+      ) {
+        return;
+      }
+
+      setLessonError(
+        err?.response?.data?.message ||
+          err.message ||
+          "This lesson is locked. Complete the previous module first."
+      );
+      setSelectedLesson({ ...lesson, videoUrl: null });
+    }
+  };
+
+  const loadCourse = async () => {
+    const selectedCourseId = String(courseId);
+    const request = ++courseRequestRef.current;
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.get(
+        `/player/course/${selectedCourseId}`
+      );
+
+      if (
+        !isCurrentCourse(selectedCourseId) ||
+        request !== courseRequestRef.current
+      ) {
+        return;
+      }
+
+      const data = response?.data?.data || response?.data;
+      if (!data) throw new Error("Course data not found.");
+
+      const nextModules = normalizeModules(data.modules);
+      const nextMap = seedProgressMap(nextModules, selectedCourseId);
+
+      setCourse(data.course || null);
+      setModules(nextModules);
+      progressMapRef.current = nextMap;
+      setProgressMap(nextMap);
+      setCourseProgress(Number(data.progress) || 0);
+
+      const firstPlayable = nextModules.find(
+        (module) => module.unlocked && module.lessons.length > 0
+      );
+
+      if (firstPlayable) {
+        setExpandedModules({ [firstPlayable.id]: true });
+        await selectLesson(firstPlayable.lessons[0], selectedCourseId);
+      } else if (nextModules.length) {
+        setExpandedModules({ [nextModules[0].id]: true });
+      }
+    } catch (err) {
+      if (
+        isCurrentCourse(selectedCourseId) &&
+        request === courseRequestRef.current
+      ) {
+        setError(
+          err?.response?.data?.message ||
+            err.message ||
+            "Unable to load course."
+        );
+      }
+    } finally {
+      if (
+        isCurrentCourse(selectedCourseId) &&
+        request === courseRequestRef.current
+      ) {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    const onPageHide = () => {
+      // Best effort: browsers may cancel requests when a tab closes.
+      void pauseAndSave();
+    };
+
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      void pauseAndSave();
+      mountedRef.current = false;
+      lessonRequestRef.current += 1;
+      courseRequestRef.current += 1;
+      structureRequestRef.current += 1;
+      activeSessionRef.current = null;
+      stopWatchTimer();
+      destroyPlayer();
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!courseId) {
+      setError("Course ID is missing.");
+      setLoading(false);
+      return;
+    }
+
+    void loadCourse();
+
+    return () => {
+      void pauseAndSave();
+      activeSessionRef.current = null;
+      lessonRequestRef.current += 1;
+      courseRequestRef.current += 1;
+      structureRequestRef.current += 1;
+      destroyPlayer();
+    };
+  }, [courseId]);
+
+  useEffect(() => {
+    if (
+      loading ||
+      !selectedLesson?.videoUrl ||
+      isDirectVideo(selectedLesson.videoUrl)
+    ) {
+      return;
+    }
+
+    const session = activeSessionRef.current;
+    const videoId = getYoutubeId(selectedLesson.videoUrl);
+    let cancelled = false;
+
+    if (!videoId) {
+      setLessonError("This lesson has an unsupported video URL.");
+      return;
+    }
+
+    loadYoutubeAPI()
+      .then((YT) => {
+        if (
+          cancelled ||
+          !mountedRef.current ||
+          activeSessionRef.current !== session ||
+          !youtubeContainerRef.current
+        ) {
+          return;
+        }
+
+        destroyPlayer();
+        const generation = playerGenerationRef.current;
+
+        const element = document.createElement("div");
+        youtubeContainerRef.current.appendChild(element);
+
+        const isActive = () =>
+          !cancelled &&
+          mountedRef.current &&
+          activeSessionRef.current === session &&
+          playerGenerationRef.current === generation;
+
+        playerRef.current = new YT.Player(element, {
+          width: "100%",
+          height: "100%",
+          videoId,
+          playerVars: {
+            controls: 0,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            fs: 0,
+            disablekb: 1,
+            iv_load_policy: 3,
+          },
+          events: {
+            onReady: (event) => {
+              if (!isActive()) return;
+
+              session.duration =
+                Number(event.target.getDuration()) || session.duration;
+
+              setVideoDuration(session.duration);
+              event.target.setVolume?.(volumeRef.current);
+
+              if (mutedRef.current) event.target.mute?.();
+
+              if (
+                session.position > 0 &&
+                session.position < session.duration
+              ) {
+                event.target.seekTo(session.position, true);
+              }
+
+              publishProgress(session);
+            },
+            onStateChange: (event) => {
+              if (!isActive()) return;
+
+              if (event.data === YT.PlayerState.PLAYING) {
+                handlePlaybackStart();
+              } else if (event.data === YT.PlayerState.PAUSED) {
+                handlePlaybackStop(true);
+              } else if (event.data === YT.PlayerState.ENDED) {
+                handlePlaybackStop(true, true);
+              } else if (event.data === YT.PlayerState.BUFFERING) {
+                // Stop counting buffered time without making a save request.
+                handlePlaybackStop(false);
+              }
+            },
+          },
+        });
+      })
+      .catch((err) => {
+        if (!cancelled && mountedRef.current) {
+          setLessonError(err.message);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLesson?.id, loading]);
+
+  // UI polling is local only. It never calls the API.
+  useEffect(() => {
+    if (!selectedLesson || loading) return;
+
+    videoUiTimerRef.current = setInterval(() => {
+      const player = playerRef.current;
+      if (!player) return;
+
+      try {
+        const current = Number(player.getCurrentTime());
+        const duration = Number(player.getDuration());
+
+        if (Number.isFinite(current)) setVideoTime(current);
+
+        if (Number.isFinite(duration) && duration > 0) {
+          setVideoDuration(duration);
+          if (activeSessionRef.current) {
+            activeSessionRef.current.duration = duration;
+          }
+        }
+      } catch {
+        // Player not ready.
+      }
+    }, 250);
+
+    return () => {
+      clearInterval(videoUiTimerRef.current);
+      videoUiTimerRef.current = null;
+    };
+  }, [selectedLesson?.id, loading]);
+
+  useEffect(() => {
+    const handler = () =>
+      setVideoFullscreen(Boolean(document.fullscreenElement));
+
+    document.addEventListener("fullscreenchange", handler);
+    return () =>
+      document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
+  // ==========================================
+  // Video controls
+  // ==========================================
+
+  const handleNativeLoaded = (event) => {
+    const session = activeSessionRef.current;
+    if (!session) return;
+
+    const element = event.currentTarget;
+    playerRef.current = makeNativeAdapter(element);
+
+    session.duration = Number(element.duration) || session.duration;
+    setVideoDuration(session.duration);
+
+    if (
+      session.position > 0 &&
+      session.position < session.duration
+    ) {
+      element.currentTime = session.position;
+    }
+
+    setVideoTime(session.position);
+    element.volume = volumeRef.current / 100;
+    element.muted = mutedRef.current;
+    publishProgress(session);
+  };
+
+  const toggleVideoPlay = async () => {
     const player = playerRef.current;
     if (!player) return;
 
     try {
       if (videoPlaying) {
-        if (player.isNative) player.pause?.();
+        if (player.isNative) player.pause();
         else player.pauseVideo?.();
-        setVideoPlaying(false);
       } else {
-        if (player.isNative) player.play?.();
+        if (player.isNative) await player.play();
         else player.playVideo?.();
-        setVideoPlaying(true);
       }
-      startVideoUiTimer();
-    } catch {}
+    } catch (err) {
+      console.error("Video playback failed:", err.message);
+    }
   };
 
   const seekVideo = (event) => {
-    const duration = Number(videoDuration || durationSecondsRef.current || 0);
-    if (!duration || !playerRef.current) return;
+    const session = activeSessionRef.current;
+    const player = playerRef.current;
+    if (!session || !player || !videoDuration) return;
 
-    const nextTime = Math.max(
+    sampleWatchTime(session);
+
+    const next = Math.max(
       0,
-      Math.min(duration, Number(event.target.value) || 0)
+      Math.min(videoDuration, Number(event.target.value) || 0)
     );
 
-    // Seeking changes position only; it does not add watched time.
-    setVideoTime(nextTime);
-    lastPositionRef.current = nextTime;
+    session.position = next;
+    session.touched = true;
+    setVideoTime(next);
 
     try {
-      if (playerRef.current.isNative) {
-        playerRef.current.seekTo?.(nextTime);
-      } else {
-        playerRef.current.seekTo?.(nextTime, true);
-      }
-    } catch {}
+      player.seekTo(next, true);
+    } catch {
+      // Ignore a seek while the player is unavailable.
+    }
   };
 
   const toggleVideoMute = () => {
@@ -515,15 +1035,22 @@ function CoursePlayer() {
         player.mute?.();
         setVideoMuted(true);
       }
-    } catch {}
+    } catch {
+      // Player not ready.
+    }
   };
 
   const changeVideoVolume = (event) => {
-    const value = Math.max(0, Math.min(100, Number(event.target.value) || 0));
+    const value = Math.max(
+      0,
+      Math.min(100, Number(event.target.value) || 0)
+    );
+
     setVideoVolume(value);
 
     try {
       playerRef.current?.setVolume?.(value);
+
       if (value === 0) {
         playerRef.current?.mute?.();
         setVideoMuted(true);
@@ -531,220 +1058,61 @@ function CoursePlayer() {
         playerRef.current?.unMute?.();
         setVideoMuted(false);
       }
-    } catch {}
+    } catch {
+      // Player not ready.
+    }
   };
 
   const toggleVideoFullscreen = async () => {
-    const shell = videoShellRef.current;
-    if (!shell) return;
-
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
       } else {
-        await shell.requestFullscreen?.();
+        await videoShellRef.current?.requestFullscreen?.();
       }
     } catch (err) {
       console.error("Fullscreen failed:", err);
     }
   };
 
-  const handleNativeLoaded = (event) => {
-    const el = event.currentTarget;
-    playerRef.current = makeNativeAdapter(el);
-
-    const duration = Number(el.duration) || 0;
-    durationSecondsRef.current = duration;
-    setVideoDuration(duration);
-
-    const resumeAt = Math.max(0, lastPositionRef.current);
-    if (resumeAt > 0 && resumeAt < duration) {
-      try {
-        el.currentTime = resumeAt;
-      } catch {}
-    }
-
-    setVideoTime(Math.min(resumeAt, duration));
-    el.volume = videoVolume / 100;
-    el.muted = videoMuted;
-    startVideoUiTimer();
+  const leavePlayer = async (destination) => {
+    await pauseAndSave();
+    navigate(destination);
   };
 
-  useEffect(() => {
-    if (!selectedLesson) {
-      stopVideoUiTimer();
-      return undefined;
-    }
+  // ==========================================
+  // Display helpers
+  // ==========================================
 
-    startVideoUiTimer();
-    return () => stopVideoUiTimer();
-  }, [selectedLesson?.id]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setVideoFullscreen(Boolean(document.fullscreenElement));
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
-  /* =====================================================
-     TIMER & WATCH-TIME
-  ===================================================== */
-  const startProgressTimer = () => {
-    stopProgressTimer();
-    progressTimerRef.current = setInterval(() => {
-      updateVideoUi();
-      accumulateWatchTime(false);
-    }, 1000);
+  const toggleModule = (module) => {
+    if (!module.unlocked) return;
+    setExpandedModules((previous) => ({
+      ...previous,
+      [module.id]: !previous[module.id],
+    }));
   };
 
-  const stopProgressTimer = () => {
-    if (progressTimerRef.current) {
-      clearInterval(progressTimerRef.current);
-      progressTimerRef.current = null;
-    }
-  };
+  const isLessonComplete = (lesson) =>
+    Boolean(progressMap[Number(lesson.id)]?.completed) ||
+    Boolean(lesson.completed);
 
-  const accumulateWatchTime = async (forceSave) => {
-    if (!isPlayingRef.current || !playerRef.current || !currentLessonRef.current)
-      return;
-    const now = Date.now();
-    if (!lastTickRef.current) {
-      lastTickRef.current = now;
-      return;
-    }
-    const elapsed = Math.min(6, Math.max(0, (now - lastTickRef.current) / 1000));
-    if (elapsed > 0) watchedSecondsRef.current += elapsed;
-    lastTickRef.current = now;
-    try {
-      lastPositionRef.current = Number(playerRef.current.getCurrentTime()) || 0;
-    } catch {}
-    if (forceSave || elapsed > 0) await saveCurrentProgress();
-  };
-
-  const saveCurrentProgress = async () => {
-    const lesson = currentLessonRef.current;
-    if (!lesson || savingRef.current) return;
-
-    const watched = Math.max(0, Math.floor(watchedSecondsRef.current));
-    let position = Math.max(0, Number(lastPositionRef.current) || 0);
-    let duration = Math.max(0, Math.floor(durationSecondsRef.current || 0));
-
-    try {
-      if (playerRef.current) {
-        position = Number(playerRef.current.getCurrentTime()) || position;
-        duration = Number(playerRef.current.getDuration()) || duration;
-      }
-    } catch {}
-
-    try {
-      savingRef.current = true;
-      setSavingProgress(true);
-
-      const response = await api.post(`/player/lesson/${lesson.id}/watch-time`, {
-        watchedSeconds: watched,
-        lastPosition: position,
-        durationSeconds: duration,
-      });
-
-      const returned = response?.data?.data;
-      const saved = returned?.lessonProgress || returned || {};
-
-      const wasCompleted = Boolean(
-        progressMapRef.current[Number(lesson.id)]?.completed
-      );
-
-      const updated = {
-        watchedSeconds: Number(saved?.watchedSeconds ?? watched),
-        lastPosition: Number(saved?.lastPosition ?? position),
-        durationSeconds: Number(saved?.durationSeconds ?? duration),
-        completed: Boolean(saved?.completed),
-      };
-
-      const nextMap = { ...progressMapRef.current, [Number(lesson.id)]: updated };
-      progressMapRef.current = nextMap;
-      setProgressMap(nextMap);
-
-      if (typeof returned?.overallProgress === "number") {
-        setCourseProgress(returned.overallProgress);
-      }
-
-      // A freshly-completed lesson can unlock the module's quiz / the next
-      // module — refresh the gated structure so the sidebar reflects it live.
-      if (updated.completed && !wasCompleted) {
-        await refreshStructure();
-      }
-    } catch (err) {
-      console.error("Progress save failed:", err?.response?.data || err);
-    } finally {
-      savingRef.current = false;
-      setSavingProgress(false);
-    }
-  };
-
-  /* =====================================================
-     DERIVED DISPLAY HELPERS
-  ===================================================== */
   const getLessonPercentage = (lesson) => {
+    if (isLessonComplete(lesson)) return 100;
+
     const item = progressMap[Number(lesson.id)];
-    if (!item) return lesson?.completed ? 100 : 0;
-    if (item.completed) return 100;
-    const watched = Number(item.watchedSeconds || 0);
-    const duration = Number(item.durationSeconds || 0);
-    if (duration <= 0) return 0; // guard: no duration => 0%, never "complete"
-    if (watched >= duration * 0.95 || duration - watched <= 3) return 100;
+    if (!item) return 0;
+
+    const watched = Number(item.watchedSeconds) || 0;
+    const duration = Number(item.durationSeconds) || 0;
+    if (duration <= 0) return 0;
+
+    // Completion remains server-controlled.
     return Math.min(
       99,
       Math.max(0, Math.round((Math.min(watched, duration) / duration) * 100))
     );
   };
 
-  const isLessonComplete = (lesson) =>
-    Boolean(progressMap[Number(lesson.id)]?.completed) || Boolean(lesson?.completed);
-
-  const getModuleCompletionCount = (module) => {
-    const lessons = module?.lessons || [];
-    const completed = lessons.filter((l) => isLessonComplete(l)).length;
-    return { completed, total: lessons.length };
-  };
-
-  const formatTime = (seconds) => {
-    const value = Math.max(0, Math.floor(Number(seconds) || 0));
-    const hours = Math.floor(value / 3600);
-    const minutes = Math.floor((value % 3600) / 60);
-    const secs = value % 60;
-    if (hours > 0)
-      return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    return `${minutes}:${String(secs).padStart(2, "0")}`;
-  };
-
-  /* =====================================================
-     CLEANUP
-  ===================================================== */
-  const destroyYoutubePlayer = () => {
-    if (playerRef.current && !playerRef.current.isNative) {
-      try {
-        playerRef.current.destroy();
-      } catch {}
-    }
-    playerRef.current = null;
-    if (youtubeContainerRef.current) youtubeContainerRef.current.innerHTML = "";
-  };
-
-  useEffect(() => {
-    return () => {
-      stopProgressTimer();
-      stopVideoUiTimer();
-      destroyYoutubePlayer();
-    };
-  }, []);
-
-  /* =====================================================
-     LOADING & ERROR STATES
-  ===================================================== */
   if (loading) {
     return (
       <div className="course-player-loading">
@@ -760,16 +1128,16 @@ function CoursePlayer() {
         <AlertCircle size={42} />
         <h2>Unable to load course</h2>
         <p>{error}</p>
-        <button type="button" onClick={() => navigate("/student/my-courses")}>
+        <button
+          type="button"
+          onClick={() => leavePlayer("/student/my-courses")}
+        >
           <ArrowLeft size={17} /> Back to My Courses
         </button>
       </div>
     );
   }
 
-  /* =====================================================
-     RENDER
-  ===================================================== */
   return (
     <div className="course-player-page">
       <header className="course-player-header">
@@ -777,24 +1145,27 @@ function CoursePlayer() {
           <button
             type="button"
             className="player-back-btn"
-            onClick={() => navigate("/student/my-courses")}
+            aria-label="Back to My Courses"
+            onClick={() => leavePlayer("/student/my-courses")}
           >
             <ArrowLeft size={18} />
           </button>
+
           <button
             type="button"
             className="mobile-menu-btn"
+            aria-label="Open course content"
             onClick={() => setMobileSidebarOpen(true)}
           >
             <Menu size={20} />
           </button>
+
           <div>
             <span>MY COURSE</span>
             <h1>{course?.title || "Course"}</h1>
           </div>
         </div>
 
-        {/* Real, server-reported course progress. */}
         <div className="header-course-progress">
           <div className="header-progress-label">
             <span>Course Progress</span>
@@ -818,7 +1189,9 @@ function CoursePlayer() {
 
       <div className="course-player-layout">
         <aside
-          className={`course-player-sidebar ${mobileSidebarOpen ? "mobile-open" : ""}`}
+          className={`course-player-sidebar ${
+            mobileSidebarOpen ? "mobile-open" : ""
+          }`}
         >
           <div className="course-sidebar-header">
             <div>
@@ -827,9 +1200,11 @@ function CoursePlayer() {
                 {modules.length} {modules.length === 1 ? "Module" : "Modules"}
               </strong>
             </div>
+
             <button
               type="button"
               className="mobile-close-btn"
+              aria-label="Close course content"
               onClick={() => setMobileSidebarOpen(false)}
             >
               <X size={18} />
@@ -839,10 +1214,12 @@ function CoursePlayer() {
           <div className="course-sidebar-content">
             {modules.map((module, index) => {
               const open = Boolean(expandedModules[module.id]);
-              const lessons = module?.lessons || [];
+              const lessons = module.lessons || [];
               const unlocked = Boolean(module.unlocked);
-              const hasQuiz = Boolean(module.hasQuiz);
-              const { completed, total } = getModuleCompletionCount(module);
+              const completed = lessons.filter(isLessonComplete).length;
+              const total = lessons.length;
+              const quizPath =
+                `/student/quiz?moduleId=${module.id}&courseId=${courseId}`;
 
               return (
                 <div key={module.id} className="sidebar-module">
@@ -861,20 +1238,24 @@ function CoursePlayer() {
                       {!unlocked && <ShieldQuestion size={14} />}
                       {index + 1}
                     </div>
+
                     <div className="module-details">
                       <strong>{module.title || `Module ${index + 1}`}</strong>
                       <span>
                         {unlocked
                           ? `${completed}/${total} completed`
-                          : module.reason || "Complete the previous module to unlock"}
+                          : module.reason ||
+                            "Complete the previous module to unlock"}
                       </span>
                     </div>
+
                     <div className="module-header-right">
                       {unlocked && module.moduleComplete && (
                         <span className="module-complete-badge">
                           <CheckCircle2 size={14} /> Complete
                         </span>
                       )}
+
                       {!unlocked ? (
                         <ShieldQuestion size={16} className="quiz-locked-icon" />
                       ) : open ? (
@@ -895,14 +1276,15 @@ function CoursePlayer() {
                             const percentage = getLessonPercentage(lesson);
                             const active =
                               Number(selectedLesson?.id) === Number(lesson.id);
-                            const done = percentage >= 100;
+                            const done = isLessonComplete(lesson);
+
                             return (
                               <button
                                 key={lesson.id}
                                 type="button"
-                                className={`sidebar-lesson ${active ? "active" : ""} ${
-                                  done ? "completed" : ""
-                                }`}
+                                className={`sidebar-lesson ${
+                                  active ? "active" : ""
+                                } ${done ? "completed" : ""}`}
                                 onClick={() => selectLesson(lesson)}
                               >
                                 <div className="lesson-icon">
@@ -912,22 +1294,27 @@ function CoursePlayer() {
                                     <PlayCircle size={16} />
                                   )}
                                 </div>
+
                                 <div className="sidebar-lesson-info">
                                   <div className="lesson-title-line">
                                     <span>{lesson.title || "Untitled Lesson"}</span>
                                     <strong>{percentage}%</strong>
                                   </div>
+
                                   <div className="lesson-progress-row">
                                     <small>
                                       {formatTime(
-                                        progressMap[Number(lesson.id)]?.watchedSeconds || 0
+                                        progressMap[Number(lesson.id)]
+                                          ?.watchedSeconds || 0
                                       )}{" "}
                                       /{" "}
                                       {formatTime(
-                                        progressMap[Number(lesson.id)]?.durationSeconds || 0
+                                        progressMap[Number(lesson.id)]
+                                          ?.durationSeconds || 0
                                       )}
                                     </small>
                                   </div>
+
                                   <div className="lesson-progress-track">
                                     <div
                                       className="lesson-progress-fill"
@@ -939,13 +1326,26 @@ function CoursePlayer() {
                             );
                           })}
 
-                          {/* QUIZ: unlocks when all lessons are complete. */}
-                          {hasQuiz && (
+                          {module.hasQuiz && (
                             <div className="sidebar-quiz-section">
                               {module.lessonsComplete ? (
                                 <Link
-                                  to={`/student/quiz?moduleId=${module.id}&courseId=${courseId}`}
+                                  to={quizPath}
                                   className="sidebar-quiz-link"
+                                  onClick={(event) => {
+                                    if (
+                                      event.button === 0 &&
+                                      !event.ctrlKey &&
+                                      !event.metaKey &&
+                                      !event.shiftKey &&
+                                      !event.altKey
+                                    ) {
+                                      event.preventDefault();
+                                      void leavePlayer(quizPath);
+                                    } else {
+                                      void flushCurrentProgress();
+                                    }
+                                  }}
                                 >
                                   <HelpCircle size={16} />
                                   <span>
@@ -961,10 +1361,13 @@ function CoursePlayer() {
                                 </Link>
                               ) : (
                                 <div className="sidebar-quiz-progress">
-                                  <HelpCircle size={16} className="quiz-locked-icon" />
+                                  <HelpCircle
+                                    size={16}
+                                    className="quiz-locked-icon"
+                                  />
                                   <span>
-                                    Complete all lessons to unlock quiz ({completed}/
-                                    {total})
+                                    Complete all lessons to unlock quiz (
+                                    {completed}/{total})
                                   </span>
                                 </div>
                               )}
@@ -994,47 +1397,44 @@ function CoursePlayer() {
             ) : lessonError ? (
               <div className="course-player-no-selection">
                 <ShieldQuestion size={50} />
-                <h2>Lesson locked</h2>
+                <h2>Unable to play lesson</h2>
                 <p>{lessonError}</p>
               </div>
-            ) : isDirectVideo(selectedLesson?.videoUrl) ? (
+            ) : isDirectVideo(selectedLesson.videoUrl) ? (
               <video
                 ref={nativeVideoRef}
-                key={selectedLesson?.id}
-                src={selectedLesson?.videoUrl}
+                key={selectedLesson.id}
+                src={selectedLesson.videoUrl}
                 className="youtube-player-wrapper native-video-player"
                 controls={false}
                 playsInline
                 preload="metadata"
                 onLoadedMetadata={handleNativeLoaded}
-                onTimeUpdate={(e) =>
-                  setVideoTime(Number(e.currentTarget.currentTime) || 0)
+                onTimeUpdate={(event) =>
+                  setVideoTime(Number(event.currentTarget.currentTime) || 0)
                 }
-                onPlay={() => {
-                  setVideoPlaying(true);
-                  isPlayingRef.current = true;
-                  lastTickRef.current = Date.now();
-                  startProgressTimer();
-                  startVideoUiTimer();
+                onPlaying={handlePlaybackStart}
+                onWaiting={() => handlePlaybackStop(false)}
+                onSeeking={() => handlePlaybackStop(false)}
+                onSeeked={(event) => {
+                  const session = activeSessionRef.current;
+                  if (!session) return;
+
+                  session.position = event.currentTarget.currentTime;
+                  session.touched = true;
+
+                  if (!event.currentTarget.paused) {
+                    handlePlaybackStart();
+                  }
                 }}
-                onPause={() => {
-                  setVideoPlaying(false);
-                  accumulateWatchTime(true);
-                  isPlayingRef.current = false;
-                  stopProgressTimer();
-                  saveCurrentProgress();
-                }}
-                onEnded={() => {
-                  setVideoPlaying(false);
-                  setVideoTime(videoDuration || durationSecondsRef.current);
-                  accumulateWatchTime(true);
-                  isPlayingRef.current = false;
-                  stopProgressTimer();
-                  saveCurrentProgress();
-                }}
+                onPause={() => handlePlaybackStop(true)}
+                onEnded={() => handlePlaybackStop(true, true)}
               />
-            ) : selectedLesson?.videoUrl ? (
-              <div ref={youtubeContainerRef} className="youtube-player-wrapper" />
+            ) : selectedLesson.videoUrl ? (
+              <div
+                ref={youtubeContainerRef}
+                className="youtube-player-wrapper"
+              />
             ) : (
               <div className="course-player-no-selection">
                 <Video size={50} />
@@ -1124,18 +1524,28 @@ function CoursePlayer() {
                   <span className="lesson-label">CURRENT LESSON</span>
                   <h2>{selectedLesson.title}</h2>
                 </div>
+
                 {savingProgress && (
                   <span className="progress-saving">Saving progress...</span>
                 )}
               </div>
 
-              {selectedLesson.description && <p>{selectedLesson.description}</p>}
+              {progressError && (
+                <p role="status" style={{ color: "#b45309" }}>
+                  {progressError}
+                </p>
+              )}
+
+              {selectedLesson.description && (
+                <p>{selectedLesson.description}</p>
+              )}
 
               <div className="lesson-information-meta">
                 <div className="lesson-meta-item">
                   <Clock size={15} />
                   <span>
-                    Watched {formatTime(
+                    Watched{" "}
+                    {formatTime(
                       progressMap[Number(selectedLesson.id)]?.watchedSeconds || 0
                     )}
                   </span>
@@ -1150,7 +1560,9 @@ function CoursePlayer() {
                 <div className="lesson-progress-main-track">
                   <div
                     className="lesson-progress-main-fill"
-                    style={{ width: `${getLessonPercentage(selectedLesson)}%` }}
+                    style={{
+                      width: `${getLessonPercentage(selectedLesson)}%`,
+                    }}
                   />
                 </div>
               </div>
