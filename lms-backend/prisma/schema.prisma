@@ -1,12 +1,10 @@
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 model User {
   id                   Int                    @id @default(autoincrement())
   name                 String
@@ -38,7 +36,6 @@ model User {
   reviews              Review[]
   User                 User?                  @relation("UserToUser", fields: [invitedBy], references: [id], onUpdate: NoAction)
   other_User           User[]                  @relation("UserToUser")
-
   @@index([email], map: "idx_user_email")
   @@index([isActive], map: "idx_user_isActive")
   @@index([role], map: "idx_user_role")
@@ -83,7 +80,6 @@ model Category {
   updatedAt   DateTime @updatedAt
   courses     Course[]
 }
-
 model Course {
   id                     Int                      @id @default(autoincrement())
   title                  String
@@ -116,7 +112,6 @@ model Course {
   Quiz                   Quiz[]
   reviews                Review[]
 }
-
 model CourseModule {
   id                     Int                      @id @default(autoincrement())
   title                  String
